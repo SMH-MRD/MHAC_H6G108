@@ -151,12 +151,9 @@
     <ClInclude Include="CClientService.h" />
     <ClInclude Include="CEnvironment.h" />
     <ClInclude Include="CHelper.h" />
-    <ClInclude Include="common_def.h" />
     <ClInclude Include="CPolicy.h" />
     <ClInclude Include="CRK4.h" />
     <ClInclude Include="CSCADA.h" />
-    <ClInclude Include="CSharedMem.h" />
-    <ClInclude Include="CSpec.h" />
     <ClInclude Include="CTaskObj.h" />
     <ClInclude Include="CVector3.h" />
     <ClInclude Include="framework.h" />

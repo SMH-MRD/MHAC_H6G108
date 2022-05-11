@@ -153,6 +153,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\MAIN\CSharedMem.cpp" />
     <ClCompile Include="SIM.cpp" />
   </ItemGroup>
   <ItemGroup>

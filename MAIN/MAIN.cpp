@@ -3,7 +3,6 @@
 
 #include "framework.h"
 #include "MAIN.h"
-#include "CSpec.h"
 
 #include "CTaskObj.h"		//タスクスレッドのクラス
 #include "CHelper.h"		//補助関数集合クラス
@@ -32,8 +31,6 @@ LPWSTR          pszInifile;					    // iniファイルのパス
 wstring         wstrPathExeFolder;				// 実行ファイル格納フォルダのパス
 wstring         wstrPathLogFolder;				// ログファイル格納フォルダのパス
 wstring         wstrPathImgFolder;				// 画像ファイル格納フォルダのパス
-
-CSpec*          gspec;				            // クレーン仕様定義クラスインスタンス
 
 vector<void*>	VectpCTaskObj;	                //タスクオブジェクトのポインタ
 ST_iTask        g_itask;	                    //タスクオブジェクトのインデックス
@@ -99,9 +96,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // クレーン仕様定義クラスインスタンス化
-    gspec = new CSpec;
-    
+     
     // 共有メモリオブジェクトのインスタンス化
     pCraneStatusObj         = new CCraneStatus;
     pSwayStatusObj          = new CSwayStatus;

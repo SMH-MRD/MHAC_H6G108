@@ -13,3 +13,11 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+
+// プログラムに必要な追加ヘッダー
+#include <string>
+#include <time.h>
+#include <vector>
+
+//マルチメディアタイマー用
+#include <mmsystem.h>

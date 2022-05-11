@@ -3,6 +3,10 @@
 
 #include "framework.h"
 #include "SIM.h"
+#include "CSharedMem.h"	    //共有メモリクラス
+
+#include <windowsx.h>       //コモンコントロール用
+#include <commctrl.h>       //コモンコントロール用
 
 #define MAX_LOADSTRING 100
 
@@ -11,11 +15,33 @@ HINSTANCE hInst;                                // 現在のインターフェ�
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
 WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
+//-共有メモリオブジェクトポインタ:
+CCraneStatus* pCraneStatusObj;
+CSwayStatus* pSwayStatusObj;
+CSimulationStatus* pSimulationStatusObj;
+CPLCIO* pPLCIO_Obj;
+CSwayIO* pSwayIO_Obj;
+CRemoteIO* pRemoteIO_Obj;
+CJobStatus* pJobStatusObj;
+CCommandStatus* pCommandStatusObj;
+CExecStatus* pExecStatusObj;
+
+//-共有メモリポインタ:
+LPST_SIMULATION_STATUS pSimStat;
+
+
+
+
+static HWND                 hWnd_status_bar;    //ステータスバーのウィンドウのハンドル
+
+
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+HWND CreateStatusbarMain(HWND hWnd);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -24,8 +50,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
-
-    // TODO: ここにコードを挿入してください。
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -54,7 +78,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
-
 
 
 //
@@ -97,13 +120,30 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+       MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,
+       MAIN_WND_INIT_SIZE_W, MAIN_WND_INIT_SIZE_H,
+       nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
       return FALSE;
    }
+
+   // 共有メモリオブジェクトのインスタンス化
+   pCraneStatusObj = new CCraneStatus;
+   pSwayStatusObj = new CSwayStatus;
+   pSimulationStatusObj = new CSimulationStatus;
+   pPLCIO_Obj = new CPLCIO;
+   pSwayIO_Obj = new CSwayIO;
+   pRemoteIO_Obj = new CRemoteIO;
+   pJobStatusObj = new CJobStatus;
+   pCommandStatusObj = new CCommandStatus;
+   pExecStatusObj = new CExecStatus;
+
+   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS))) return(FALSE);
+
+   LPST_SIMULATION_STATUS pSimStat = (LPST_SIMULATION_STATUS)pSimulationStatusObj->get_writePtr();
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
@@ -125,6 +165,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_CREATE:
+    {
+        //メインウィンドウにステータスバー付加
+        hWnd_status_bar = CreateStatusbarMain(hWnd);
+    }
+    break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -177,4 +223,31 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+///#　*****************************************************************************************************************
+//  関数: CreateStatusbarMain(HWND)
+//
+//  目的: メイン ウィンドウ下部にアプリケーションの状態を表示用のステータスバーを配置します。
+//  
+HWND CreateStatusbarMain(HWND hWnd)
+{
+    HWND hSBWnd;
+    int sb_size[] = { 100,200,300,400,525,615 };//ステータス区切り位置
+
+    InitCommonControls();
+    hSBWnd = CreateWindowEx(
+        0,                          //拡張スタイル
+        STATUSCLASSNAME,            //ウィンドウクラス
+        NULL,                       //タイトル
+        WS_CHILD | SBS_SIZEGRIP,    //ウィンドウスタイル
+        0, 0, //位置
+        0, 0, //幅、高さ
+        hWnd, //親ウィンドウ
+        (HMENU)ID_STATUS,           //ウィンドウのＩＤ
+        hInst,                      //インスタンスハンドル
+        NULL);
+     SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)6, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
+    ShowWindow(hSBWnd, SW_SHOW);
+    return hSBWnd;
 }
