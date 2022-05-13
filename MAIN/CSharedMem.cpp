@@ -28,14 +28,12 @@ CSharedMem::~CSharedMem()
 
 - 戻り値　0:正常完了　-1,-2:異常完了
 ****************************************************************************************************************************************************/
-int CSharedMem::create_smem(LPCTSTR szName, DWORD dwSize) 
+int CSharedMem::create_smem(LPCTSTR szName, DWORD dwSize, LPCTSTR szMuName)
 {
 	DWORD	highByte = 0;			// 共有メモリは32bitサイズ以内を想定
 	DWORD	lowByte;
 
-	if (use_double_buff)lowByte = dwSize * 2;		// 32bitサイズ以上は定義不可
-	else lowByte = dwSize;
-
+	lowByte = dwSize;		// 32bitサイズ以上は定義不可
 	data_size = dwSize;
 
 	// 初期化
@@ -68,6 +66,9 @@ int CSharedMem::create_smem(LPCTSTR szName, DWORD dwSize)
 
 	clear_smem();
 
+	hMutex= CreateMutex(NULL, FALSE, szMuName);
+	if (hMutex == NULL) return ERR_SHMEM_MUTEX;
+
 	return(OK_SHMEM);
 
 }
@@ -79,6 +80,8 @@ int CSharedMem::create_smem(LPCTSTR szName, DWORD dwSize)
 ****************************************************************************************************************************************************/
 int CSharedMem::delete_smem() {
 	int		ret = OK_SHMEM;		// 関数ステータス
+
+	CloseHandle(hMutex);
 
 	if (pMapTop != NULL) {
 		if (!UnmapViewOfFile(pMapTop)) {	// ファイル・ビューの削除

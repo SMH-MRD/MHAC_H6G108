@@ -16,6 +16,18 @@
 #define SMEM_COMMAND_STATUS_NAME		L"COMMAND_STATUS"
 #define SMEM_EXEC_STATUS_NAME			L"EXEC_STATUS"
 
+#define MUTEX_CRANE_STATUS_NAME			L"MU_CRANE_STATUS"
+#define MUTEX_SWAY_STATUS_NAME			L"MU_SWAY_STATUS"
+#define MUTEX_OPERATION_STATUS_NAME		L"MU_OPERATION_STATUS"
+#define MUTEX_FAULT_STATUS_NAME			L"MU_FAULT_STATUS"
+#define MUTEX_SIMULATION_STATUS_NAME	L"MU_SIMULATION_STATUS"
+#define MUTEX_PLC_IO_NAME				L"MU_PLC_IO"
+#define MUTEX_SWAY_IO_NAME				L"MU_SWAY_IO"
+#define MUTEX_REMOTE_IO_NAME			L"MU_REMOTE_IO"
+#define MUTEX_JOB_STATUS_NAME			L"MU_JOB_STATUS"
+#define MUTEX_COMMAND_STATUS_NAME		L"MU_COMMAND_STATUS"
+#define MUTEX_EXEC_STATUS_NAME			L"MU_EXEC_STATUS"
+
 #define SMEM_OBJ_ID_CRANE_STATUS		0
 #define SMEM_OBJ_ID_SWAY_STATUS			1
 #define SMEM_OBJ_ID_OPERATION_STATUS	2
@@ -33,6 +45,7 @@
 #define	ERR_SHMEM_CREATE				-1	// 共有メモリ Create異常
 #define	ERR_SHMEM_VIEW					-2	// 共有メモリ View異常
 #define	ERR_SHMEM_NOT_AVAILABLE			-3	// 共有メモリ View異常
+#define	ERR_SHMEM_MUTEX					-4	// 共有メモリ View異常
 
 #define SMEM_DATA_SIZE_MAX				1000000	//共有メモリ割り当て最大サイズ　1Mbyte	
 
@@ -333,7 +346,7 @@ public:
 	LPVOID get_writePtr() {	if(ibuf_write) return buf1Ptr; else return buf0Ptr;}
 	LPVOID get_readPtr() { if(ibuf_write) return buf0Ptr; else return buf1Ptr;}
 
-	int create_smem(LPCTSTR szName, DWORD dwSize);
+	int create_smem(LPCTSTR szName, DWORD dwSize, LPCTSTR szMuName);
 	int delete_smem();
 
 	virtual int update();
@@ -346,6 +359,8 @@ protected:
 	HANDLE hMapFile;
 	LPVOID pMapTop;
 	DWORD  dwExist;
+
+	HANDLE hMutex;
 
 	LPVOID buf0Ptr;
 	LPVOID buf1Ptr;

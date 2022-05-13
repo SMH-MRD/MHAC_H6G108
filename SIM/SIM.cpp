@@ -141,7 +141,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    pCommandStatusObj = new CCommandStatus;
    pExecStatusObj = new CExecStatus;
 
-   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS))) return(FALSE);
+   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
 
    LPST_SIMULATION_STATUS pSimStat = (LPST_SIMULATION_STATUS)pSimulationStatusObj->get_writePtr();
 

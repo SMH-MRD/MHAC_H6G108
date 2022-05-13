@@ -203,15 +203,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    pszInifile = dstpath;
 
   ///-共有メモリ割付/設定##################
-   if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME,  sizeof(ST_CRANE_STATUS))) return(FALSE);
-   if (OK_SHMEM != pSwayStatusObj->create_smem(SMEM_SWAY_STATUS_NAME,  sizeof(ST_SWAY_STATUS))) return(FALSE);
-   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS))) return(FALSE);
-   if (OK_SHMEM != pPLCIO_Obj->create_smem(SMEM_PLC_IO_NAME,  sizeof(ST_PLC_IO))) return(FALSE);
-   if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME,  sizeof(ST_SWAY_IO))) return(FALSE);
-   if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME,  sizeof(ST_REMOTE_IO))) return(FALSE);
-   if (OK_SHMEM != pJobStatusObj->create_smem(SMEM_JOB_STATUS_NAME,  sizeof(ST_JOB_STATUS))) return(FALSE);
-   if (OK_SHMEM != pCommandStatusObj->create_smem(SMEM_COMMAND_STATUS_NAME,  sizeof(ST_COMMAND_STATUS))) return(FALSE);
-   if (OK_SHMEM != pExecStatusObj->create_smem(SMEM_EXEC_STATUS_NAME,  sizeof(ST_EXEC_STATUS))) return(FALSE);
+   if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME,  sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) return(FALSE);
+   if (OK_SHMEM != pSwayStatusObj->create_smem(SMEM_SWAY_STATUS_NAME,  sizeof(ST_SWAY_STATUS), MUTEX_SWAY_STATUS_NAME)) return(FALSE);
+   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
+   if (OK_SHMEM != pPLCIO_Obj->create_smem(SMEM_PLC_IO_NAME,  sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) return(FALSE);
+   if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME,  sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
+   if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME,  sizeof(ST_REMOTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
+   if (OK_SHMEM != pJobStatusObj->create_smem(SMEM_JOB_STATUS_NAME,  sizeof(ST_JOB_STATUS),MUTEX_JOB_STATUS_NAME)) return(FALSE);
+   if (OK_SHMEM != pCommandStatusObj->create_smem(SMEM_COMMAND_STATUS_NAME,  sizeof(ST_COMMAND_STATUS),MUTEX_COMMAND_STATUS_NAME)) return(FALSE);
+   if (OK_SHMEM != pExecStatusObj->create_smem(SMEM_EXEC_STATUS_NAME,  sizeof(ST_EXEC_STATUS), MUTEX_EXEC_STATUS_NAME)) return(FALSE);
    
   /// -タスク設定##################
    //タスクオブジェクト個別設定
