@@ -5,14 +5,11 @@
 CSharedMem::CSharedMem()
 {
 	smem_available = L_OFF;			//共有メモリ無効
-	data_size = set_data_size();		//データサイズ
+	data_size = SMEM_DATA_SIZE_MAX;	//データサイズ
 	hMapFile = NULL;
 	pMapTop = smem_dummy_buf;
 	dwExist = 0;
-	buf0Ptr = smem_dummy_buf;
-	buf1Ptr = smem_dummy_buf;
-	ibuf_write = 0;
-	use_double_buff = false;		//ダブルバッファ利用の選択
+	hMutex = NULL;
 }
 
 CSharedMem::~CSharedMem()
@@ -26,7 +23,7 @@ CSharedMem::~CSharedMem()
 	-入力　LPCTSTR szName：共有メモリ名, DWORD dwSize：確保するサイズ,
 	-出力　HANDLE* hMapFile：ファイルマップオブジェクトハンドル, LPVOID* pMapTop:共有メモリ先頭アドレス, DWORD* dwExist:　GetLastError()エラー有り
 
-- 戻り値　0:正常完了　-1,-2:異常完了
+- 戻り値　0:正常完了　負号:異常完了
 ****************************************************************************************************************************************************/
 int CSharedMem::create_smem(LPCTSTR szName, DWORD dwSize, LPCTSTR szMuName)
 {
@@ -41,12 +38,12 @@ int CSharedMem::create_smem(LPCTSTR szName, DWORD dwSize, LPCTSTR szMuName)
 	pMapTop = NULL;
 	dwExist = L_OFF;
 	wstr_smem_name = szName;
-
 	smem_available = L_OFF;
 
 	// ファイル・マッピング・オブジェクトを作成(ページファイルを使用 ,セキュリティ属性なし ,読み込み/書き込みアクセス ,共有メモリのサイズ ,共有メモリ名)
 	hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, highByte, lowByte, szName);
 	if (hMapFile == NULL) {
+		smem_available = L_OFF;
 		return(ERR_SHMEM_CREATE);
 	}
 	else {
@@ -58,19 +55,17 @@ int CSharedMem::create_smem(LPCTSTR szName, DWORD dwSize, LPCTSTR szMuName)
 			hMapFile = NULL; pMapTop = NULL;
 			return(ERR_SHMEM_VIEW);
 		}
-
 		smem_available = L_ON;
-		buf0Ptr = pMapTop;
-		if (use_double_buff) buf1Ptr = (char*)pMapTop + data_size; else buf1Ptr = pMapTop;
 	}
 
 	clear_smem();
 
 	hMutex= CreateMutex(NULL, FALSE, szMuName);
-	if (hMutex == NULL) return ERR_SHMEM_MUTEX;
-
+	if (hMutex == NULL) {
+		smem_available = L_OFF;
+		return ERR_SHMEM_MUTEX;
+	}
 	return(OK_SHMEM);
-
 }
 
 /****************************************************************************************************************************************************
@@ -114,31 +109,5 @@ int CSharedMem::clear_smem() {
 	memset(pMapTop, 0, data_size);
 	
 	return(OK_SHMEM);
-}
-
-/****************************************************************************************************************************************************
-共有メモリを更新する
-- 引数　なし
-- 戻り値　0,1:正常完了,　負号:異常完了
-****************************************************************************************************************************************************/
-int CSharedMem::update() {
-	
-	//共有メモリ未完
-	if (!smem_available) 
-		return ERR_SHMEM_NOT_AVAILABLE;
-	
-	if (ibuf_write)	ibuf_write = 0;
-	else				ibuf_write = 1;
-	
-	return ibuf_write;
-}
-
-/****************************************************************************************************************************************************
-共有メモリを更新する
-- 引数　なし
-- 戻り値　0,1:正常完了,　負号:異常完了
-****************************************************************************************************************************************************/
-int CSharedMem::set_data_size() {
-	return SMEM_DATA_SIZE_MAX;
 }
 

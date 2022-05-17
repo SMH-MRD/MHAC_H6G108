@@ -1,12 +1,14 @@
-﻿// SIM.cpp : アプリケーションのエントリ ポイントを定義します。
+﻿// PLC_IF.cpp : アプリケーションのエントリ ポイントを定義します。
 //
 
 #include "framework.h"
-#include "SIM.h"
+#include "PLC_IF.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include <windowsx.h>       //# コモンコントロール用
 #include <commctrl.h>       //# コモンコントロール用
+
+
 
 #define MAX_LOADSTRING 100
 
@@ -15,20 +17,15 @@ HINSTANCE hInst;                                // 現在のインターフェ�
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
 WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
+//# ステータスバーのウィンドウのハンドル
+static HWND hWnd_status_bar;
+static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
+
 //# 共有メモリオブジェクトポインタ:
 CSharedMem* pCraneStatusObj;
-CSharedMem* pSwayStatusObj;
 CSharedMem* pSimulationStatusObj;
 CSharedMem* pPLCIO_Obj;
-CSharedMem* pSwayIO_Obj;
-CSharedMem* pRemoteIO_Obj;
-CSharedMem* pJobStatusObj;
-CSharedMem* pCommandStatusObj;
 CSharedMem* pExecStatusObj;
-
-//# ステータスバーのウィンドウのハンドル
-static HWND hWnd_status_bar;   
-static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
 
 
 // このコード モジュールに含まれる関数の宣言を転送します:
@@ -41,8 +38,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 HWND CreateStatusbarMain(HWND hWnd);
 
 //# マルチメディアタイマイベントコールバック関数
-VOID CALLBACK alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2); 
-
+VOID CALLBACK alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -53,9 +49,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
+    // TODO: ここにコードを挿入してください。
+
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_SIM, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_PLCIF, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // アプリケーション初期化の実行:
@@ -64,7 +62,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SIM));
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_PLCIF));
 
     MSG msg;
 
@@ -80,6 +78,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
+
 
 
 //
@@ -98,10 +97,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SIM));
+    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_PLCIF));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_SIM);
+    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_PLCIF);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -122,7 +121,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
-   //# メインウィンドウクリエイト
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
        MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,
        MAIN_WND_INIT_SIZE_W, MAIN_WND_INIT_SIZE_H,
@@ -132,25 +130,28 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    {
       return FALSE;
    }
-
-   //# 共有メモリオブジェクトのインスタンス化
+ 
+   // 共有メモリオブジェクトのインスタンス化
    pCraneStatusObj = new CSharedMem;
-   pSwayStatusObj = new CSharedMem;
    pSimulationStatusObj = new CSharedMem;
    pPLCIO_Obj = new CSharedMem;
-   pSwayIO_Obj = new CSharedMem;
-   pRemoteIO_Obj = new CSharedMem;
-   pJobStatusObj = new CSharedMem;
-   pCommandStatusObj = new CSharedMem;
    pExecStatusObj = new CSharedMem;
 
-   //# 共有メモリ取得
+   // 共有メモリ取得
+ 
+   if (OK_SHMEM != pPLCIO_Obj->create_smem(SMEM_PLC_IO_NAME, sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) {
+       return(FALSE);
+   }
+   LPST_PLC_IO pPLC_IO = (LPST_PLC_IO)(pPLCIO_Obj->get_pMap());
+   HANDLE hmutex_PLC = pPLCIO_Obj->get_hmutex();
+
    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {
        return(FALSE);
    }
    LPST_SIMULATION_STATUS pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
    HANDLE hmutex_Sim = pSimulationStatusObj->get_hmutex();
 
+ 
    // タスクループ処理起動マルチメディアタイマ起動
    {
        // --マルチメディアタイマ精度設定
@@ -174,7 +175,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
            return((DWORD)FALSE);
        }
    }
-
+      
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -263,7 +264,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 HWND CreateStatusbarMain(HWND hWnd)
 {
     HWND hSBWnd;
-    int sb_size[] = { 50,200,300,400,515,615 };//ステータス区切り位置
+    int sb_size[] = { 100,200,295,400};//ステータス区切り位置
 
     InitCommonControls();
     hSBWnd = CreateWindowEx(
@@ -277,7 +278,7 @@ HWND CreateStatusbarMain(HWND hWnd)
         (HMENU)ID_STATUS,           //ウィンドウのＩＤ
         hInst,                      //インスタンスハンドル
         NULL);
-     SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)6, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
+    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)4, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
     ShowWindow(hSBWnd, SW_SHOW);
     return hSBWnd;
 }
@@ -292,7 +293,7 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
     LONG64 tmttl;
     knl_manage_set.sys_counter++;
 
-    //Statusバーに経過時間、デバッグモード表示
+    //Statusバーに経過時間表示
     if (knl_manage_set.sys_counter % 40 == 0) {// 1sec毎
 
         //起動後経過時間計算
@@ -305,19 +306,20 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
 
         TCHAR tbuf[32];
         wsprintf(tbuf, L"%3dD %02d:%02d:%02d", knl_manage_set.Knl_Time.wDay, knl_manage_set.Knl_Time.wHour, knl_manage_set.Knl_Time.wMinute, knl_manage_set.Knl_Time.wSecond);
-        SendMessage(hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
-
-        //デバッグモード表示   
+        SendMessage(hWnd_status_bar, SB_SETTEXT, 3, (LPARAM)tbuf);
+ 
+        //デバッグモード表示  
         LPST_CRANE_STATUS pst = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
-        if((pst->debug_mode.all) & DBG_PLC_IO){
-            TCHAR tbuf2[] = L"ACT";
+        if ((pst->debug_mode.all) & DBG_SIM_ACT) {
+            TCHAR tbuf2[] = L"DEBUG";
             SendMessage(hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf2);
         }
         else {
-            TCHAR tbuf2[] = L"PAUSE";
+            TCHAR tbuf2[] = L"NORMAL";
             SendMessage(hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf2);
         }
     }
     return;
 }
+
 

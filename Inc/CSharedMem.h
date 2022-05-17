@@ -157,6 +157,17 @@ typedef struct StSimulationStatus {
 /*   クレーン状態定義構造体                                          　   　*/
 /* 　Environmentタスクがセットする共有メモリ上の情報　　　　　　　 　    　 */
 /****************************************************************************/
+#define DBG_PLC_IO				0x0001
+#define DBG_SWAY_IO				0x0010
+#define DBG_ROS_IO				0x0100
+#define DBG_SIM_ACT				0X1000
+
+//デバッグモード設定共用体
+union Udebug_mode {
+	DWORD all;
+	UCHAR item[4];
+};
+
 //振れセンサ状態定義構造体
 typedef struct StSwayStatus {
 
@@ -164,12 +175,16 @@ typedef struct StSwayStatus {
 
 }ST_SWAY_STATUS, * LPST_SWAY_STATUS;
 
-#define N_PC_FAULT_WORDS		16	//PCフォルトの割り当てサイズ
+#define N_PC_FAULT_WORDS		16	//制御PC検出フォルトbitセットWORD数
+#define N_PLC_FAULT_WORDS		32  //PLC検出フォルトbitセットWORD数
+
 typedef struct StCraneStatus {
 	
+	Udebug_mode debug_mode;
 	ST_SPEC spec;
 	WORD notch_pos[MOTION_ID_MAX];
-	WORD faultPC[N_PC_FAULT_WORDS];
+	WORD faultPC[N_PC_FAULT_WORDS];//制御PC検出異常
+	WORD faultPLC[N_PLC_FAULT_WORDS];//制御PC検出異常
 	ST_SWAY_STATUS sway_stat;
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
@@ -266,11 +281,9 @@ typedef struct stCommandStat {				//運転要素
 	int status;									//コマンド実行状況
 	int elapsed;								//経過時間
 	int error_code;								//エラーコード　異常完了時
-	axis_check isnot_axis_completed;			//各軸実行中判定フラグ　0で完了
+	axis_check is_axis_imcomplete;			//各軸実行中判定フラグ　0で完了
 	LPST_MOTION_STAT p_motion_stat[M_AXIS];		//各軸実行ステータス構造体のアドレス
 }ST_COMMAND_STAT, * LPST_COMMAND_STAT;
-
-
 
 /********************************************************************************/
 /*   作業内容（JOB)定義構造体                                      　　　　　　	*/
@@ -327,9 +340,6 @@ typedef struct StExecStatus {
 
 static char smem_dummy_buf[SMEM_DATA_SIZE_MAX];
 
-
-
-
 /***********************************************************************
 クラス定義
 ************************************************************************/
@@ -340,20 +350,16 @@ public:
 	~CSharedMem();
 
 	int smem_available;			//共有メモリ有効
-	int data_size;				//データサイズ(1バッファ分）
-	bool use_double_buff;		//ダブルバッファ利用の選択
-
-	LPVOID get_writePtr() {	if(ibuf_write) return buf1Ptr; else return buf0Ptr;}
-	LPVOID get_readPtr() { if(ibuf_write) return buf0Ptr; else return buf1Ptr;}
+	int data_size;				//データサイズ
 
 	int create_smem(LPCTSTR szName, DWORD dwSize, LPCTSTR szMuName);
 	int delete_smem();
-
-	virtual int update();
-	virtual int set_data_size();
 	int clear_smem();
 
 	wstring wstr_smem_name;
+
+	HANDLE get_hmutex() { return hMutex; }
+	LPVOID get_pMap() { return pMapTop; }
 
 protected:
 	HANDLE hMapFile;
@@ -361,180 +367,4 @@ protected:
 	DWORD  dwExist;
 
 	HANDLE hMutex;
-
-	LPVOID buf0Ptr;
-	LPVOID buf1Ptr;
-	
-	int ibuf_write;//書き込みバッファのインデックス(0 or 1)
 };
-
-class CCraneStatus :public CSharedMem
-{
-public:
-	CCraneStatus() {}
-	~CCraneStatus() { delete_smem(); }
-	
-	int set_data_size() {
-		return sizeof(ST_CRANE_STATUS);
-	};
-
-	LPST_CRANE_STATUS pbuf_write(){
-		return (LPST_CRANE_STATUS)get_writePtr();
-	}
-	LPST_CRANE_STATUS pbuf_read() {
-		return (LPST_CRANE_STATUS)get_readPtr();
-	}
-};
-
-class CSwayStatus :public CSharedMem
-{
-public:
-	CSwayStatus() {}
-	~CSwayStatus() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_SWAY_STATUS);
-	}
-
-	LPST_SWAY_STATUS pbuf_write() {
-		return (LPST_SWAY_STATUS)get_writePtr();
-	}
-	LPST_SWAY_STATUS pbuf_read() {
-		return (LPST_SWAY_STATUS)get_readPtr();
-	}
-};
-
-class CSimulationStatus :public CSharedMem
-{
-public:
-	CSimulationStatus() {
-	}
-	~CSimulationStatus() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_SIMULATION_STATUS);
-	};
-
-	LPST_SIMULATION_STATUS pbuf_write() {
-		return (LPST_SIMULATION_STATUS)get_writePtr();
-	}
-	LPST_SIMULATION_STATUS pbuf_read() {
-		return (LPST_SIMULATION_STATUS)get_readPtr();
-	}
-
-};
-
-class CPLCIO :public CSharedMem
-{
-public:
-	CPLCIO() { memset(spd_fb, 0, sizeof(spd_fb[MOTION_ID_MAX])); }
-	~CPLCIO() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_PLC_IO);
-	};
-
-	LPST_PLC_IO pbuf_write() {
-		return (LPST_PLC_IO)get_writePtr();
-	}
-	LPST_PLC_IO pbuf_read() {
-		return (LPST_PLC_IO)get_readPtr();
-	}
-
-	double spd_fb[MOTION_ID_MAX];
-};
-
-class CSwayIO :public CSharedMem
-{
-public:
-	CSwayIO() {}
-	~CSwayIO() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_SWAY_IO);
-	};
-
-	LPST_SWAY_IO pbuf_write() {
-		return (LPST_SWAY_IO)get_writePtr();
-	}
-	LPST_SWAY_IO pbuf_read() {
-		return (LPST_SWAY_IO)get_readPtr();
-	}
-};
-
-class CRemoteIO :public CSharedMem
-{
-public:
-	CRemoteIO() {}
-	~CRemoteIO() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_REMOTE_IO);
-	};
-
-	LPST_REMOTE_IO pbuf_write() {
-		return (LPST_REMOTE_IO)get_writePtr();
-	}
-	LPST_REMOTE_IO pbuf_read() {
-		return (LPST_REMOTE_IO)get_readPtr();
-	}
-};
-
-
-class CJobStatus :public CSharedMem
-{
-public:
-	CJobStatus() { }
-	~CJobStatus() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_JOB_STATUS);
-	};
-
-	LPST_JOB_STATUS pbuf_write() {
-		return (LPST_JOB_STATUS)get_writePtr();
-	}
-	LPST_JOB_STATUS pbuf_read() {
-		return (LPST_JOB_STATUS)get_readPtr();
-	}
-};
-
-
-class CCommandStatus :public CSharedMem
-{
-public:
-	CCommandStatus() {}
-	~CCommandStatus() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_COMMAND_STATUS);
-	};
-
-	LPST_COMMAND_STATUS pbuf_write() {
-		return (LPST_COMMAND_STATUS)get_writePtr();
-	}
-	LPST_COMMAND_STATUS pbuf_read() {
-		return (LPST_COMMAND_STATUS)get_readPtr();
-	}
-
-};
-
-class CExecStatus :public CSharedMem
-{
-public:
-	CExecStatus() {}
-	~CExecStatus() { delete_smem(); }
-
-	int set_data_size() {
-		return sizeof(ST_EXEC_STATUS);
-	};
-
-	LPST_EXEC_STATUS pbuf_write() {
-		return (LPST_EXEC_STATUS)get_writePtr();
-	}
-	LPST_EXEC_STATUS pbuf_read() {
-		return (LPST_EXEC_STATUS)get_readPtr();
-	}
-
-};
-

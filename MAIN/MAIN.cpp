@@ -36,15 +36,15 @@ vector<void*>	VectpCTaskObj;	                //タスクオブジェクトのポ
 ST_iTask        g_itask;	                    //タスクオブジェクトのインデックス
 
 //-共有メモリオブジェクトポインタ:
-CCraneStatus*       pCraneStatusObj;
-CSwayStatus*        pSwayStatusObj;
-CSimulationStatus*  pSimulationStatusObj;
-CPLCIO*             pPLCIO_Obj;
-CSwayIO*            pSwayIO_Obj;
-CRemoteIO*          pRemoteIO_Obj;
-CJobStatus*         pJobStatusObj;
-CCommandStatus*     pCommandStatusObj;
-CExecStatus*        pExecStatusObj;
+CSharedMem*  pCraneStatusObj;
+CSharedMem*  pSwayStatusObj;
+CSharedMem*  pSimulationStatusObj;
+CSharedMem*  pPLCIO_Obj;
+CSharedMem*  pSwayIO_Obj;
+CSharedMem*  pRemoteIO_Obj;
+CSharedMem*  pJobStatusObj;
+CSharedMem*  pCommandStatusObj;
+CSharedMem*  pExecStatusObj;
                                                 
  //-スタティック変数:
 static HWND                 hWnd_status_bar;    //ステータスバーのウィンドウのハンドル
@@ -98,15 +98,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
      
     // 共有メモリオブジェクトのインスタンス化
-    pCraneStatusObj         = new CCraneStatus;
-    pSwayStatusObj          = new CSwayStatus;
-    pSimulationStatusObj    = new CSimulationStatus;
-    pPLCIO_Obj              = new CPLCIO;
-    pSwayIO_Obj             = new CSwayIO;
-    pRemoteIO_Obj           = new CRemoteIO;
-    pJobStatusObj           = new CJobStatus;
-    pCommandStatusObj       = new CCommandStatus;
-    pExecStatusObj          = new CExecStatus;
+    pCraneStatusObj         = new CSharedMem;
+    pSwayStatusObj          = new CSharedMem;
+    pSimulationStatusObj    = new CSharedMem;
+    pPLCIO_Obj              = new CSharedMem;
+    pSwayIO_Obj             = new CSharedMem;
+    pRemoteIO_Obj           = new CSharedMem;
+    pJobStatusObj           = new CSharedMem;
+    pCommandStatusObj       = new CSharedMem;
+    pExecStatusObj          = new CSharedMem;
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -202,7 +202,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    _wmakepath_s(dstpath, sizeof(dstpath) / 2, szDrive, szPath, NAME_OF_INIFILE, EXT_OF_INIFILE);
    pszInifile = dstpath;
 
-  ///-共有メモリ割付/設定##################
+  ///-共有メモリ割付&設定##################
    if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME,  sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) return(FALSE);
    if (OK_SHMEM != pSwayStatusObj->create_smem(SMEM_SWAY_STATUS_NAME,  sizeof(ST_SWAY_STATUS), MUTEX_SWAY_STATUS_NAME)) return(FALSE);
    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
@@ -216,7 +216,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
   /// -タスク設定##################
    //タスクオブジェクト個別設定
    Init_tasks(hWnd);
-
+   
    InvalidateRect(hWnd, NULL, FALSE); //WM_PAINTを発生させてアイコンを描画させる
    UpdateWindow(hWnd);
 
@@ -794,7 +794,7 @@ DWORD knlTaskStartUp()
 ///#　*****************************************************************************************************************
 //  関数: alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 //
-//  目的: マルチメディアタイマーイベント処理関数
+//  目的: マルチメディアタイマーイベントコールバック関数
 //  
 VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {

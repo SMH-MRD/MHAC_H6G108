@@ -24,6 +24,12 @@ CTaskObj::~CTaskObj() {
 	delete inf.hBmp;
 };//デストラクタ
 
+
+
+/****************************************************************************/
+/*   タスク初期化処理                                                       */
+/* 　メインスレッドでインスタンス化した後に呼びます。                       */
+/****************************************************************************/
 void CTaskObj::init_task(void* pobj) {
 	set_panel_tip_txt();
 	return;
@@ -188,6 +194,8 @@ LRESULT CALLBACK CTaskObj::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) 
 	}
 	return 0;
 };
+
+
 HWND CTaskObj::CreateOwnWindow(HWND h_parent_wnd) {
 
 	return inf.hWnd_work;

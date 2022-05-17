@@ -1,6 +1,7 @@
 #pragma once
 
 #include "resource.h"
+
 ///# ベース設定
 
 //-タスク設定
@@ -8,13 +9,13 @@
 #define SYSTEM_TICK_ms				25		//メインスレッド周期 msec
 
 //-Main Windowの配置設定
-#define MAIN_WND_INIT_SIZE_W		620		//-Main Windowの初期サイズ　W
-#define MAIN_WND_INIT_SIZE_H		420		//-Main Windowの初期サイズ　H
+#define MAIN_WND_INIT_SIZE_W		400		//-Main Windowの初期サイズ　W
+#define MAIN_WND_INIT_SIZE_H		200		//-Main Windowの初期サイズ　H
 #define MAIN_WND_INIT_POS_X			680		//-Main Windowの初期位置設定　X
-#define MAIN_WND_INIT_POS_Y			20		//-Main Windowの初期位置設定　Y
+#define MAIN_WND_INIT_POS_Y			450		//-Main Windowの初期位置設定　Y
 
 //-ID定義 Mainスレッド用　WM_USER + 1000 + 100 +α
-#define ID_STATUS					WM_USER + 1101
+#define ID_STATUS					WM_USER + 1201
 
 ///# タスク起動管理用構造体
 //-タスク設定

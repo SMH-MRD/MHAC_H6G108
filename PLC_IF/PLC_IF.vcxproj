@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{fbdee5ca-f61e-43d3-a388-0fc7d958e84b}</ProjectGuid>
-    <RootNamespace>MAIN</RootNamespace>
+    <ProjectGuid>{fe234c6a-5785-42b1-80fa-ebb61e05b23b}</ProjectGuid>
+    <RootNamespace>PLCIF</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -88,7 +88,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\inc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\inc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -120,7 +120,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\inc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -136,7 +136,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\inc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,43 +147,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CAgent.h" />
-    <ClInclude Include="CClientService.h" />
-    <ClInclude Include="CEnvironment.h" />
-    <ClInclude Include="CHelper.h" />
-    <ClInclude Include="CPolicy.h" />
-    <ClInclude Include="CRK4.h" />
-    <ClInclude Include="CSCADA.h" />
-    <ClInclude Include="CTaskObj.h" />
-    <ClInclude Include="CVector3.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="MAIN.h" />
+    <ClInclude Include="PLC_IF.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CAgent.cpp" />
-    <ClCompile Include="CClientService.cpp" />
-    <ClCompile Include="CEnvironment.cpp" />
-    <ClCompile Include="CHelper.cpp" />
-    <ClCompile Include="CPolicy.cpp" />
-    <ClCompile Include="CRK4.cpp" />
-    <ClCompile Include="CSCADA.cpp" />
-    <ClCompile Include="CSharedMem.cpp" />
-    <ClCompile Include="CTaskObj.cpp" />
-    <ClCompile Include="CVector3.cpp" />
-    <ClCompile Include="MAIN.cpp" />
+    <ClCompile Include="..\MAIN\CSharedMem.cpp" />
+    <ClCompile Include="PLC_IF.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="MAIN.rc" />
+    <ResourceCompile Include="PLC_IF.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Img\agent.bmp" />
-    <Image Include="..\Img\cs.bmp" />
-    <Image Include="..\Img\env.bmp" />
-    <Image Include="..\Img\policy.bmp" />
-    <Image Include="..\Img\scada.bmp" />
-    <Image Include="MAIN.ico" />
+    <Image Include="PLC_IF.ico" />
     <Image Include="small.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
