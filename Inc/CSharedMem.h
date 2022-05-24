@@ -84,10 +84,12 @@ typedef struct StPLCStatus {
 
 // PLC_IO構造体
 typedef struct StPLCIO {
+	DWORD mode;
+	BOOL is_debug_mode;
+	WORD helthy_cnt;
 	ST_PLC_UI ui;
 	ST_PLC_STATUS status;
 	WORD faultPLC[N_PLC_FAULT_WORDS];
-	BOOL is_debug_mode;
 }ST_PLC_IO, * LPST_PLC_IO;
 
 /****************************************************************************/
@@ -146,6 +148,7 @@ typedef struct StRemoteIO {
 /* 　SIM PROCがセットする共有メモリ上の情報　　　　　　　          　    　 */
 /****************************************************************************/
 typedef struct StSimulationStatus {
+	DWORD mode;
 	bool is_simproc_available;
 	bool is_simulation_active;
 	double spd_fb[MOTION_ID_MAX];
@@ -157,10 +160,10 @@ typedef struct StSimulationStatus {
 /*   クレーン状態定義構造体                                          　   　*/
 /* 　Environmentタスクがセットする共有メモリ上の情報　　　　　　　 　    　 */
 /****************************************************************************/
-#define DBG_PLC_IO				0x0001
-#define DBG_SWAY_IO				0x0010
-#define DBG_ROS_IO				0x0100
-#define DBG_SIM_ACT				0X1000
+#define DBG_PLC_IO				0x00000001
+#define DBG_SWAY_IO				0x00000100
+#define DBG_ROS_IO				0x00010000
+#define DBG_SIM_ACT				0X01000000
 
 //デバッグモード設定共用体
 union Udebug_mode {
@@ -179,8 +182,8 @@ typedef struct StSwayStatus {
 #define N_PLC_FAULT_WORDS		32  //PLC検出フォルトbitセットWORD数
 
 typedef struct StCraneStatus {
-	
-	Udebug_mode debug_mode;
+	DWORD env_act_count;			//ヘルシー信号
+	Udebug_mode debug_mode;			//他プロセスへのデバッグモード要求フラグ
 	ST_SPEC spec;
 	WORD notch_pos[MOTION_ID_MAX];
 	WORD faultPC[N_PC_FAULT_WORDS];//制御PC検出異常

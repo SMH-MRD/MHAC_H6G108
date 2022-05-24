@@ -3,12 +3,12 @@
 
 #include "framework.h"
 #include "PLC_IF.h"
+#include "CPLC_IF_CTRL.h"
+#include "CWorkWindow_PLC.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include <windowsx.h>       //# コモンコントロール用
 #include <commctrl.h>       //# コモンコントロール用
-
-
 
 #define MAX_LOADSTRING 100
 
@@ -18,21 +18,21 @@ WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキ�
 WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
 //# ステータスバーのウィンドウのハンドル
-static HWND hWnd_status_bar;
 static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
+static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
+DWORD* psource_proc_counter=NULL;                    //メインプロセスのヘルシーカウンタ
 
-//# 共有メモリオブジェクトポインタ:
-CSharedMem* pCraneStatusObj;
-CSharedMem* pSimulationStatusObj;
-CSharedMem* pPLCIO_Obj;
-CSharedMem* pExecStatusObj;
 
+CPLC_IF* pProcObj;      //メイン処理オブジェクト:
+CWorkWindow* pWorkWnd;  //作業ウィンドウオブジェクト:
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+LRESULT CALLBACK    WorkWndProc(HWND, UINT , WPARAM , LPARAM );
 
 //# ウィンドウにステータスバーを追加追加
 HWND CreateStatusbarMain(HWND hWnd);
@@ -78,7 +78,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
-
 
 
 //
@@ -130,28 +129,23 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    {
       return FALSE;
    }
- 
-   // 共有メモリオブジェクトのインスタンス化
-   pCraneStatusObj = new CSharedMem;
-   pSimulationStatusObj = new CSharedMem;
-   pPLCIO_Obj = new CSharedMem;
-   pExecStatusObj = new CSharedMem;
+   
+  // メイン処理オブジェクトインスタンス化
+   pProcObj = new CPLC_IF;                              // メイン処理クラスのインスタンス化
+   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
+   pProcObj->init_proc();                               // メイン処理クラスの初期化
 
-   // 共有メモリ取得
- 
-   if (OK_SHMEM != pPLCIO_Obj->create_smem(SMEM_PLC_IO_NAME, sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) {
-       return(FALSE);
-   }
-   LPST_PLC_IO pPLC_IO = (LPST_PLC_IO)(pPLCIO_Obj->get_pMap());
-   HANDLE hmutex_PLC = pPLCIO_Obj->get_hmutex();
+   //Workウィンドウオブジェクトインスタンス化
+   pWorkWnd = new CWorkWindow;
 
-   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {
-       return(FALSE);
-   }
-   LPST_SIMULATION_STATUS pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
-   HANDLE hmutex_Sim = pSimulationStatusObj->get_hmutex();
+  // stMainWnd.hWorkWnd = CreateDialog(hInst, L"IDD_OPERATION_PANEL", hWnd, (DLGPROC)WorkWndProc);
+  // ShowWindow(stMainWnd.hWorkWnd, nCmdShow);
 
- 
+   // メインウィンドウのステータスバーに制御モード表示
+   TCHAR tbuf[32];
+   wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
+   SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
+
    // タスクループ処理起動マルチメディアタイマ起動
    {
        // --マルチメディアタイマ精度設定
@@ -198,8 +192,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
     {
+        InitCommonControls();//コモンコントロール初期化
+
         //メインウィンドウにステータスバー付加
-        hWnd_status_bar = CreateStatusbarMain(hWnd);
+        stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
+        SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"NORMAL");
+
+        //メインウィンドウにコントロール追加
+        stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 5, 200, 20, hWnd, (HMENU)IDC_STATIC_0,hInst, NULL);
+
+        stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT",  WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            305, 90, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
+
+        stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            30, 40, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
     }
     break;
     case WM_COMMAND:
@@ -212,8 +219,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
             case IDM_EXIT:
+            case IDC_PB_EXIT:
                 DestroyWindow(hWnd);
                 break;
+            case IDC_PB_DEBUG:
+                if (!(pProcObj->mode & PLC_IF_PLC_DBG_MODE)) {
+                    pProcObj->set_debug_mode(L_ON);
+                    SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
+                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT,0, (LPARAM)L"NORMAL->");
+                    //オペレーションウィンドウオープン
+                     if (stMainWnd.hWorkWnd == NULL) {
+                        stMainWnd.hWorkWnd = pWorkWnd->open_WorkWnd(hWnd);
+                        ShowWindow(stMainWnd.hWorkWnd, SW_SHOW);
+                    }
+                }
+                else {
+                    pProcObj->set_debug_mode(L_OFF);
+                    SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
+                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
+                    //オペレーションウィンドウクローズ
+                    if (stMainWnd.hWorkWnd != NULL) {
+                        pWorkWnd->close_WorkWnd();
+                        stMainWnd.hWorkWnd = NULL;
+                    }
+                  }
+ 
+                TCHAR tbuf[32];
+                wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
+                SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
+                break;
+            
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
@@ -228,6 +263,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+  
+        timeKillEvent(knl_manage_set.KnlTick_TimerID);//マルチメディアタイマ停止
+        Sleep(100);//100msec待機
+        
+        delete pProcObj;   //メイン処理オブジェクト削除
+        delete pWorkWnd;   //Workウィンドウオブジェクト削除
+
         PostQuitMessage(0);
         break;
     default:
@@ -256,15 +298,15 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-///#　*****************************************************************************************************************
+///#　******************************************************************************************
 //  関数: CreateStatusbarMain(HWND)
 //
 //  目的: メイン ウィンドウ下部にアプリケーションの状態を表示用のステータスバーを配置します。
-//  
+//　******************************************************************************************  
 HWND CreateStatusbarMain(HWND hWnd)
 {
     HWND hSBWnd;
-    int sb_size[] = { 100,200,295,400};//ステータス区切り位置
+    int sb_size[] = { 60,120,180,240,290,360};//ステータス区切り位置
 
     InitCommonControls();
     hSBWnd = CreateWindowEx(
@@ -278,48 +320,33 @@ HWND CreateStatusbarMain(HWND hWnd)
         (HMENU)ID_STATUS,           //ウィンドウのＩＤ
         hInst,                      //インスタンスハンドル
         NULL);
-    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)4, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
+    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)6, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
     ShowWindow(hSBWnd, SW_SHOW);
     return hSBWnd;
 }
 
-///#　*****************************************************************************************************************
+///#　****************************************************************************************
 //  関数: alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
-//
-//  目的: マルチメディアタイマーイベント処理関数
-//  
+//  目的: アプリケーションメイン処理
+// 　マルチメディアタイマーイベント処理関数
+//  ******************************************************************************************
 VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-    LONG64 tmttl;
-    knl_manage_set.sys_counter++;
+     knl_manage_set.sys_counter++;
+      
+     TCHAR tbuf[32];
+     
+     pProcObj->input();     //入力
+     pProcObj->parse();      //データ解析処理
+     pProcObj->output();    //出力
 
-    //Statusバーに経過時間表示
-    if (knl_manage_set.sys_counter % 40 == 0) {// 1sec毎
+     //Statusバーにメインプロセスのカウンタ表示
+     if (psource_proc_counter != NULL) {
+         if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
+             wsprintf(tbuf, L"%08d", *psource_proc_counter);
+             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
+         }
+     }
 
-        //起動後経過時間計算
-        tmttl = (long long)knl_manage_set.sys_counter * knl_manage_set.cycle_base;//アプリケーション起動後の経過時間msec
-        knl_manage_set.Knl_Time.wMilliseconds = (WORD)(tmttl % 1000); tmttl /= 1000;
-        knl_manage_set.Knl_Time.wSecond = (WORD)(tmttl % 60); tmttl /= 60;
-        knl_manage_set.Knl_Time.wMinute = (WORD)(tmttl % 60); tmttl /= 60;
-        knl_manage_set.Knl_Time.wHour = (WORD)(tmttl % 60); tmttl /= 24;
-        knl_manage_set.Knl_Time.wDay = (WORD)(tmttl % 24);
-
-        TCHAR tbuf[32];
-        wsprintf(tbuf, L"%3dD %02d:%02d:%02d", knl_manage_set.Knl_Time.wDay, knl_manage_set.Knl_Time.wHour, knl_manage_set.Knl_Time.wMinute, knl_manage_set.Knl_Time.wSecond);
-        SendMessage(hWnd_status_bar, SB_SETTEXT, 3, (LPARAM)tbuf);
- 
-        //デバッグモード表示  
-        LPST_CRANE_STATUS pst = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
-        if ((pst->debug_mode.all) & DBG_SIM_ACT) {
-            TCHAR tbuf2[] = L"DEBUG";
-            SendMessage(hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf2);
-        }
-        else {
-            TCHAR tbuf2[] = L"NORMAL";
-            SendMessage(hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf2);
-        }
-    }
     return;
 }
-
-

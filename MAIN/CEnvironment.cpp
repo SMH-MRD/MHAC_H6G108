@@ -4,7 +4,7 @@
 extern CSharedMem* pCraneStatusObj;
 extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pSimulationStatusObj;
-extern CSharedMem* pPLCIO_Obj;
+extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pRemoteIO_Obj;
 extern CSharedMem* pJobStatusObj;
@@ -72,6 +72,8 @@ void CEnvironment::main_proc() {
 
 //定周期処理手順3　信号出力処理
 void CEnvironment::update_shared_data() {
+	//ヘルシーカウンタ
+	pCraneStat->env_act_count = inf.total_act;
 
 	return;
 

@@ -1,6 +1,19 @@
 #pragma once
 #include <windows.h>
 
+///#  共通フラグ
+#define     L_ON                        0x01  // ON
+#define     L_OFF                       0x00  // OFF
+
+///# 共通マクロ
+#ifndef MIN
+#  define MIN(a,b)  ((a) > (b) ? (b) : (a))
+#endif
+
+#ifndef MAX
+#  define MAX(a,b)  ((a) < (b) ? (b) : (a))
+#endif
+
 /*** 物理定数、係数 ***/
 #define GA				9.80665     //重力加速度
 
@@ -67,3 +80,18 @@
 #define AS_PTN_3TR          4   //3台形動作
 #define AS_PTN_TRTR         5   //台形＋台形動作(2段加減速）
 
+class CBasicControl
+{
+public:
+    LPVOID poutput = NULL;         //結果出力メモリ
+    DWORD  mode;                 //結果出力モード
+    DWORD  source_counter;       //メインプロセスのヘルシーカウンタ
+
+    CBasicControl() { mode = source_counter = 0; }
+    ~CBasicControl() {}
+    virtual int set_outbuf(LPVOID)=0;           //出力バッファセット
+    virtual int init_proc() = 0;                //初期化処理
+    virtual int input() = 0;                    //入力処理
+    virtual int parse() = 0;                     //メイン処理
+    virtual int output() = 0;                   //出力処理
+};

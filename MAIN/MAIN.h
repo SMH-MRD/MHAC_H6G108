@@ -91,4 +91,4 @@ typedef struct stKnlManageSetTag {
 	unsigned long sys_counter = 0;						//マルチメディア起動タイマカウンタ
 	SYSTEMTIME Knl_Time = {0,0,0,0,0,0,0,0};			//アプリケーション開始からの経過時間
 	unsigned int stackSize = INITIAL_TASK_STACK_SIZE;	//タスクの初期スタックサイズ
-}ST_KNL_MANAGE_SET, * PSTT_KNL_MANAGE_SET;
+}ST_KNL_MANAGE_SET, * LPST_KNL_MANAGE_SET;

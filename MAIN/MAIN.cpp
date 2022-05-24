@@ -39,7 +39,7 @@ ST_iTask        g_itask;	                    //タスクオブジェクトのイ
 CSharedMem*  pCraneStatusObj;
 CSharedMem*  pSwayStatusObj;
 CSharedMem*  pSimulationStatusObj;
-CSharedMem*  pPLCIO_Obj;
+CSharedMem*  pPLCioObj;
 CSharedMem*  pSwayIO_Obj;
 CSharedMem*  pRemoteIO_Obj;
 CSharedMem*  pJobStatusObj;
@@ -101,7 +101,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     pCraneStatusObj         = new CSharedMem;
     pSwayStatusObj          = new CSharedMem;
     pSimulationStatusObj    = new CSharedMem;
-    pPLCIO_Obj              = new CSharedMem;
+    pPLCioObj              = new CSharedMem;
     pSwayIO_Obj             = new CSharedMem;
     pRemoteIO_Obj           = new CSharedMem;
     pJobStatusObj           = new CSharedMem;
@@ -206,7 +206,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME,  sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) return(FALSE);
    if (OK_SHMEM != pSwayStatusObj->create_smem(SMEM_SWAY_STATUS_NAME,  sizeof(ST_SWAY_STATUS), MUTEX_SWAY_STATUS_NAME)) return(FALSE);
    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
-   if (OK_SHMEM != pPLCIO_Obj->create_smem(SMEM_PLC_IO_NAME,  sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) return(FALSE);
+   if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME,  sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME,  sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME,  sizeof(ST_REMOTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pJobStatusObj->create_smem(SMEM_JOB_STATUS_NAME,  sizeof(ST_JOB_STATUS),MUTEX_JOB_STATUS_NAME)) return(FALSE);
@@ -364,17 +364,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_DESTROY:
         {
-            ///-共有メモリ割付/設定##################
-            pCraneStatusObj->delete_smem();
-            pSwayStatusObj->delete_smem();
-            pSimulationStatusObj->delete_smem();
-            pPLCIO_Obj->delete_smem();
-            pSwayIO_Obj->delete_smem();
-            pRemoteIO_Obj->delete_smem();
-            pJobStatusObj->delete_smem();
-            pCommandStatusObj->delete_smem();
-            pExecStatusObj->delete_smem();
-            PostQuitMessage(0);
+           
+        timeKillEvent(knl_manage_set.KnlTick_TimerID);//マルチメディアタイマ停止
+        Sleep(100);//100msec待機      
+
+         ///-共有メモリ解放##################
+         pCraneStatusObj->delete_smem();
+         pSwayStatusObj->delete_smem();
+         pSimulationStatusObj->delete_smem();
+         pPLCioObj->delete_smem();
+         pSwayIO_Obj->delete_smem();
+         pRemoteIO_Obj->delete_smem();
+         pJobStatusObj->delete_smem();
+         pCommandStatusObj->delete_smem();
+         pExecStatusObj->delete_smem();
+  
+         PostQuitMessage(0);
          }
         break;
     default:

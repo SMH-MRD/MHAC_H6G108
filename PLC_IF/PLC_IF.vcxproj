@@ -147,6 +147,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CPLC_IF_CTRL.h" />
+    <ClInclude Include="CWorkWindow_PLC.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="PLC_IF.h" />
     <ClInclude Include="Resource.h" />
@@ -154,6 +156,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\MAIN\CSharedMem.cpp" />
+    <ClCompile Include="CPLC_IF_CTRL.cpp" />
+    <ClCompile Include="CWorkWindow_PLC.cpp" />
     <ClCompile Include="PLC_IF.cpp" />
   </ItemGroup>
   <ItemGroup>

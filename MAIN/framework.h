@@ -22,17 +22,3 @@
 //マルチメディアタイマー用
 #include <mmsystem.h>
 
-///#  共通フラグ
-#define     L_ON                        0x01  // ON
-#define     L_OFF                       0x00  // OFF
-
-
-
-///# 共通マクロ
-#ifndef MIN
-#  define MIN(a,b)  ((a) > (b) ? (b) : (a))
-#endif
-
-#ifndef MAX
-#  define MAX(a,b)  ((a) < (b) ? (b) : (a))
-#endif

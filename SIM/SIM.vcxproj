@@ -147,6 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CWorkWindow_SIM.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SIM.h" />
@@ -154,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\MAIN\CSharedMem.cpp" />
+    <ClCompile Include="CWorkWindow_SIM.cpp" />
     <ClCompile Include="SIM.cpp" />
   </ItemGroup>
   <ItemGroup>
