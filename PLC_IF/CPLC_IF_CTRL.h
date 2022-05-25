@@ -55,8 +55,8 @@ private:
     CSharedMem* pSimulationStatusObj;
     CSharedMem* pExecStatusObj;
 
-    ST_PLC_LINK plc_link;
-    ST_PLC_IO plc_io_work;
+    ST_PLC_LINK plc_link;       //PLCリンクバッファの内容
+    ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ
 
 public:
     CPLC_IF();
@@ -68,13 +68,16 @@ public:
     int set_outbuf(LPVOID); //出力バッファセット
     int init_proc();        //初期化処理
     int input();            //入力処理
-    int parse();             //メイン処理
+    int parse();            //メイン処理
     int output();           //出力処理
 
     //追加メソッド
+    int set_debug_status(); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
+    
     void set_debug_mode(int id) {
         if (id) mode |= PLC_IF_PLC_DBG_MODE;
         else    mode &= ~PLC_IF_PLC_DBG_MODE;
     }
+
     int is_debug_mode() { return(mode & PLC_IF_PLC_DBG_MODE); }
 };

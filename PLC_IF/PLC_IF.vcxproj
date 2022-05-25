@@ -150,6 +150,7 @@
     <ClInclude Include="CPLC_IF_CTRL.h" />
     <ClInclude Include="CWorkWindow_PLC.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="plcio_def.h" />
     <ClInclude Include="PLC_IF.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />

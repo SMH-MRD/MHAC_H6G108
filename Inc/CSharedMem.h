@@ -86,7 +86,7 @@ typedef struct StPLCStatus {
 typedef struct StPLCIO {
 	DWORD mode;
 	BOOL is_debug_mode;
-	WORD helthy_cnt;
+	DWORD helthy_cnt;
 	ST_PLC_UI ui;
 	ST_PLC_STATUS status;
 	WORD faultPLC[N_PLC_FAULT_WORDS];

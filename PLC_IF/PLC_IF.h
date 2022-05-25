@@ -32,7 +32,6 @@ typedef struct stMainWndTag {
 
 }ST_MAIN_WND, * LPST_MAIN_WND;
 
-
 //マルチメディアタイマー管理構造体
 #define TARGET_RESOLUTION			1		//マルチメディアタイマー分解能 msec
 #define SYSTEM_TICK_ms				25		//メインスレッド周期 msec

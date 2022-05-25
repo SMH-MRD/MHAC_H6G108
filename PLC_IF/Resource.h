@@ -13,7 +13,6 @@
 #define IDC_PLCIF                       109
 #define IDR_MAINFRAME                   128
 #define IDC_SLIDER_SLEW                 1000
-#define IDC_CHECK_CSOURCE1              1001
 #define IDC_CHECK_ESTOP                 1001
 #define IDC_SLIDER_BH                   1002
 #define IDC_SPIN_SLEW                   1003
@@ -39,7 +38,7 @@
 #define IDC_STATIC_SOURCE2_LABEL        1023
 #define IDC_BUTTON_AUTO_START           1025
 #define IDC_BUTTON_FROM1                1026
-#define IDC_BUTTON_AUTO_START2          1028
+#define IDC_BUTTON_AUTO_RESET           1028
 #define IDC_BUTTON_FROM2                1029
 #define IDC_BUTTON_FROM3                1030
 #define IDC_BUTTON_FROM4                1031

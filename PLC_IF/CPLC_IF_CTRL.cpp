@@ -1,4 +1,5 @@
 #include "CPLC_IF_CTRL.h"
+#include "plcio_def.h"
 
 CPLC_IF::CPLC_IF() {
     // 共有メモリオブジェクトのインスタンス化
@@ -6,6 +7,10 @@ CPLC_IF::CPLC_IF() {
     pCraneStatusObj = new CSharedMem;
     pSimulationStatusObj = new CSharedMem;
     pExecStatusObj = new CSharedMem;
+
+    out_size = 0;
+    memset(&plc_link,0,sizeof(ST_PLC_LINK)) ;       //PLCリンクバッファの内容
+    memset(&plc_io_workbuf,0,sizeof(ST_PLC_IO));   //共有メモリへの出力セット作業用バッファ
 };
 CPLC_IF::~CPLC_IF() {
     // 共有メモリオブジェクトの解放
@@ -19,10 +24,14 @@ int CPLC_IF::set_outbuf(LPVOID pbuf) {
     poutput = pbuf;return 0;
 };      //出力バッファセット
 
+//*********************************************************************************************
+// init_proc()
+//*********************************************************************************************
 int CPLC_IF::init_proc() {
 
     // 共有メモリ取得
-    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) {
+    out_size = sizeof(ST_PLC_IO);
+    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, out_size, MUTEX_PLC_IO_NAME)) {
         mode |= PLC_IF_PLC_IO_MEM_NG;
     }
     set_outbuf(pPLCioObj->get_pMap());
@@ -42,16 +51,57 @@ int CPLC_IF::init_proc() {
 
     return int(mode & 0xff00);
 }
+//*********************************************************************************************
+// input()
+//*********************************************************************************************
 int CPLC_IF::input() {
     LPST_CRANE_STATUS pcrane = (LPST_CRANE_STATUS)pCraneStatusObj->get_pMap();
+    LPST_SIMULATION_STATUS psim = (LPST_SIMULATION_STATUS)pSimulationStatusObj->get_pMap();
+    
+    //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pcrane->env_act_count;
+
+    //PLC 入力
 
     return 0;
 }
+//*********************************************************************************************
+// parse()
+//*********************************************************************************************
 int CPLC_IF::parse() { 
+
+    
+    //デバッグモード時は、操作パネルウィンドウの内容で上書き
+    if (is_debug_mode()) set_debug_status();
+
+    //PLCリンク入力を解析
+    if(B_HST_NOTCH_0)plc_io_workbuf.ui.notch_pos[ID_HOIST]=0;
+
+    //PLCリンク出力内容を解析
+
+
     return 0; 
 }
+//*********************************************************************************************
+// output()
+//*********************************************************************************************
 int CPLC_IF::output() { 
+    plc_io_workbuf.helthy_cnt = my_helthy_counter++;//ヘルシーカウンタセット
+
+    if (out_size) { //出力処理
+        memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
+    }
+
+    return 0;
+}
+//*********************************************************************************************
+// set_debug_status()
+//*********************************************************************************************
+int CPLC_IF::set_debug_status() {
+
+
+
+
     return 0;
 }
 

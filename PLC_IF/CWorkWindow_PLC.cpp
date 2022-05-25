@@ -3,6 +3,7 @@
 CWorkWindow::CWorkWindow() {}
 CWorkWindow::~CWorkWindow() {}
 HWND CWorkWindow::hWorkWnd;
+ST_PLC_DEBUG_PANEL CWorkWindow::stOpePaneStat;
 
 //# #######################################################################
 HWND CWorkWindow::open_WorkWnd(HWND hwnd) {
