@@ -3,6 +3,7 @@
 #include "framework.h"
 #include "common_def.h"
 #include "spec.h"
+#include "PLC_IO_DEF.h"
 
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
 #define SMEM_SWAY_STATUS_NAME			L"SWAY_STATUS"
@@ -58,15 +59,11 @@ using namespace std;
 #define PLC_PB_MAX              64 //運転操作ボタン登録最大数
 #define PLC_LAMP_MAX            64 //運転操作ボタン登録最大数
 #define PLC_CTRL_MAX            64 //運転操作ボタン登録最大数
-
-#ifndef PLC_PBL_ID //PLC IOの配列
-#endif // !PLC_PBL_ID
-
-#define N_PLC_FAULT_WORDS		32	//PLCフォルトの割り当てサイズ
+#define N_PLC_FAULTS			400	//PLCフォルトの割り当てサイズ
 
 // PLC_User IF信号構造体（機上運転室IO)
 typedef struct StPLCUI {
-	WORD notch_pos[MOTION_ID_MAX];
+	int notch_pos[MOTION_ID_MAX];
 	BOOL pb[PLC_PB_MAX];
 	BOOL lamp[PLC_LAMP_MAX];
 }ST_PLC_UI, * LPST_PLC_UI;
@@ -89,7 +86,7 @@ typedef struct StPLCIO {
 	DWORD helthy_cnt;
 	ST_PLC_UI ui;
 	ST_PLC_STATUS status;
-	WORD faultPLC[N_PLC_FAULT_WORDS];
+	CHAR faultPLC[N_PLC_FAULTS];
 }ST_PLC_IO, * LPST_PLC_IO;
 
 /****************************************************************************/

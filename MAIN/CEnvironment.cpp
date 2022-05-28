@@ -31,6 +31,7 @@ void CEnvironment::init_task(void* pobj) {
 
 	//共有クレーンステータス構造体のポインタセット
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
+	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 
 	//クレーン仕様セット
 	pCraneStat->spec = this->spec;
@@ -47,34 +48,49 @@ void CEnvironment::init_task(void* pobj) {
 /* 　タスクスレッドで毎周期実行される関数			　                      */
 /****************************************************************************/
 void CEnvironment::routine_work(void* param) {
-
-	wostrs << L" working!" << *(inf.psys_counter) % 100;
-	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
-
-	get_external_data();
+	input();
 	main_proc();
-	update_shared_data();
+	output();
 };
 
 //定周期処理手順1　外部信号入力
-void CEnvironment::get_external_data(){
+void CEnvironment::input(){
 
 	return;
 
 };
 
 //定周期処理手順2　メイン処理
+static DWORD plc_io_helthy_NGcount = 0;
+static DWORD plc_io_helthy_count_last = 0;
+static DWORD sim_helthy_NGcount = 0;
+static DWORD sim_helthy_count_last = 0;
+
 void CEnvironment::main_proc() {
+
+//サブプロセスチェック
+	if (plc_io_helthy_count_last == pPLC_IO->helthy_cnt ) plc_io_helthy_NGcount++;
+	else plc_io_helthy_NGcount = 0;
+	if (plc_io_helthy_NGcount > PLC_IO_HELTHY_NG_COUNT) st_subproc.is_plcio_join = false;
+	else st_subproc.is_plcio_join = true;
+	plc_io_helthy_count_last = pPLC_IO->helthy_cnt;
 
 	return;
 
 }
 
 //定周期処理手順3　信号出力処理
-void CEnvironment::update_shared_data() {
+void CEnvironment::output() {
 	//ヘルシーカウンタ
 	pCraneStat->env_act_count = inf.total_act;
 
+	wostrs << L" working!" << *(inf.psys_counter) % 100;
+	if (st_subproc.is_plcio_join == true) wostrs << L" ### PLC:JOIN";
+	else wostrs << L" ### PLC:NG";
+
+	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
+
+	
 	return;
 
 }; 

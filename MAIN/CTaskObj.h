@@ -53,32 +53,32 @@ typedef struct st_thread_info {
 	HBITMAP			hBmp;							//オブジェクト識別用ビットマップ
 
 	//-スレッド設定内容
-	int				index;							//スレッドIndex
-	unsigned int	ID;								//スレッドID
-	HANDLE			hndl;							//スレッドハンドル
+	int				index=0;						//スレッドIndex
+	unsigned int	ID=0;							//スレッドID
+	HANDLE			hndl=NULL;						//スレッドハンドル
 	HANDLE			hevents[TASK_EVENT_MAX];		//イベントハンドル
 	int				n_active_events = 1;			//有効なイベント数
-	int				event_triggered;				//発生したイベントの番号
-	unsigned int	cycle_ms;						//スレッド実行設定周期
-	unsigned int	cycle_count;					//スレッド実行設定周期　Tick count（ms/system tick)
-	int				trigger_type;					//スレッド起動条件　定周期orイベント
-	int				priority;						//スレッドのプライオリティ
-	int				thread_com;						//スレッド制御フラグ 　0:繰り返し　1:中断　それ以外：逐次処理:
+	int				event_triggered=0;				//発生したイベントの番号
+	unsigned int	cycle_ms=0;						//スレッド実行設定周期
+	unsigned int	cycle_count=0;					//スレッド実行設定周期　Tick count（ms/system tick)
+	int				trigger_type=0;					//スレッド起動条件　定周期orイベント
+	int				priority=0;						//スレッドのプライオリティ
+	int				thread_com=0;					//スレッド制御フラグ 　0:繰り返し　1:中断　それ以外：逐次処理:
 
 	//-スレッドモニタ情報
-	DWORD			start_time;						//現スキャンのスレッド開始時間
-	DWORD			act_time;						//1スキャンのスレッド実処理時間
-	DWORD			period;							//スレッドループ周期実績
-	DWORD			act_count;						//スレッドループカウンタ
-	DWORD			total_act;						//起動積算カウンタ
-	unsigned int	time_over_count;				//予定周期をオーバーした回数
+	DWORD			start_time=0;						//現スキャンのスレッド開始時間
+	DWORD			act_time=0;						//1スキャンのスレッド実処理時間
+	DWORD			period=0;						//スレッドループ周期実績
+	DWORD			act_count=0;					//スレッドループカウンタ
+	DWORD			total_act=0;					//起動積算カウンタ
+	unsigned int	time_over_count=0;				//予定周期をオーバーした回数
 
 	//-関連ウィンドウハンドル
-	HWND			hWnd_parent;					//親ウィンドウのハンドル
-	HWND			hWnd_msgStatics;				//親ウィンドウメッセージ表示用ウィンドウへのハンドル
-	HWND			hWnd_opepane;					//自メインウィンドウのハンドル（メインフレーム上に配置）
-	HWND			hWnd_msgList;					//自メインウィンドウのメッセージ表示用リストコントロールへのハンドル
-	HWND			hWnd_work;						//自専用作業用ウィンドウのハンドル
+	HWND			hWnd_parent = NULL;				//親ウィンドウのハンドル
+	HWND			hWnd_msgStatics = NULL;			//親ウィンドウメッセージ表示用ウィンドウへのハンドル
+	HWND			hWnd_opepane = NULL;			//自メインウィンドウのハンドル（メインフレーム上に配置）
+	HWND			hWnd_msgList = NULL;			//自メインウィンドウのメッセージ表示用リストコントロールへのハンドル
+	HWND			hWnd_work = NULL;				//自専用作業用ウィンドウのハンドル
 
 	HINSTANCE		hInstance;
 

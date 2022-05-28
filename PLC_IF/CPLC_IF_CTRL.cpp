@@ -1,5 +1,6 @@
 #include "CPLC_IF_CTRL.h"
-#include "plcio_def.h"
+#include "PLC_IO_DEF.h"
+#include "CWorkWindow_PLC.h"
 
 CPLC_IF::CPLC_IF() {
     // 共有メモリオブジェクトのインスタンス化
@@ -24,12 +25,14 @@ int CPLC_IF::set_outbuf(LPVOID pbuf) {
     poutput = pbuf;return 0;
 };      //出力バッファセット
 
-//*********************************************************************************************
+//******************************************************************************************
 // init_proc()
-//*********************************************************************************************
+//******************************************************************************************
 int CPLC_IF::init_proc() {
 
     // 共有メモリ取得
+
+     // 出力用共有メモリ取得
     out_size = sizeof(ST_PLC_IO);
     if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, out_size, MUTEX_PLC_IO_NAME)) {
         mode |= PLC_IF_PLC_IO_MEM_NG;
@@ -70,15 +73,12 @@ int CPLC_IF::input() {
 //*********************************************************************************************
 int CPLC_IF::parse() { 
 
-    
-    //デバッグモード時は、操作パネルウィンドウの内容で上書き
-    if (is_debug_mode()) set_debug_status();
 
     //PLCリンク入力を解析
-    if(B_HST_NOTCH_0)plc_io_workbuf.ui.notch_pos[ID_HOIST]=0;
-
-    //PLCリンク出力内容を解析
-
+    if (B_HST_NOTCH_0)plc_io_workbuf.ui.notch_pos[ID_HOIST] = 0;
+    
+    //デバッグモード時は、操作パネルウィンドウの内容を上書き
+    if (is_debug_mode()) set_debug_status();
 
     return 0; 
 }
@@ -86,11 +86,15 @@ int CPLC_IF::parse() {
 // output()
 //*********************************************************************************************
 int CPLC_IF::output() { 
-    plc_io_workbuf.helthy_cnt = my_helthy_counter++;//ヘルシーカウンタセット
+ 
+    plc_io_workbuf.mode = this->mode;                   //モードセット
+    plc_io_workbuf.helthy_cnt = my_helthy_counter++;    //ヘルシーカウンタセット
 
     if (out_size) { //出力処理
         memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
     }
+
+    ST_PLC_IO* ptemp = (LPST_PLC_IO)poutput;
 
     return 0;
 }
@@ -98,9 +102,28 @@ int CPLC_IF::output() {
 // set_debug_status()
 //*********************************************************************************************
 int CPLC_IF::set_debug_status() {
+    
+    CWorkWindow_PLC* pWorkWindow;
 
+    plc_io_workbuf.ui.notch_pos[ID_HOIST]       = pWorkWindow->stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_GANTRY]      = pWorkWindow->stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_BOOM_H]      = pWorkWindow->stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_SLEW]        = pWorkWindow->stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH;
 
-
+    plc_io_workbuf.ui.pb[PLC_UI_PB_ESTOP]       = pWorkWindow->stOpePaneStat.check_estop;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_ANTISWAY]    = pWorkWindow->stOpePaneStat.check_antisway;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_START]  = pWorkWindow->stOpePaneStat.button_auto_start;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_RESET]  = pWorkWindow->stOpePaneStat.button_auto_reset;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM1]  = pWorkWindow->stOpePaneStat.button_from1;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM2]  = pWorkWindow->stOpePaneStat.button_from2;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM3]  = pWorkWindow->stOpePaneStat.button_from3;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM4]  = pWorkWindow->stOpePaneStat.button_from4;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO1]    = pWorkWindow->stOpePaneStat.button_to1;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO2]    = pWorkWindow->stOpePaneStat.button_to2;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO3]    = pWorkWindow->stOpePaneStat.button_to3;
+    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO4]    = pWorkWindow->stOpePaneStat.button_to4;
+    
+    plc_io_workbuf.status.ctrl[PLC_STAT_CONTROL_SOURCE] = pWorkWindow->stOpePaneStat.button_source1_on;
 
     return 0;
 }

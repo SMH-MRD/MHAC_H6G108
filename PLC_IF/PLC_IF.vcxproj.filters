@@ -33,9 +33,6 @@
     <ClInclude Include="CPLC_IF_CTRL.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="plcio_def.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PLC_IF.cpp">

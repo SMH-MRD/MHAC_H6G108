@@ -24,7 +24,7 @@ DWORD* psource_proc_counter=NULL;                    //メインプロセスの�
 
 
 CPLC_IF* pProcObj;      //メイン処理オブジェクト:
-CWorkWindow* pWorkWnd;  //作業ウィンドウオブジェクト:
+CWorkWindow_PLC* pWorkWnd;  //作業ウィンドウオブジェクト:
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -136,11 +136,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    pProcObj->init_proc();                               // メイン処理クラスの初期化
 
    //Workウィンドウオブジェクトインスタンス化
-   pWorkWnd = new CWorkWindow;
+   pWorkWnd = new CWorkWindow_PLC;
 
-  // stMainWnd.hWorkWnd = CreateDialog(hInst, L"IDD_OPERATION_PANEL", hWnd, (DLGPROC)WorkWndProc);
-  // ShowWindow(stMainWnd.hWorkWnd, nCmdShow);
-
+ 
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
