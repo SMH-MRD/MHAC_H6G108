@@ -30,7 +30,7 @@ CPolicy::~CPolicy() {
 /****************************************************************************/
 void CPolicy::init_task(void* pobj) {
 
-	//共有クレーンステータス構造体のポインタセット
+	//共有メモリ構造体のポインタセット
 	pCom = (LPST_COMMAND_STATUS)(pCommandStatusObj->get_pMap());
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
