@@ -66,7 +66,8 @@
 
 
 typedef struct StSpec {
-
+	//[ID_HOIST],[ID_GANTRY],[ID_TROLLY],[ID_BOOM_H],[ID_SLEW],[ID_OP_ROOM],[ID_H_ASSY],[ID_MOTION1]
+	
 	double notch_spd[MOTION_ID_MAX][NOTCH_MAX] = {			//# ノッチ指令速度（機上）
 	{ 0.0,	0.083,	0.25,	0.417,	0.583,	1.666 },		//[ID_HOIST]	m/s
 	{ 0.0,	0.04,	0.125,	0.25,	0.416,	0.416 },		//[ID_GANTRY]	m/s
@@ -77,6 +78,8 @@ typedef struct StSpec {
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },			//[ID_H_ASSY];
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },			//[ID_MOTION1];
 	};
+
+	//[ID_HOIST],[ID_GANTRY],[ID_TROLLY],[ID_BOOM_H],[ID_SLEW],[ID_OP_ROOM],[ID_H_ASSY],[ID_MOTION1]
 
 	double notch_spd_remote[MOTION_ID_MAX][NOTCH_MAX] = {	//# ノッチ指令速度（遠隔）
 	{ 0.0,	0.083,	0.25,	0.417,	0.583,	1.666 },		//[ID_HOIST]	m/s

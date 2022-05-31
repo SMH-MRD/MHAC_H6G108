@@ -62,6 +62,7 @@ using namespace std;
 #define N_PLC_FAULTS			400	//PLCフォルトの割り当てサイズ
 
 // PLC_User IF信号構造体（機上運転室IO)
+// IO割付内容は、PLC_IO_DEF.hに定義
 typedef struct StPLCUI {
 	int notch_pos[MOTION_ID_MAX];
 	BOOL pb[PLC_PB_MAX];
@@ -80,6 +81,7 @@ typedef struct StPLCStatus {
 }ST_PLC_STATUS, * LPST_PLC_STATUS;
 
 // PLC_IO構造体
+#define PLC_IF_PLC_DBG_MODE  0x00000001
 typedef struct StPLCIO {
 	DWORD mode;
 	BOOL is_debug_mode;
@@ -163,7 +165,7 @@ typedef struct StSimulationStatus {
 #define DBG_SIM_ACT				0X01000000
 
 //デバッグモード設定共用体
-union Udebug_mode {
+union Udebug_mode {//[0]:デバッグモード内容  [1]-[3]:オプション内容
 	DWORD all;
 	UCHAR item[4];
 };
@@ -249,7 +251,7 @@ typedef struct stMotionRecipe {					//移動パターン
 /****************************************************************************/
 typedef struct stMotionStat {
 	int axis;									//動作軸
-	int id;									//ID No.
+	int id;										//ID No.
 	int status;									//動作実行状況
 	int iAct;									//実行中要素配列index -1で完了
 	int act_count;								//実行中要素の実行カウント数
@@ -307,7 +309,7 @@ typedef struct _stJobRecipe {				//作業構成要素（保管,払出,退避移動等）
 	ST_COMMAND_SET commands[JOB_STEP_MAX];			//JOB構成コマンド
 }ST_JOB_RECIPE, * LPST_JOB_RECIPE;
 
-typedef struct stJOB_STAT {					//運転要素
+typedef struct stJOB_Sequence {						//OBシーケンス状態
 	int type;										//JOB種別
 	int job_id;										//job識別コード
 	int n_job_step;									//構成コマンド数
@@ -316,21 +318,53 @@ typedef struct stJOB_STAT {					//運転要素
 	int elapsed;									//経過時間
 	int error_code;									//エラーコード　異常完了時
 	LPST_COMMAND_STAT p_command_stat[JOB_STEP_MAX];	//各コマンドステータス構造体のアドレス
-}ST_JOB_STAT, * LPST_JOB_STAT;
+}ST_JOB_SEQ, * LPST_JOB_SEQ;
 
+#define N_CONSOLE			2		//操作卓の数
+#define ON_BOARD_CONSOLE	0		//機上操作卓選択
+#define REMOTE_CONSOLE01	1		//遠隔操作卓選択
+#define REQ_ON				0		//入選択
+#define REQ_OFF				1		//切選択
+#define N_FROM_POS			4		//半自動FROM設定か所の数
+#define N_TO_POS			4		//半自動TO設定か所の数
+
+
+typedef struct stOpeCommand {						//操作コマンド状態
+	WORD valicd_console;							//有効な操作台
+	bool req_estop[N_CONSOLE];						//非常停止要求コマンド
+	bool req_antisway[N_CONSOLE];					//振止モード要求コマンド
+	bool req_contorol_source[N_CONSOLE][2];			//主幹入切コマンド
+	bool req_auto_start[N_CONSOLE];					//自動開始コマンド
+	WORD sel_semiauto_from_pos;						//半自動FROM位置設定ヵ所
+	WORD sel_semiauto_to_pos;						//半自動To位置設定ヵ所
+	int	 req_notch_ref[N_CONSOLE][MOTION_ID_MAX];	//ノッチ指令 -1,0,+1
+}ST_OPE_COM, * LPST_OPE_COM;
+
+//# ClientService タスクセット領域
 typedef struct StJobStatus {
 
 	ST_JOB_RECIPE	job;
-	ST_JOB_STAT		job_stat;
+	ST_JOB_SEQ		job_stat;
+	ST_OPE_COM		ope_com;
 
 }ST_JOB_STATUS, * LPST_JOB_STATUS;
-//-------------------------------------
+
+//# Policy タスクセット領域
+
+#define MODE_PC_CTRL		0x00000001
+#define MODE_ANTISWAY		0x00010000
+#define MODE_RMOTE_PANEL	0x00000100
+
 typedef struct StCommandStatus {
+
+	DWORD ctrl_mode[MOTION_ID_MAX];					//制御モード
 	ST_COMMAND_RECIPE command[JOB_STEP_MAX];
 	ST_COMMAND_STAT command_stat[JOB_STEP_MAX];
+	double notch_spd_ref[MOTION_ID_MAX];			//ノッチ速度指令
 
 }ST_COMMAND_STATUS, * LPST_COMMAND_STATUS;
-//-------------------------------------
+
+//# AGENT タスクセット領域
 typedef struct StExecStatus {
 
 	ST_MOTION_STAT motion_stat[M_AXIS];

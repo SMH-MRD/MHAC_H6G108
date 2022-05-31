@@ -38,6 +38,7 @@
 #define IDC_STATIC_SOURCE2_LABEL        1023
 #define IDC_BUTTON_AUTO_START           1025
 #define IDC_BUTTON_FROM1                1026
+#define IDC_CHECK_RMOTE                 1027
 #define IDC_BUTTON_AUTO_RESET           1028
 #define IDC_BUTTON_FROM2                1029
 #define IDC_BUTTON_FROM3                1030
@@ -55,7 +56,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1027
+#define _APS_NEXT_CONTROL_VALUE         1028
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

@@ -66,6 +66,7 @@ typedef struct stPLCDbugPanelTag {
 													// IDC_STATIC_SOURCE2_LABEL        1023
 	bool button_auto_start = false;					// IDC_BUTTON_AUTO_START           1025
 	bool button_from1 = false;						// IDC_BUTTON_FROM1                1026
+	bool button_remote = false;						// IDC_BUTTON_REMOTE               1027
 	bool button_auto_reset = false;					// IDC_BUTTON_AUTO_RESET	       1028
 	bool button_from2 = false;						// IDC_BUTTON_FROM2                1029
 	bool button_from3 = false;						// IDC_BUTTON_FROM3                1030

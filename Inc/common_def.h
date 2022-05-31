@@ -40,6 +40,17 @@
 #  define MAX(a,b)  ((a) < (b) ? (b) : (a))
 #endif
 
+#ifndef iABS
+#  define iABS(a)  (a < 0 ? -a : a)
+#endif
+
+#ifndef fABS
+#  define fABS(a)  (a < 0.0 ? -a : a)
+#endif
+
+#ifndef dABS
+#  define dABS(a)  (a < 0.0 ? -a : a)
+#endif
 
 /*** 配列参照用　動作インデックス ***/
 #define MOTION_ID_MAX   8  //制御軸最大数

@@ -32,10 +32,11 @@
 #define PLC_UI_PB_AUTO_TO2      9
 #define PLC_UI_PB_AUTO_TO3      10
 #define PLC_UI_PB_AUTO_TO4      11
-
+#define PLC_UI_CS_REMOTE        12
 
 //PLC UI LAMP
 
 //PLC STATUS CONTROL
 #define PLC_STAT_CONTROL_SOURCE 0
+#define PLC_STAT_REMOTE         1
 

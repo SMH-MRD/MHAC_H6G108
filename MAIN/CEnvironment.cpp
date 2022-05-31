@@ -16,6 +16,7 @@ extern CSharedMem* pExecStatusObj;
 /****************************************************************************/
 CEnvironment::CEnvironment() {
 	pCraneStat = NULL;
+	pPLC_IO = NULL;
 }
 
 CEnvironment::~CEnvironment() {
@@ -81,12 +82,23 @@ void CEnvironment::main_proc() {
 
 //定周期処理手順3　信号出力処理
 void CEnvironment::output() {
-	//ヘルシーカウンタ
+	//ヘルシーカウンタセット
 	pCraneStat->env_act_count = inf.total_act;
 
+	
+	//メインウィンドウへのメッセージ表示
 	wostrs << L" working!" << *(inf.psys_counter) % 100;
-	if (st_subproc.is_plcio_join == true) wostrs << L" ### PLC:JOIN";
-	else wostrs << L" ### PLC:NG";
+	if (st_subproc.is_plcio_join == true) {
+		if (pPLC_IO->mode & PLC_IF_PLC_DBG_MODE) wostrs << L" # PLC:DBG";
+		else wostrs << L" # PLC:NORMAL";
+	}
+	else wostrs << L" # PLC:NG";
+
+	if (pPLC_IO->status.ctrl[PLC_STAT_CONTROL_SOURCE] == L_ON) wostrs << L"  ! PW:ON";
+	else wostrs << L"  ! PW:OFF";
+
+	if (pPLC_IO->status.ctrl[PLC_STAT_REMOTE] == L_ON) wostrs << L"  @ REMOTE";
+	else wostrs << L"  @ CRANE";
 
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 

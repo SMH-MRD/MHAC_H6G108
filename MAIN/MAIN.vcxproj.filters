@@ -48,12 +48,6 @@
     <ClInclude Include="CHelper.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="CRK4.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="CVector3.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="CWorkWindow.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

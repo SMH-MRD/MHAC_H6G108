@@ -112,6 +112,7 @@ int CPLC_IF::set_debug_status() {
 
     plc_io_workbuf.ui.pb[PLC_UI_PB_ESTOP]       = pWorkWindow->stOpePaneStat.check_estop;
     plc_io_workbuf.ui.pb[PLC_UI_PB_ANTISWAY]    = pWorkWindow->stOpePaneStat.check_antisway;
+    plc_io_workbuf.ui.pb[PLC_UI_CS_REMOTE]      = pWorkWindow->stOpePaneStat.button_remote;
     plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_START]  = pWorkWindow->stOpePaneStat.button_auto_start;
     plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_RESET]  = pWorkWindow->stOpePaneStat.button_auto_reset;
     plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM1]  = pWorkWindow->stOpePaneStat.button_from1;
@@ -123,8 +124,10 @@ int CPLC_IF::set_debug_status() {
     plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO3]    = pWorkWindow->stOpePaneStat.button_to3;
     plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO4]    = pWorkWindow->stOpePaneStat.button_to4;
     
-    plc_io_workbuf.status.ctrl[PLC_STAT_CONTROL_SOURCE] = pWorkWindow->stOpePaneStat.button_source1_on;
-
+    if(pWorkWindow->stOpePaneStat.button_source1_on)   plc_io_workbuf.status.ctrl[PLC_STAT_CONTROL_SOURCE] = L_ON;
+    if(pWorkWindow->stOpePaneStat.button_source1_off)  plc_io_workbuf.status.ctrl[PLC_STAT_CONTROL_SOURCE] = L_OFF;
+    plc_io_workbuf.status.ctrl[PLC_STAT_REMOTE] = pWorkWindow->stOpePaneStat.button_remote;
+ 
     return 0;
 }
 

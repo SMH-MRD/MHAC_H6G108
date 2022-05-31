@@ -95,7 +95,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		switch (LOWORD(wp)) {
 		case IDC_BUTTON_SOURCE1_ON:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO3), BM_GETCHECK, 0, 0)) {
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE1_ON), BM_GETCHECK, 0, 0)) {
 				stOpePaneStat.button_source1_on = TRUE;
 			}
 			else {
@@ -104,7 +104,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		}break;
 		case IDC_BUTTON_SOURCE1_OFF:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO3), BM_GETCHECK, 0, 0)) {
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE1_OFF), BM_GETCHECK, 0, 0)) {
 				stOpePaneStat.button_source1_off = TRUE;
 			}
 			else {
@@ -113,7 +113,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		}break;
 		case IDC_BUTTON_SOURCE2_ON:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO3), BM_GETCHECK, 0, 0)) {
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE2_ON), BM_GETCHECK, 0, 0)) {
 				stOpePaneStat.button_source2_on = TRUE;
 			}
 			else {
@@ -122,7 +122,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		}break;
 		case IDC_BUTTON_SOURCE2_OFF:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO3), BM_GETCHECK, 0, 0)) {
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE2_OFF), BM_GETCHECK, 0, 0)) {
 				stOpePaneStat.button_source2_off = TRUE;
 			}
 			else {
@@ -237,6 +237,15 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 			}
 			else {
 				stOpePaneStat.check_antisway = FALSE;
+			}
+		}break;
+		case IDC_CHECK_RMOTE:
+		{
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_RMOTE), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.button_remote = TRUE;
+			}
+			else {
+				stOpePaneStat.button_remote = FALSE;
 			}
 		}break;
 		case IDC_BUTTON_SLEW_0:

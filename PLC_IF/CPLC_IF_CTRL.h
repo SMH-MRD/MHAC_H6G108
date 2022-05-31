@@ -7,7 +7,6 @@
 #define PLC_IF_SIM_MEM_NG           0x2000
 #define PLC_IF_EXE_MEM_NG           0x1000
 
-#define PLC_IF_PLC_DBG_MODE         0x0001  //PLC IOを模擬入力にするモード
 
 //PLC IOインターフェースのデータサイズ
 #define PLC_IF_MAIN_X_BUFSIZE       14
