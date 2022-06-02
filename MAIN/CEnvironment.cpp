@@ -7,9 +7,9 @@ extern CSharedMem* pSimulationStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pRemoteIO_Obj;
-extern CSharedMem* pJobStatusObj;
-extern CSharedMem* pCommandStatusObj;
-extern CSharedMem* pExecStatusObj;
+extern CSharedMem*  pCSInfObj;
+extern CSharedMem* pPolicyInfmandStatusObj;
+extern CSharedMem* pAgentInfObj;
 
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
@@ -17,6 +17,7 @@ extern CSharedMem* pExecStatusObj;
 CEnvironment::CEnvironment() {
 	pCraneStat = NULL;
 	pPLC_IO = NULL;
+	pRemoteIO = NULL;
 }
 
 CEnvironment::~CEnvironment() {
@@ -33,12 +34,10 @@ void CEnvironment::init_task(void* pobj) {
 	//共有クレーンステータス構造体のポインタセット
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
+	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
 
 	//クレーン仕様セット
 	pCraneStat->spec = this->spec;
-
-	//デバッグモードクリア
-	pCraneStat -> debug_mode.all = 0;
 
 	set_panel_tip_txt();
 	return;
@@ -84,10 +83,16 @@ void CEnvironment::main_proc() {
 void CEnvironment::output() {
 	//ヘルシーカウンタセット
 	pCraneStat->env_act_count = inf.total_act;
-
 	
+	//リモートモードセット
+	if(pPLC_IO->ui.pb[PLC_UI_CS_REMOTE])pCraneStat->operation_mode |= OPERATION_MODE_REMOTE;
+	else pCraneStat->operation_mode &= ~OPERATION_MODE_REMOTE;
+
+	//ノッチ指令状態セット
+	parse_notch_com();
+
 	//メインウィンドウへのメッセージ表示
-	wostrs << L" working!" << *(inf.psys_counter) % 100;
+
 	if (st_subproc.is_plcio_join == true) {
 		if (pPLC_IO->mode & PLC_IF_PLC_DBG_MODE) wostrs << L" # PLC:DBG";
 		else wostrs << L" # PLC:NORMAL";
@@ -100,12 +105,39 @@ void CEnvironment::output() {
 	if (pPLC_IO->status.ctrl[PLC_STAT_REMOTE] == L_ON) wostrs << L"  @ REMOTE";
 	else wostrs << L"  @ CRANE";
 
+	wostrs << L" working!" << *(inf.psys_counter) % 100;
+
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 
 	
 	return;
 
 }; 
+
+/****************************************************************************/
+/*　　ノッチ入力信号を速度指令に変換して取り込み				            */
+/****************************************************************************/
+int CEnvironment::parse_notch_com() {
+
+	int* p_notch;
+	if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) p_notch = pRemoteIO->PLCui.notch_pos;
+	else p_notch = pPLC_IO->ui.notch_pos;
+
+	pCraneStat->notch_spd_ref[ID_HOIST] = pCraneStat->spec.notch_spd[ID_HOIST][iABS(p_notch[ID_HOIST])];
+	if (pPLC_IO->ui.notch_pos[ID_HOIST] < 0) pCraneStat->notch_spd_ref[ID_HOIST] *= -1.0;
+
+	pCraneStat->notch_spd_ref[ID_GANTRY] = pCraneStat->spec.notch_spd[ID_GANTRY][iABS(p_notch[ID_GANTRY])];
+	if (pPLC_IO->ui.notch_pos[ID_GANTRY] < 0) pCraneStat->notch_spd_ref[ID_GANTRY] *= -1.0;
+
+	pCraneStat->notch_spd_ref[ID_BOOM_H] = pCraneStat->spec.notch_spd[ID_BOOM_H][iABS(p_notch[ID_BOOM_H])];
+	if (pPLC_IO->ui.notch_pos[ID_BOOM_H] < 0) pCraneStat->notch_spd_ref[ID_BOOM_H] *= -1.0;
+
+	pCraneStat->notch_spd_ref[ID_SLEW] = pCraneStat->spec.notch_spd[ID_SLEW][iABS(p_notch[ID_SLEW])];
+	if (pPLC_IO->ui.notch_pos[ID_SLEW] < 0) pCraneStat->notch_spd_ref[ID_SLEW] *= -1.0;
+
+	return 0;
+
+};
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
@@ -132,12 +164,7 @@ LRESULT CALLBACK CEnvironment::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM 
 			inf.panel_type_id = LOWORD(wp);set_panel_tip_txt();  SetFocus(GetDlgItem(inf.hWnd_opepane, IDC_TASK_EDIT1)); 
 			if (inf.panel_func_id == IDC_TASK_FUNC_RADIO6) {
 				if (inf.panel_type_id == IDC_TASK_ITEM_RADIO1) {
-					if (pCraneStat->debug_mode.item[3]) {
-						pCraneStat->debug_mode.item[3] = 0;
-					}
-					else {
-						pCraneStat->debug_mode.item[3] = 1;
-					}
+					;
 				}
 			}
 			break;

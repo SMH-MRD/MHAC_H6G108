@@ -1,4 +1,5 @@
 #include "CPolicy.h"
+#include "CAgent.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -6,23 +7,26 @@ extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pRemoteIO_Obj;
-extern CSharedMem* pJobStatusObj;
-extern CSharedMem* pCommandStatusObj;
-extern CSharedMem* pExecStatusObj;
+extern CSharedMem*  pCSInfObj;
+extern CSharedMem* pPolicyInfObj;
+extern CSharedMem* pAgentInfObj;
+
+extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
+extern ST_iTask g_itask;
 
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
 /****************************************************************************/
 CPolicy::CPolicy() {
-	pCom = NULL;
+	pPolicyInf = NULL;
 	pPLC_IO = NULL;
 	pCraneStat = NULL;
+	pRemoteIO = NULL;
 }
 
 CPolicy::~CPolicy() {
 
 }
-
 
 /****************************************************************************/
 /*   タスク初期化処理                                                       */
@@ -31,9 +35,10 @@ CPolicy::~CPolicy() {
 void CPolicy::init_task(void* pobj) {
 
 	//共有メモリ構造体のポインタセット
-	pCom = (LPST_COMMAND_STATUS)(pCommandStatusObj->get_pMap());
+	pPolicyInf = (LPST_POLICY_INFO)(pPolicyInfObj->get_pMap());
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
+	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
 
 	set_panel_tip_txt();
 	return;
@@ -59,6 +64,8 @@ void CPolicy::input() {
 //定周期処理手順2　メイン処理
 void CPolicy::main_proc() {
 
+
+	
 	return;
 
 }
@@ -66,14 +73,70 @@ void CPolicy::main_proc() {
 //定周期処理手順3　信号出力処理
 void CPolicy::output() {
 	
-	parse_notch_com();
 
+
+	if (pPolicyInf->antisway_mode) wostrs << L" # AS:ON";
+	else  wostrs << L" # AS:OFF";
+
+	wostrs << L", CTRL:" << hex << pPolicyInf->pc_ctrl_mode;
 
 	wostrs << L" working!" << *(inf.psys_counter) % 100;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 
 };
+/****************************************************************************/
+/*　　CSタスクからのリクエスト処理								            */
+/****************************************************************************/
+int CPolicy::update_control(DWORD code, LPVOID optlp) {
+
+	WORD req = LOWORD(code);
+	WORD com = HIWORD(code);
+
+	switch (req) {
+	case POLICY_REQ_REMOTE:
+		break;
+	case POLICY_REQ_ANTISWAY: {
+		if (pPolicyInf->antisway_mode & BITSEL_COMMON) {
+
+			pPolicyInf->antisway_mode &= ~BITSEL_COMMON;
+			pPolicyInf->antisway_mode &= ~BITSEL_GANTRY;
+			pPolicyInf->antisway_mode &= ~BITSEL_SLEW;
+			pPolicyInf->antisway_mode &= ~BITSEL_BOOM_H;
+		}
+		else {
+
+			pPolicyInf->antisway_mode |= BITSEL_COMMON;
+			pPolicyInf->antisway_mode |= BITSEL_GANTRY;
+			pPolicyInf->antisway_mode |= BITSEL_SLEW;
+			pPolicyInf->antisway_mode |= BITSEL_BOOM_H;
+		}
+	}break;
+	case POLICY_REQ_DEBUG: {
+		set_pc_control(BITSEL_COMMON);
+	}break;
+	case POLICY_REQ_JOB:
+		break;
+	}
+
+	return 0;
+};
+
+/****************************************************************************/
+/*　　PC制御選択セット処理								            */
+/****************************************************************************/
+DWORD CPolicy::set_pc_control(DWORD dw_axis) {
+
+	if (dw_axis == BITSEL_COMMON) {
+		if (pPolicyInf->pc_ctrl_mode == 0)
+			pPolicyInf->pc_ctrl_mode |= (BITSEL_HOIST | BITSEL_GANTRY | BITSEL_BOOM_H | BITSEL_SLEW);
+		else pPolicyInf->pc_ctrl_mode = 0;
+	}
+	else {
+		
+	}
+	return pPolicyInf->pc_ctrl_mode;
+}
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
@@ -330,22 +393,4 @@ void CPolicy::set_panel_pb_txt() {
 	return;
 };
 
-/****************************************************************************/
-/*　　タスク設定パネルボタンのテキストセット					            */
-/****************************************************************************/
-int CPolicy::parse_notch_com() {
-	
-	pCom->notch_spd_ref[ID_HOIST] = pCraneStat->spec.notch_spd[ID_HOIST][iABS(pPLC_IO->ui.notch_pos[ID_HOIST])];
-	if (pPLC_IO->ui.notch_pos[ID_HOIST] < 0) pCom->notch_spd_ref[ID_HOIST] *= -1.0;
 
-	pCom->notch_spd_ref[ID_GANTRY] = pCraneStat->spec.notch_spd[ID_GANTRY][iABS(pPLC_IO->ui.notch_pos[ID_GANTRY])];
-	if (pPLC_IO->ui.notch_pos[ID_GANTRY] < 0) pCom->notch_spd_ref[ID_GANTRY] *= -1.0;
-
-	pCom->notch_spd_ref[ID_BOOM_H] = pCraneStat->spec.notch_spd[ID_BOOM_H][iABS(pPLC_IO->ui.notch_pos[ID_BOOM_H])];
-	if (pPLC_IO->ui.notch_pos[ID_BOOM_H] < 0) pCom->notch_spd_ref[ID_BOOM_H] *= -1.0;
-
-	pCom->notch_spd_ref[ID_SLEW] = pCraneStat->spec.notch_spd[ID_SLEW][iABS(pPLC_IO->ui.notch_pos[ID_SLEW])];
-	if (pPLC_IO->ui.notch_pos[ID_SLEW] < 0) pCom->notch_spd_ref[ID_SLEW] *= -1.0;
-
-	return 0;
-};

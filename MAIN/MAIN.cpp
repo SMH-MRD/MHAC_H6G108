@@ -42,9 +42,9 @@ CSharedMem*  pSimulationStatusObj;
 CSharedMem*  pPLCioObj;
 CSharedMem*  pSwayIO_Obj;
 CSharedMem*  pRemoteIO_Obj;
-CSharedMem*  pJobStatusObj;
-CSharedMem*  pCommandStatusObj;
-CSharedMem*  pExecStatusObj;
+CSharedMem*  pCSInfObj;
+CSharedMem*  pPolicyInfObj;
+CSharedMem*  pAgentInfObj;
                                                 
  //-スタティック変数:
 static HWND                 hWnd_status_bar;    //ステータスバーのウィンドウのハンドル
@@ -101,12 +101,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     pCraneStatusObj         = new CSharedMem;
     pSwayStatusObj          = new CSharedMem;
     pSimulationStatusObj    = new CSharedMem;
-    pPLCioObj              = new CSharedMem;
+    pPLCioObj               = new CSharedMem;
     pSwayIO_Obj             = new CSharedMem;
     pRemoteIO_Obj           = new CSharedMem;
-    pJobStatusObj           = new CSharedMem;
-    pCommandStatusObj       = new CSharedMem;
-    pExecStatusObj          = new CSharedMem;
+    pCSInfObj               = new CSharedMem;
+    pPolicyInfObj           = new CSharedMem;
+    pAgentInfObj            = new CSharedMem;
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -209,9 +209,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME,  sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME,  sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME,  sizeof(ST_REMOTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
-   if (OK_SHMEM != pJobStatusObj->create_smem(SMEM_JOB_STATUS_NAME,  sizeof(ST_JOB_STATUS),MUTEX_JOB_STATUS_NAME)) return(FALSE);
-   if (OK_SHMEM != pCommandStatusObj->create_smem(SMEM_COMMAND_STATUS_NAME,  sizeof(ST_COMMAND_STATUS),MUTEX_COMMAND_STATUS_NAME)) return(FALSE);
-   if (OK_SHMEM != pExecStatusObj->create_smem(SMEM_EXEC_STATUS_NAME,  sizeof(ST_EXEC_STATUS), MUTEX_EXEC_STATUS_NAME)) return(FALSE);
+   if (OK_SHMEM !=  pCSInfObj->create_smem(SMEM_CS_INFO_NAME,  sizeof(ST_CS_INFO),MUTEX_CS_INFO_NAME)) return(FALSE);
+   if (OK_SHMEM != pPolicyInfObj->create_smem(SMEM_POLICY_INFO_NAME,  sizeof(ST_POLICY_INFO),MUTEX_POLICY_INFO_NAME)) return(FALSE);
+   if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME,  sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) return(FALSE);
    
   /// -タスク設定##################
    //タスクオブジェクト個別設定
@@ -375,9 +375,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
          pPLCioObj->delete_smem();
          pSwayIO_Obj->delete_smem();
          pRemoteIO_Obj->delete_smem();
-         pJobStatusObj->delete_smem();
-         pCommandStatusObj->delete_smem();
-         pExecStatusObj->delete_smem();
+         pCSInfObj->delete_smem();
+         pPolicyInfObj->delete_smem();
+         pAgentInfObj->delete_smem();
   
          PostQuitMessage(0);
          }
@@ -586,7 +586,7 @@ int Init_tasks(HWND hWnd)
         /// -タスクインスタンス作成->リスト登録
         ptempobj = new CClientService;
         VectpCTaskObj.push_back((void*)ptempobj);
-        g_itask.policy = task_index;
+        g_itask.client = task_index;
 
         /// -タスクインデクスセット
         ptempobj->inf.index = task_index++;

@@ -13,9 +13,9 @@
 #define SMEM_PLC_IO_NAME				L"PLC_IO"
 #define SMEM_SWAY_IO_NAME				L"SWAY_IO"
 #define SMEM_REMOTE_IO_NAME				L"REMOTE_IO"
-#define SMEM_JOB_STATUS_NAME			L"JOB_STATUS"
-#define SMEM_COMMAND_STATUS_NAME		L"COMMAND_STATUS"
-#define SMEM_EXEC_STATUS_NAME			L"EXEC_STATUS"
+#define SMEM_CS_INFO_NAME				L"CS_INFO"
+#define SMEM_POLICY_INFO_NAME			L"POLICY_INFO"
+#define SMEM_AGENT_INFO_NAME			L"AGENT_INFO"
 
 #define MUTEX_CRANE_STATUS_NAME			L"MU_CRANE_STATUS"
 #define MUTEX_SWAY_STATUS_NAME			L"MU_SWAY_STATUS"
@@ -25,9 +25,9 @@
 #define MUTEX_PLC_IO_NAME				L"MU_PLC_IO"
 #define MUTEX_SWAY_IO_NAME				L"MU_SWAY_IO"
 #define MUTEX_REMOTE_IO_NAME			L"MU_REMOTE_IO"
-#define MUTEX_JOB_STATUS_NAME			L"MU_JOB_STATUS"
-#define MUTEX_COMMAND_STATUS_NAME		L"MU_COMMAND_STATUS"
-#define MUTEX_EXEC_STATUS_NAME			L"MU_EXEC_STATUS"
+#define MUTEX_CS_INFO_NAME				L"MU_CS_INFO"
+#define MUTEX_POLICY_INFO_NAME			L"MU_POLICY_INFO"
+#define MUTEX_AGENT_INFO_NAME			L"MU_AGENT_INFO"
 
 #define SMEM_OBJ_ID_CRANE_STATUS		0
 #define SMEM_OBJ_ID_SWAY_STATUS			1
@@ -37,9 +37,9 @@
 #define SMEM_OBJ_ID_PLC_IO				5
 #define SMEM_OBJ_ID_SWAY_IO				6
 #define SMEM_OBJ_ID_REMOTE_IO			7
-#define SMEM_OBJ_ID_JOB_STATUS			8
-#define SMEM_OBJ_ID_COMMAND_STATUS		9
-#define SMEM_OBJ_ID_EXEC_STATUS			10
+#define SMEM_OBJ_ID_CS_INFO				8
+#define SMEM_OBJ_ID_POLICY_INFO			9
+#define SMEM_OBJ_ID_AGENT_INFO			10
 
 //  共有メモリステータス
 #define	OK_SHMEM						0	// 共有メモリ 生成/破棄正常
@@ -77,7 +77,6 @@ typedef struct StPLCStatus {
 	double trq_fb_01per[MOTION_ID_MAX];
 	double pos[MOTION_ID_MAX];
 	double weight;
-	BOOL is_debug_mode;
 }ST_PLC_STATUS, * LPST_PLC_STATUS;
 
 // PLC_IO構造体
@@ -164,6 +163,11 @@ typedef struct StSimulationStatus {
 #define DBG_ROS_IO				0x00010000
 #define DBG_SIM_ACT				0X01000000
 
+#define N_PC_FAULT_WORDS		16			//制御PC検出フォルトbitセットWORD数
+#define N_PLC_FAULT_WORDS		32			//PLC検出フォルトbitセットWORD数
+
+#define OPERATION_MODE_REMOTE	0x0000001
+
 //デバッグモード設定共用体
 union Udebug_mode {//[0]:デバッグモード内容  [1]-[3]:オプション内容
 	DWORD all;
@@ -177,18 +181,14 @@ typedef struct StSwayStatus {
 
 }ST_SWAY_STATUS, * LPST_SWAY_STATUS;
 
-#define N_PC_FAULT_WORDS		16	//制御PC検出フォルトbitセットWORD数
-#define N_PLC_FAULT_WORDS		32  //PLC検出フォルトbitセットWORD数
-
 typedef struct StCraneStatus {
 	DWORD env_act_count;			//ヘルシー信号
-	Udebug_mode debug_mode;			//他プロセスへのデバッグモード要求フラグ
 	ST_SPEC spec;
-	WORD notch_pos[MOTION_ID_MAX];
+	DWORD operation_mode;
+	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
 	WORD faultPC[N_PC_FAULT_WORDS];//制御PC検出異常
 	WORD faultPLC[N_PLC_FAULT_WORDS];//制御PC検出異常
 	ST_SWAY_STATUS sway_stat;
-
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
 /****************************************************************************/
@@ -216,33 +216,30 @@ typedef struct stMotionElement {	//運動要素
 /* 　単軸の目標状態に移行する動作パターンを運動要素の組み合わせで実現します */
 /****************************************************************************/
 #define M_ELEMENT_MAX	32
-#define M_AXIS			8	//動作軸
-#define MH_AXIS			0	//主巻動作
-#define TT_AXIS			1	//横行動作
-#define GT_AXIS			2	//走行動作
-#define BH_AXIS			3	//起伏動作
-#define SLW_AXIS		4	//旋回動作
-#define SKW_AXIS		5	//スキュー動作
-#define LFT_AXIS		6	//吊具操作
+#define M_AXIS			8	//動作軸数
+#define MH_AXIS			0	//主巻軸コード
+#define TT_AXIS			1	//横行軸コード
+#define GT_AXIS			2	//走行軸コード
+#define BH_AXIS			3	//起伏軸コード
+#define SLW_AXIS		4	//旋回軸コード
+#define SKW_AXIS		5	//スキュー軸コード
+#define LFT_AXIS		6	//吊具操作軸コード
+#define NO_AXIS			7	//状態変更コード
 
-#define REQ_IMPOSSIBLE		0
 #define REQ_STANDBY			1
 #define REQ_ACTIVE			2
 #define REQ_SUSPENDED		3
-#define REQ_COMP_NORMAL		-1
+#define REQ_COMP_NORMAL		0
+#define REQ_IMPOSSIBLE		-1
 #define REQ_COMP_ABNORMAL   -2
 
-union axis_check {
-	char axis[M_AXIS];
-	LONG64 all;
-};
-
 typedef struct stMotionRecipe {					//移動パターン
-	int axis;									//動作軸
-	int n_motion;								//ID No.
-	int n_step;									//移動パターン構成要素数
-	int motion_type;							//オプション指定
-	ST_MOTION_ELEMENT motion[M_ELEMENT_MAX];	//移動パターン定義運動要素配列
+	DWORD id;									//ID No. LOWORD:No. HIWORD:軸コード
+	int motion_type;							//動作種別　移動、
+	int n_step;									//動作構成要素数
+	DWORD opt_dw;								//オプション条件
+	int time_limit;								//タイムオーバー判定値
+	ST_MOTION_ELEMENT motion[M_ELEMENT_MAX];	//動作定義要素配列
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
 /****************************************************************************/
@@ -250,12 +247,11 @@ typedef struct stMotionRecipe {					//移動パターン
 /* 　動作（MOTION)実行状態管理用構造体									　  */
 /****************************************************************************/
 typedef struct stMotionStat {
-	int axis;									//動作軸
-	int id;										//ID No.
+	DWORD id;									//ID No. LOWORD:コマンドID No. HIWORD:軸コード
 	int status;									//動作実行状況
 	int iAct;									//実行中要素配列index -1で完了
 	int act_count;								//実行中要素の実行カウント数
-	int elapsed;								//経過時間
+	int elapsed;								//MOTION開始後経過時間
 	int error_code;								//エラーコード　異常完了時
 }ST_MOTION_STAT, * LPST_MOTION_STAT;
 
@@ -270,84 +266,59 @@ typedef struct stMotionStat {
 
 typedef struct stCommandRecipe {				//運転要素
 	int type;									//コマンド種別
-	int id;									//ID No.
+	DWORD jobID;								//紐付けられているJOB　ID
+	DWORD comID;								//ID No.
+	bool is_motion_there[M_AXIS];				//動作対象軸
 	ST_MOTION_RECIPE motions[M_AXIS];
 }ST_COMMAND_RECIPE, * LPST_COMMAND_RECIPE;
 
 /****************************************************************************/
-/*   運転実行管理構造体                                                 */
+/*   運転実行管理構造体                                           　　      */
 /****************************************************************************/
 typedef struct stCommandStat {				//運転要素
-	int type;									//コマンド種別
-	int id;									//ID No.
-	int status;									//コマンド実行状況
-	int elapsed;								//経過時間
-	int error_code;								//エラーコード　異常完了時
-	axis_check is_axis_imcomplete;			//各軸実行中判定フラグ　0で完了
-	LPST_MOTION_STAT p_motion_stat[M_AXIS];		//各軸実行ステータス構造体のアドレス
+	int type;								//コマンド種別
+	DWORD comID;							//ID No.
+	int status;								//コマンド実行状況
+	int elapsed;							//経過時間
+	int error_code;							//エラーコード　異常完了時
+	ST_MOTION_STAT p_motion_stat[M_AXIS];	//各軸実行ステータス構造体のアドレス
 }ST_COMMAND_STAT, * LPST_COMMAND_STAT;
 
-/********************************************************************************/
-/*   作業内容（JOB)定義構造体                                      　　　　　　	*/
-/* 　ClientService タスクがセットする共有メモリ上の情報								            */
-/********************************************************************************/
-#define JOB_STEP_MAX		5//　JOBを構成するコマンド最大数
+/***********************************************************************************/
+/*   作業内容（JOB)定義構造体                                 　     　　　　　　  */
+/* 　ClientService タスクがセットする共有メモリ上の情報							   */
+/*   JOBの内容　:　																   */
+/*			搬送　	指定カ所から荷を取って指定カ所へ蔵置後、待機位置への移動まで　 */
+/*			移動　	指定カ所から荷を取って指定カ所へ蔵置後、定期定位置への移動まで */
+/*			その他	電源投入,モード変更等の処理									   */
+/***********************************************************************************/
+#define COM_STEP_MAX		5//　JOBを構成するコマンド最大数
 
-typedef struct stCommandSet {	//作業要素（PICK、GROUND、PARK　....）
-	int type;							//コマンド種別（PICK、GROUND、PARK）
-	axis_check is_valid_axis;			//対象動作軸
-	double target_pos[MOTION_ID_MAX];	//各軸目標位置
-	int option[MOTION_ID_MAX];		//各軸動作オプション条件
-}ST_COMMAND_SET, * LPST_COMMAND_SET;
+#define JOB_TYPE_HANDLING	0x00000001
 
-//#   作業（JOB)実行管理構造体  
-//# 　コマンド実行状態管理用構造体
-typedef struct _stJobRecipe {				//作業構成要素（保管,払出,退避移動等）
-	int type;										//JOB種別
-	int job_id;										//job識別コード
-	int n_job_step;									//構成コマンド数
-	ST_COMMAND_SET commands[JOB_STEP_MAX];			//JOB構成コマンド
+//# ClientService タスクセット
+typedef struct _stJobRecipe {
+	DWORD jobID;								//JOB ID
+	DWORD type;									//JOB種別（搬送、移動、操作）
+	int	n_com_step;								//ステップ数
+	double to_pos[COM_STEP_MAX][MOTION_ID_MAX];	//各軸STEP毎　目標位置
+	DWORD option[COM_STEP_MAX][MOTION_ID_MAX];	//各軸STEP毎　オプション条件
 }ST_JOB_RECIPE, * LPST_JOB_RECIPE;
 
-typedef struct stJOB_Sequence {						//OBシーケンス状態
-	int type;										//JOB種別
-	int job_id;										//job識別コード
-	int n_job_step;									//構成コマンド数
-	int job_step_now;								//実行中ステップ
-	int status;										//job実行状況
-	int elapsed;									//経過時間
-	int error_code;									//エラーコード　異常完了時
-	LPST_COMMAND_STAT p_command_stat[JOB_STEP_MAX];	//各コマンドステータス構造体のアドレス
-}ST_JOB_SEQ, * LPST_JOB_SEQ;
 
-#define N_CONSOLE			2		//操作卓の数
-#define ON_BOARD_CONSOLE	0		//機上操作卓選択
-#define REMOTE_CONSOLE01	1		//遠隔操作卓選択
-#define REQ_ON				0		//入選択
-#define REQ_OFF				1		//切選択
-#define N_FROM_POS			4		//半自動FROM設定か所の数
-#define N_TO_POS			4		//半自動TO設定か所の数
+//# Policy タスクセット
+typedef struct stJobStat {						//JOB実行状態
+	DWORD jobID;								//JOB ID
+	int n_job_step;								//構成コマンド数
+	int job_step_now;							//実行中ステップ
+	int status;									//job実行状況
+	int elapsed;								//経過時間
+	int error_code;								//エラーコード　異常完了時
+}ST_JOB_STAT, * LPST_JOB_STAT;
 
+#define JOB_HOLD_MAX		10					//	保持可能JOB最大数
+#define NO_JOB_REQUIRED		-1					//  要求ジョブ無し
 
-typedef struct stOpeCommand {						//操作コマンド状態
-	WORD valicd_console;							//有効な操作台
-	bool req_estop[N_CONSOLE];						//非常停止要求コマンド
-	bool req_antisway[N_CONSOLE];					//振止モード要求コマンド
-	bool req_contorol_source[N_CONSOLE][2];			//主幹入切コマンド
-	bool req_auto_start[N_CONSOLE];					//自動開始コマンド
-	WORD sel_semiauto_from_pos;						//半自動FROM位置設定ヵ所
-	WORD sel_semiauto_to_pos;						//半自動To位置設定ヵ所
-	int	 req_notch_ref[N_CONSOLE][MOTION_ID_MAX];	//ノッチ指令 -1,0,+1
-}ST_OPE_COM, * LPST_OPE_COM;
-
-//# ClientService タスクセット領域
-typedef struct StJobStatus {
-
-	ST_JOB_RECIPE	job;
-	ST_JOB_SEQ		job_stat;
-	ST_OPE_COM		ope_com;
-
-}ST_JOB_STATUS, * LPST_JOB_STATUS;
 
 //# Policy タスクセット領域
 
@@ -355,28 +326,68 @@ typedef struct StJobStatus {
 #define MODE_ANTISWAY		0x00010000
 #define MODE_RMOTE_PANEL	0x00000100
 
-typedef struct StCommandStatus {
+/****************************************************************************/
+/*   Client Service	情報定義構造体                                   　   　*/
+/* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
+/****************************************************************************/
+typedef struct stCSInfo {
 
-	DWORD ctrl_mode[MOTION_ID_MAX];					//制御モード
-	ST_COMMAND_RECIPE command[JOB_STEP_MAX];
-	ST_COMMAND_STAT command_stat[JOB_STEP_MAX];
-	double notch_spd_ref[MOTION_ID_MAX];			//ノッチ速度指令
+	//for Policy
+	int current_job;							//実行要求中のJOBインデックス -1:要求無し
+	ST_JOB_RECIPE	jobs[JOB_HOLD_MAX];			
 
-}ST_COMMAND_STATUS, * LPST_COMMAND_STATUS;
+	//for Client
+	DWORD req_stat;								
 
-//# AGENT タスクセット領域
-typedef struct StExecStatus {
+}ST_CS_INFO, * LPST_CS_INFO;
 
-	ST_MOTION_STAT motion_stat[M_AXIS];
-	double v_ref[MOTION_ID_MAX];
 
-}ST_EXEC_STATUS, * LPST_EXEC_STATUS;
+#define BITSEL_HOIST        0x00000001   //巻 　       ビット
+#define BITSEL_GANTRY       0x00000002   //走行        ビット
+#define BITSEL_TROLLY       0x00000004   //横行        ビット
+#define BITSEL_BOOM_H       0x00000008   //引込        ビット
+#define BITSEL_SLEW         0x00000010   //旋回        ビット
+#define BITSEL_OP_ROOM      0x00000020   //運転室移動　ビット
+#define BITSEL_H_ASSY       0x00000040   //吊具        ビット
+#define BITSEL_COMMON       0x10000000   //共通        ビット
+
+/****************************************************************************/
+/*   Policy	情報定義構造体                                   　			  　*/
+/* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
+/****************************************************************************/
+typedef struct stPolicyInfo {
+
+	//for AGENT
+	DWORD pc_ctrl_mode;							//制御モード
+	DWORD antisway_mode;						//振れ止めモード
+	int current_com;							//実行要求中のコマンドインデックス -1:要求無し
+	ST_COMMAND_RECIPE commands[COM_STEP_MAX];	
+
+	//for CS
+
+
+	ST_JOB_STAT job_stat[JOB_HOLD_MAX];			
+
+}ST_POLICY_INFO, * LPST_POLICY_INFO;
+
+/****************************************************************************/
+/*   Agent	情報定義構造体                                   　   　		*/
+/* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
+/****************************************************************************/
+typedef struct stAgentInfo {
+	//for POLICY
+	ST_COMMAND_STAT com_stat[COM_STEP_MAX];	
+	
+	//for CRANE
+	double v_ref[MOTION_ID_MAX];				
+
+}ST_AGENT_INFO, * LPST_AGENT_INFO;
 
 static char smem_dummy_buf[SMEM_DATA_SIZE_MAX];
 
-/***********************************************************************
-クラス定義
-************************************************************************/
+/****************************************************************************/
+/*共有メモリクラス定義														*/
+/****************************************************************************/
 class CSharedMem
 {
 public:

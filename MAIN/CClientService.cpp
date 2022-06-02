@@ -1,4 +1,5 @@
 #include "CClientService.h"
+#include "CPolicy.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -6,9 +7,12 @@ extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pRemoteIO_Obj;
-extern CSharedMem* pJobStatusObj;
-extern CSharedMem* pCommandStatusObj;
-extern CSharedMem* pExecStatusObj;
+extern CSharedMem*  pCSInfObj;
+extern CSharedMem* pPolicyInfsObj;
+extern CSharedMem* pAgentInfObj;
+
+extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
+extern ST_iTask g_itask;
 
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
@@ -48,6 +52,8 @@ void CClientService::routine_work(void* param) {
 };
 
 //定周期処理手順1　外部信号入力
+
+
 void CClientService::input() {
 
 	return;
@@ -55,7 +61,27 @@ void CClientService::input() {
 };
 
 //定周期処理手順2　メイン処理
+static BOOL asPB_last_input = FALSE;
+static BOOL remotePB_last_input = FALSE;
+static DWORD PLC_Dbg_last_input = 0;
+
 void CClientService::main_proc() {
+
+	CPolicy *pPolicy = (CPolicy * )VectpCTaskObj[g_itask.policy];
+
+	//振れ止めモード要求
+	if ((pPLC_IO->ui.pb[PLC_UI_PB_ANTISWAY] == TRUE) && (asPB_last_input == FALSE)) {
+		pPolicy->update_control(POLICY_REQ_ANTISWAY, NULL);
+	}
+	asPB_last_input = pPLC_IO->ui.pb[PLC_UI_PB_ANTISWAY];
+
+	//デバッグモード要求
+	if ((pPLC_IO->mode & PLC_IF_PLC_DBG_MODE) != PLC_Dbg_last_input) {
+		pPolicy->update_control(POLICY_REQ_DEBUG, NULL);
+	}
+	PLC_Dbg_last_input = pPLC_IO->mode & PLC_IF_PLC_DBG_MODE;
+
+	
 
 	return;
 

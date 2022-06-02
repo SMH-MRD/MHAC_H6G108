@@ -85,6 +85,9 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_GT), UDM_SETRANGE, 0, MAKELONG(GT_SLIDAR_MAX, GT_SLIDAR_MIN));
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_GT), UDM_SETPOS, 0, GT_SLIDAR_0_NOTCH);
 
+		stOpePaneStat.slider_mh = stOpePaneStat.slider_bh = stOpePaneStat.slider_slew = stOpePaneStat.slider_gt = SLW_SLIDAR_0_NOTCH;
+
+
 		//ƒRƒ“ƒgƒ[ƒ‹‰Šúó‘Ôİ’è
 		update_all_controls(hDlg);
 

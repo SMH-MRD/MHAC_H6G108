@@ -1,4 +1,5 @@
 #include "CAgent.h"
+#include "CPolicy.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -6,15 +7,18 @@ extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pRemoteIO_Obj;
-extern CSharedMem* pJobStatusObj;
-extern CSharedMem* pCommandStatusObj;
-extern CSharedMem* pExecStatusObj;
+extern CSharedMem* pCSInfObj;
+extern CSharedMem* pPolicyInfObj;
+extern CSharedMem* pAgentInfObj;
+
+extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
+extern ST_iTask g_itask;
 
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
 /****************************************************************************/
 CAgent::CAgent() {
-	pCom = NULL;
+	pPolicyInf = NULL;
 	pPLC_IO = NULL;
 	pCraneStat = NULL;
 }
@@ -31,7 +35,8 @@ CAgent::~CAgent() {
 void CAgent::init_task(void* pobj) {
 
 	//共有メモリ構造体のポインタセット
-	pCom = (LPST_COMMAND_STATUS)(pCommandStatusObj->get_pMap());
+	pPolicyInf = (LPST_POLICY_INFO)(pPolicyInfObj->get_pMap());
+	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 
@@ -66,11 +71,74 @@ void CAgent::main_proc() {
 //定周期処理手順3　信号出力処理
 void CAgent::output() {
 
+	set_ref_mh();
+	set_ref_gt();
+	set_ref_slew();
+	set_ref_bh();
+		
+
+	wostrs << L" #Ref " << fixed<<setprecision(3);
+	wostrs << L" MH " << pAgentInf->v_ref[ID_HOIST];
+	wostrs << L",GT " << pAgentInf->v_ref[ID_GANTRY];
+	wostrs << L",SL " << pAgentInf->v_ref[ID_SLEW];
+	wostrs << L",BH " << pAgentInf->v_ref[ID_BOOM_H];
+
 	wostrs << L" working!" << *(inf.psys_counter) % 100;
+
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 
 };
+
+/****************************************************************************/
+/*   巻指令出力処理		                                                    */
+/****************************************************************************/
+int CAgent::set_ref_mh(){
+	if (pPolicyInf->pc_ctrl_mode & BITSEL_HOIST) {
+		pAgentInf->v_ref[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
+	}
+	else {
+		pAgentInf->v_ref[ID_HOIST] = 0.0;
+	}
+	return 0; 
+}
+/****************************************************************************/
+/*   走行指令出力処理		                                                */
+/****************************************************************************/
+int CAgent::set_ref_gt(){
+	if (pPolicyInf->pc_ctrl_mode & BITSEL_GANTRY) {
+		pAgentInf->v_ref[ID_GANTRY] = pCraneStat->notch_spd_ref[ID_GANTRY];
+	}
+	else {
+		pAgentInf->v_ref[ID_GANTRY] = 0.0;
+	}
+	return 0;
+}
+/****************************************************************************/
+/*   旋回指令出力処理		                                                */
+/****************************************************************************/
+int CAgent::set_ref_slew(){
+	if (pPolicyInf->pc_ctrl_mode & BITSEL_SLEW) {
+		pAgentInf->v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
+	}
+	else {
+		pAgentInf->v_ref[ID_SLEW] = 0.0;
+	}
+	
+	return 0;
+}
+/****************************************************************************/
+/*   引込指令出力処理		                                                */
+/****************************************************************************/
+int CAgent::set_ref_bh(){
+	if (pPolicyInf->pc_ctrl_mode & BITSEL_BOOM_H) {
+		pAgentInf->v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
+	}
+	else {
+		pAgentInf->v_ref[ID_BOOM_H] = 0.0;
+	}
+	return 0;
+}
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */

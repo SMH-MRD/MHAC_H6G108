@@ -22,9 +22,9 @@ CSharedMem* pSimulationStatusObj;
 CSharedMem* pPLCioObj;
 CSharedMem* pSwayIO_Obj;
 CSharedMem* pRemoteIO_Obj;
-CSharedMem* pJobStatusObj;
-CSharedMem* pCommandStatusObj;
-CSharedMem* pExecStatusObj;
+CSharedMem*  pCSInfObj;
+CSharedMem* pPolicyInfObj;
+CSharedMem* pAgentInfObj;
 
 LPST_PLC_IO pPLC_IO;
 HANDLE hmutex_PLC;
@@ -151,9 +151,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    pPLCioObj = new CSharedMem;
    pSwayIO_Obj = new CSharedMem;
    pRemoteIO_Obj = new CSharedMem;
-   pJobStatusObj = new CSharedMem;
-   pCommandStatusObj = new CSharedMem;
-   pExecStatusObj = new CSharedMem;
+    pCSInfObj = new CSharedMem;
+   pPolicyInfObj = new CSharedMem;
+   pAgentInfObj = new CSharedMem;
 
    //# 共有メモリ取得
    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {

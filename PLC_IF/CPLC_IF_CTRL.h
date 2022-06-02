@@ -52,7 +52,7 @@ private:
     //# 入力用共有メモリオブジェクトポインタ:
     CSharedMem* pCraneStatusObj;
     CSharedMem* pSimulationStatusObj;
-    CSharedMem* pExecStatusObj;
+    CSharedMem* pAgentInfObj;
 
     ST_PLC_LINK plc_link;       //PLCリンクバッファの内容
     ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ

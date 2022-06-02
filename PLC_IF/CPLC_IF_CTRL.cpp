@@ -7,7 +7,7 @@ CPLC_IF::CPLC_IF() {
     pPLCioObj = new CSharedMem;
     pCraneStatusObj = new CSharedMem;
     pSimulationStatusObj = new CSharedMem;
-    pExecStatusObj = new CSharedMem;
+    pAgentInfObj = new CSharedMem;
 
     out_size = 0;
     memset(&plc_link,0,sizeof(ST_PLC_LINK)) ;       //PLCリンクバッファの内容
@@ -18,7 +18,7 @@ CPLC_IF::~CPLC_IF() {
     delete pPLCioObj;
     delete pCraneStatusObj;
     delete pSimulationStatusObj;
-    delete pExecStatusObj;
+    delete pAgentInfObj;
 };
 
 int CPLC_IF::set_outbuf(LPVOID pbuf) {
@@ -48,7 +48,7 @@ int CPLC_IF::init_proc() {
         mode |= PLC_IF_CRANE_MEM_NG;
     }
 
-    if (OK_SHMEM != pExecStatusObj->create_smem(SMEM_EXEC_STATUS_NAME, sizeof(ST_EXEC_STATUS), MUTEX_EXEC_STATUS_NAME)){
+    if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)){
         mode |= PLC_IF_EXE_MEM_NG;
     }
 

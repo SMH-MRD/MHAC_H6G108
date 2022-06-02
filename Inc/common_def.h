@@ -62,7 +62,7 @@
 #define ID_SLEW         4   //旋回        ID
 #define ID_OP_ROOM      5   //運転室移動　ID
 #define ID_H_ASSY       6   //吊具        ID
-#define ID_MOTION1      7   //予備        ID
+#define ID_COMMON       7   //共通        ID
 
 /*** 配列参照用　方向インデックス ***/
 #define ID_UP         0   //左側

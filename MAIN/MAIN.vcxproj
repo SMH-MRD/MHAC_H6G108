@@ -154,7 +154,6 @@
     <ClInclude Include="CPolicy.h" />
     <ClInclude Include="CSCADA.h" />
     <ClInclude Include="CTaskObj.h" />
-    <ClInclude Include="CWorkWindow.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MAIN.h" />
     <ClInclude Include="Resource.h" />
@@ -171,7 +170,6 @@
     <ClCompile Include="CSharedMem.cpp" />
     <ClCompile Include="CTaskObj.cpp" />
     <ClCompile Include="CVector3.cpp" />
-    <ClCompile Include="CWorkWindow.cpp" />
     <ClCompile Include="MAIN.cpp" />
   </ItemGroup>
   <ItemGroup>
