@@ -1,6 +1,7 @@
 #pragma once
 
 #include "resource.h"
+
 ///# ベース設定
 
 //-タスク設定
@@ -11,20 +12,24 @@
 #define MAIN_WND_INIT_SIZE_W		380		//-Main Windowの初期サイズ　W
 #define MAIN_WND_INIT_SIZE_H		200		//-Main Windowの初期サイズ　H
 #define MAIN_WND_INIT_POS_X			680		//-Main Windowの初期位置設定　X
-#define MAIN_WND_INIT_POS_Y			20		//-Main Windowの初期位置設定　Y
+#define MAIN_WND_INIT_POS_Y			420		//-Main Windowの初期位置設定　Y
 
-//-ID定義 Mainスレッド用　2000 + 100 +α
-#define ID_STATUS					2100
-#define IDC_STATIC_0				2101
-#define IDC_PB_EXIT					2102
-#define IDC_PB_ACTIVE				2103
+//-ID定義 Mainスレッド用　2000 + 300 +α
+#define ID_STATUS					2300
+#define IDC_STATIC_0				2301
+#define IDC_PB_EXIT					2302
+#define IDC_PB_DEBUG				2303
+
 
 //メインウィンドウ管理構造体
 typedef struct stMainWndTag {
-	HWND hWnd_status_bar;	//ステータスバーのハンドル
-	HWND h_static0;			//スタティックオブジェクトのハンドル
-	HWND h_pb_exit;			//ボタンオブジェクトのハンドル
-	HWND h_pb_debug;		//ボタンオブジェクトのハンドル
+	HWND hWnd_status_bar = NULL;	//ステータスバーのハンドル
+	HWND h_static0 = NULL;			//スタティックオブジェクトのハンドル
+	HWND h_pb_exit = NULL;			//ボタンオブジェクトのハンドル
+	HWND h_pb_debug = NULL;			//ボタンオブジェクトのハンドル
+
+	HWND hWorkWnd = NULL;			//ワークウィンドウのハンドル
+
 }ST_MAIN_WND, * LPST_MAIN_WND;
 
 //マルチメディアタイマー管理構造体

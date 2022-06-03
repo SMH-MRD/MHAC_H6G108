@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SIM", "SIM\SIM.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PLC_IF", "PLC_IF\PLC_IF.vcxproj", "{FE234C6A-5785-42B1-80FA-EBB61E05B23B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SWAY_IF", "SWAY_IF\SWAY_IF.vcxproj", "{EF117313-97D1-44F6-AB30-40FD0268C4E0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{FE234C6A-5785-42B1-80FA-EBB61E05B23B}.Release|x64.Build.0 = Release|x64
 		{FE234C6A-5785-42B1-80FA-EBB61E05B23B}.Release|x86.ActiveCfg = Release|Win32
 		{FE234C6A-5785-42B1-80FA-EBB61E05B23B}.Release|x86.Build.0 = Release|Win32
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Debug|x64.ActiveCfg = Debug|x64
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Debug|x64.Build.0 = Debug|x64
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Debug|x86.ActiveCfg = Debug|Win32
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Debug|x86.Build.0 = Debug|Win32
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Release|x64.ActiveCfg = Release|x64
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Release|x64.Build.0 = Release|x64
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Release|x86.ActiveCfg = Release|Win32
+		{EF117313-97D1-44F6-AB30-40FD0268C4E0}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

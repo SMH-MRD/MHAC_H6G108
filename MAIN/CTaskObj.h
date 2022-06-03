@@ -131,6 +131,9 @@ public:
 	virtual void set_panel_pb_txt() { return; }
 	//パラメータ初期表示値設定
 	virtual void set_PNLparam_value(float p1, float p2, float p3, float p4, float p5, float p6);
+	//タブパネルのFunctionボタンのリセット
+	virtual void reset_panel_func_pb(HWND hDlg);
+	virtual void reset_panel_item_pb(HWND hDlg);
 
 protected:
 	CHelper tool;

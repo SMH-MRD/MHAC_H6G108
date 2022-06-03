@@ -80,7 +80,7 @@ typedef struct StPLCStatus {
 }ST_PLC_STATUS, * LPST_PLC_STATUS;
 
 // PLC_IO構造体
-#define PLC_IF_PLC_DBG_MODE  0x00000001
+#define PLC_IF_PC_DBG_MODE  0x00000001		//PCデバッグパネル、SIM出力からIO情報生成
 typedef struct StPLCIO {
 	DWORD mode;
 	BOOL is_debug_mode;
@@ -116,7 +116,12 @@ typedef struct StPLCIO {
 #define SID_BLUE                     2
 #endif // !SWAY_IO_ID
 
+#define SWAY_IF_SIM_DBG_MODE  0x00000010	//振れデータをSIM出力から生成
+
 typedef struct StSwayIO {
+	DWORD proc_mode;
+	DWORD helthy_cnt;
+
 	char sensorID[4];
 	WORD mode[SENSOR_TARGET_MAX];
 	WORD status[SENSOR_TARGET_MAX];
@@ -145,8 +150,11 @@ typedef struct StRemoteIO {
 /*   シミュレーション信号定義構造体                                  　   　*/
 /* 　SIM PROCがセットする共有メモリ上の情報　　　　　　　          　    　 */
 /****************************************************************************/
+#define SIM_ACTIVE_MODE  0x00000100	//シミュレーション実行モード
+
 typedef struct StSimulationStatus {
 	DWORD mode;
+	DWORD helthy_cnt;
 	bool is_simproc_available;
 	bool is_simulation_active;
 	double spd_fb[MOTION_ID_MAX];
@@ -181,8 +189,16 @@ typedef struct StSwayStatus {
 
 }ST_SWAY_STATUS, * LPST_SWAY_STATUS;
 
+typedef struct stEnvSubproc {
+	bool is_plcio_join = false;
+	bool is_sim_join = false;
+	bool is_sway_join = false;
+} ST_ENV_SUBPROC, LPST_ENV_SUBPROC;
+
+
 typedef struct StCraneStatus {
 	DWORD env_act_count;			//ヘルシー信号
+	ST_ENV_SUBPROC subproc_stat;	//サブプロセスの状態
 	ST_SPEC spec;
 	DWORD operation_mode;
 	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令

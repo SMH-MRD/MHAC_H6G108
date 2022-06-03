@@ -67,7 +67,7 @@ void CSCADA::main_proc() {
 //’èüŠúˆ—è‡3@M†o—Íˆ—
 void CSCADA::output() {
 
-	wostrs << L" working!" << *(inf.psys_counter) % 100;
+	wostrs << L" ---Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 
@@ -87,7 +87,9 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 		case IDC_TASK_FUNC_RADIO4:
 		case IDC_TASK_FUNC_RADIO5:
 		case IDC_TASK_FUNC_RADIO6:
-			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); break;
+			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+			reset_panel_item_pb(hDlg);
+			break;
 
 		case IDC_TASK_ITEM_RADIO1:
 		case IDC_TASK_ITEM_RADIO2:
@@ -136,7 +138,8 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 		}break;
 		case IDRESET: {
 			set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-
+			reset_panel_func_pb(hDlg);
+			reset_panel_item_pb(hDlg);
 		}break;
 
 		case IDC_TASK_OPTION_CHECK1:

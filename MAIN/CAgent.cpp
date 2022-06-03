@@ -77,13 +77,13 @@ void CAgent::output() {
 	set_ref_bh();
 		
 
-	wostrs << L" #Ref " << fixed<<setprecision(3);
-	wostrs << L" MH " << pAgentInf->v_ref[ID_HOIST];
+	wostrs << L" #Ref:" << fixed<<setprecision(3);
+	wostrs << L"MH " << pAgentInf->v_ref[ID_HOIST];
 	wostrs << L",GT " << pAgentInf->v_ref[ID_GANTRY];
 	wostrs << L",SL " << pAgentInf->v_ref[ID_SLEW];
 	wostrs << L",BH " << pAgentInf->v_ref[ID_BOOM_H];
 
-	wostrs << L" working!" << *(inf.psys_counter) % 100;
+	wostrs <<  L" ---Scan " << inf.period;;
 
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
@@ -154,7 +154,9 @@ LRESULT CALLBACK CAgent::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 		case IDC_TASK_FUNC_RADIO4:
 		case IDC_TASK_FUNC_RADIO5:
 		case IDC_TASK_FUNC_RADIO6:
-			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); break;
+			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+			reset_panel_item_pb(hDlg);
+			break;
 
 		case IDC_TASK_ITEM_RADIO1:
 		case IDC_TASK_ITEM_RADIO2:
@@ -203,7 +205,8 @@ LRESULT CALLBACK CAgent::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 		}break;
 		case IDRESET: {
 			set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-
+			reset_panel_func_pb(hDlg);
+			reset_panel_item_pb(hDlg);
 		}break;
 
 		case IDC_TASK_OPTION_CHECK1:

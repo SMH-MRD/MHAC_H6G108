@@ -3,6 +3,7 @@
 
 #include "framework.h"
 #include "SIM.h"
+#include "CSIM.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include <windowsx.h>       //# コモンコントロール用
@@ -26,21 +27,12 @@ CSharedMem*  pCSInfObj;
 CSharedMem* pPolicyInfObj;
 CSharedMem* pAgentInfObj;
 
-LPST_PLC_IO pPLC_IO;
-HANDLE hmutex_PLC;
-
-LPST_SIMULATION_STATUS pSimStat;
-HANDLE hmutex_Sim;
-
-LPST_CRANE_STATUS pCraneStat;
-HANDLE hmutex_CraneStat;
-
 
 //# ステータスバーのウィンドウのハンドル
 static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
 static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
-ST_SIM_CTRL  stSimCtrl;                         //PLCインターフェイス管理用構造体
 
+CSIM * pProcObj;          //メイン処理オブジェクト:
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -50,6 +42,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 //# ウィンドウにステータスバーを追加追加
 HWND CreateStatusbarMain(HWND hWnd);
+DWORD* psource_proc_counter = NULL;               //メインプロセスのヘルシーカウンタ
 
 //# マルチメディアタイマイベントコールバック関数
 VOID CALLBACK alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2); 
@@ -93,11 +86,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 }
 
 
-//
+//********************************************************************************
 //  関数: MyRegisterClass()
 //
 //  目的: ウィンドウ クラスを登録します。
-//
+//********************************************************************************
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex;
@@ -119,7 +112,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-//
+//********************************************************************************
 //   関数: InitInstance(HINSTANCE, int)
 //
 //   目的: インスタンス ハンドルを保存して、メイン ウィンドウを作成します
@@ -128,11 +121,16 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 //        この関数で、グローバル変数でインスタンス ハンドルを保存し、
 //        メイン プログラム ウィンドウを作成および表示します。
-//
+//********************************************************************************
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
+     // メイン処理オブジェクトインスタンス化
+   pProcObj = new CSIM;                                 // メイン処理クラスのインスタンス化
+   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
+   pProcObj->init_proc();                               // メイン処理クラスの初期化
+                      
    //# メインウィンドウクリエイト
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
        MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,
@@ -144,29 +142,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   //# 共有メモリオブジェクトのインスタンス化
-   pCraneStatusObj = new CSharedMem;
-   pSwayStatusObj = new CSharedMem;
-   pSimulationStatusObj = new CSharedMem;
-   pPLCioObj = new CSharedMem;
-   pSwayIO_Obj = new CSharedMem;
-   pRemoteIO_Obj = new CSharedMem;
-    pCSInfObj = new CSharedMem;
-   pPolicyInfObj = new CSharedMem;
-   pAgentInfObj = new CSharedMem;
-
-   //# 共有メモリ取得
-   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {
-       return(FALSE);
-   }
-   pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
-   hmutex_Sim = pSimulationStatusObj->get_hmutex();
-
-   if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME, sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) {
-       return(FALSE);
-   }
-   pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
-   hmutex_CraneStat = pCraneStatusObj->get_hmutex();
 
 
    // タスクループ処理起動マルチメディアタイマ起動
@@ -199,7 +174,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-//
+//***********************************************************************************************************
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
 //  目的: メイン ウィンドウのメッセージを処理します。
@@ -208,7 +183,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_PAINT    - メイン ウィンドウを描画する
 //  WM_DESTROY  - 中止メッセージを表示して戻る
 //
-//
+//************************************************************************************************************
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -217,9 +192,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         //メインウィンドウにステータスバー付加
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
-        stSimCtrl.mode = IDM_SIM_ACTIVE;
-        //メインウィンドウにステータスバー付加
+         //メインウィンドウにステータスバー付加
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
+
+        pProcObj->set_mode(L_ON);
         SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"ACTIVE");
 
         //メインウィンドウにコントロール追加
@@ -247,14 +223,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case IDC_PB_ACTIVE:
-                if (stSimCtrl.mode == IDM_SIM_ACTIVE) {
-                    stSimCtrl.mode = IDM_SIM_PAUSE;
+                if (pProcObj->mode & SIM_ACTIVE_MODE) {
+                    pProcObj->set_mode(L_OFF);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"SIM PAUSED!");
                     SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"ACTIVE->");
                     SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"PAUSE");
                 }
                 else {
-                    stSimCtrl.mode = IDM_SIM_ACTIVE;
+                    pProcObj->set_mode(L_ON);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"SIM ACTIVE!");
                     SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"PAUSE->");
                     SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"ACTIVE");
@@ -340,15 +316,18 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
  
     knl_manage_set.sys_counter++;
 
-    LPST_CRANE_STATUS pst = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
-    
+    pProcObj->input();     //入力
+    pProcObj->parse();      //データ解析処理
+    pProcObj->output();    //出力
+ 
     TCHAR tbuf[32];
 
     //Statusバーにメインプロセスのカウンタ表示
-    if (knl_manage_set.sys_counter % 4 == 0) {// 100msec毎
- 
-        wsprintf(tbuf, L"%08d", pst->env_act_count);
-        SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
+    if (psource_proc_counter != NULL) {
+        if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
+            wsprintf(tbuf, L"%08d", *psource_proc_counter);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
+        }
     }
  
     return;

@@ -5,10 +5,11 @@
 #define PLC_IF_PLC_IO_MEM_NG        0x8000
 #define PLC_IF_CRANE_MEM_NG         0x4000
 #define PLC_IF_SIM_MEM_NG           0x2000
-#define PLC_IF_EXE_MEM_NG           0x1000
+#define PLC_IF_AGENT_MEM_NG           0x1000
 
 
 //PLC IOインターフェースのデータサイズ
+//PLC LINKデバイスの割付マップサイズ
 #define PLC_IF_MAIN_X_BUFSIZE       14
 #define PLC_IF_MAIN_Y_BUFSIZE       6
 #define PLC_IF_GNT_X_BUFSIZE        8
@@ -22,7 +23,6 @@
 #define PLC_IF_SENS_W_BUFSIZE       5
 #define PLC_IF_PC_B_BUFSIZE         16
 #define PLC_IF_PC_W_BUFSIZE         32
-
 typedef struct st_PLClink_tag{
     WORD main_x_buf[PLC_IF_MAIN_X_BUFSIZE];
     WORD main_y_buf[PLC_IF_MAIN_Y_BUFSIZE];
@@ -74,9 +74,9 @@ public:
     int set_debug_status(); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
     
     void set_debug_mode(int id) {
-        if (id) mode |= PLC_IF_PLC_DBG_MODE;
-        else    mode &= ~PLC_IF_PLC_DBG_MODE;
+        if (id) mode |= PLC_IF_PC_DBG_MODE;
+        else    mode &= ~PLC_IF_PC_DBG_MODE;
     }
 
-    int is_debug_mode() { return(mode & PLC_IF_PLC_DBG_MODE); }
+    int is_debug_mode() { return(mode & PLC_IF_PC_DBG_MODE); }
 };

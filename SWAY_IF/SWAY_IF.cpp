@@ -1,10 +1,9 @@
-﻿// PLC_IF.cpp : アプリケーションのエントリ ポイントを定義します。
+﻿// SWAY_IF.cpp : アプリケーションのエントリ ポイントを定義します。
 //
 
 #include "framework.h"
-#include "PLC_IF.h"
-#include "CPLC_IF.h"
-#include "CWorkWindow_PLC.h"
+#include "SWAY_IF.h"
+#include "CSwayIF.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include <windowsx.h>       //# コモンコントロール用
@@ -20,11 +19,10 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ ク
 //# ステータスバーのウィンドウのハンドル
 static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
 static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
-DWORD* psource_proc_counter=NULL;               //メインプロセスのヘルシーカウンタ
+DWORD* psource_proc_counter = NULL;             //メインプロセスのヘルシーカウンタ
 
+CSwayIF* pProcObj;          //メイン処理オブジェクト:
 
-CPLC_IF* pProcObj;          //メイン処理オブジェクト:
-CWorkWindow_PLC* pWorkWnd;  //作業ウィンドウオブジェクト:
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -51,7 +49,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_PLCIF, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDC_SWAYIF, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
     // アプリケーション初期化の実行:
@@ -60,7 +58,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_PLCIF));
+    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_SWAYIF));
 
     MSG msg;
 
@@ -76,6 +74,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
+
 
 
 //
@@ -94,10 +93,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_PLCIF));
+    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SWAYIF));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_PLCIF);
+    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_SWAYIF);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -125,18 +124,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    if (!hWnd)
    {
-      return FALSE;
+       return FALSE;
    }
-   
-  // メイン処理オブジェクトインスタンス化
-   pProcObj = new CPLC_IF;                              // メイン処理クラスのインスタンス化
+
+   // メイン処理オブジェクトインスタンス化
+   pProcObj = new CSwayIF;                              // メイン処理クラスのインスタンス化
    psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
    pProcObj->init_proc();                               // メイン処理クラスの初期化
-
-   //Workウィンドウオブジェクトインスタンス化
-   pWorkWnd = new CWorkWindow_PLC;
-
- 
+   
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
@@ -165,7 +160,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
            return((DWORD)FALSE);
        }
    }
-      
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -196,9 +191,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         //メインウィンドウにコントロール追加
         stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 5, 200, 20, hWnd, (HMENU)IDC_STATIC_0,hInst, NULL);
+            10, 5, 200, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
 
-        stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT",  WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             305, 90, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -219,32 +214,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case IDC_PB_DEBUG:
-                if (!(pProcObj->mode & PLC_IF_PC_DBG_MODE)) {
+                if (!(pProcObj->mode & SWAY_IF_SIM_DBG_MODE)) {
                     pProcObj->set_debug_mode(L_ON);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
-                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT,0, (LPARAM)L"NORMAL->");
-                    //オペレーションウィンドウオープン
-                     if (stMainWnd.hWorkWnd == NULL) {
-                        stMainWnd.hWorkWnd = pWorkWnd->open_WorkWnd(hWnd);
-                        ShowWindow(stMainWnd.hWorkWnd, SW_SHOW);
-                    }
+                    SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"NORMAL->");
                 }
                 else {
                     pProcObj->set_debug_mode(L_OFF);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
                     SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
-                    //オペレーションウィンドウクローズ
-                    if (stMainWnd.hWorkWnd != NULL) {
-                        pWorkWnd->close_WorkWnd();
-                        stMainWnd.hWorkWnd = NULL;
-                    }
-                  }
- 
+                }
+
                 TCHAR tbuf[32];
                 wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
                 SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
                 break;
-            
+
+                DestroyWindow(hWnd);
+                break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
@@ -259,13 +246,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
-  
-        timeKillEvent(knl_manage_set.KnlTick_TimerID);//マルチメディアタイマ停止
-        Sleep(100);//100msec待機
-        
-        delete pProcObj;   //メイン処理オブジェクト削除
-        delete pWorkWnd;   //Workウィンドウオブジェクト削除
-
         PostQuitMessage(0);
         break;
     default:
@@ -302,7 +282,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 HWND CreateStatusbarMain(HWND hWnd)
 {
     HWND hSBWnd;
-    int sb_size[] = { 60,120,180,240,290,360};//ステータス区切り位置
+    int sb_size[] = { 60,120,180,240,290,360 };//ステータス区切り位置
 
     InitCommonControls();
     hSBWnd = CreateWindowEx(
@@ -328,21 +308,22 @@ HWND CreateStatusbarMain(HWND hWnd)
 //  ******************************************************************************************
 VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-     knl_manage_set.sys_counter++;
-      
-     TCHAR tbuf[32];
-     
-     pProcObj->input();     //入力
-     pProcObj->parse();      //データ解析処理
-     pProcObj->output();    //出力
+    knl_manage_set.sys_counter++;
 
-     //Statusバーにメインプロセスのカウンタ表示
-     if (psource_proc_counter != NULL) {
-         if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
-             wsprintf(tbuf, L"%08d", *psource_proc_counter);
-             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
-         }
-     }
+    TCHAR tbuf[32];
+
+    pProcObj->input();     //入力
+    pProcObj->parse();      //データ解析処理
+    pProcObj->output();    //出力
+
+    //Statusバーにメインプロセスのカウンタ表示
+    if (psource_proc_counter != NULL) {
+        if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
+            wsprintf(tbuf, L"%08d", *psource_proc_counter);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
+        }
+    }
 
     return;
 }
+

@@ -1,4 +1,4 @@
-#include "CPLC_IF_CTRL.h"
+#include "CPLC_IF.h"
 #include "PLC_IO_DEF.h"
 #include "CWorkWindow_PLC.h"
 
@@ -49,7 +49,7 @@ int CPLC_IF::init_proc() {
     }
 
     if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)){
-        mode |= PLC_IF_EXE_MEM_NG;
+        mode |= PLC_IF_AGENT_MEM_NG;
     }
 
     return int(mode & 0xff00);
@@ -93,8 +93,6 @@ int CPLC_IF::output() {
     if (out_size) { //èoóÕèàóù
         memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
     }
-
-    ST_PLC_IO* ptemp = (LPST_PLC_IO)poutput;
 
     return 0;
 }

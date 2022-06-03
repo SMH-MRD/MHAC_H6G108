@@ -133,6 +133,7 @@ LRESULT CALLBACK CTaskObj::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) 
 		case IDC_TASK_FUNC_RADIO5:
 		case IDC_TASK_FUNC_RADIO6:
 			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); break;
+			reset_panel_item_pb(hDlg);
 
 		case IDC_TASK_ITEM_RADIO1:
 		case IDC_TASK_ITEM_RADIO2:
@@ -176,6 +177,8 @@ LRESULT CALLBACK CTaskObj::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) 
 		}break;
 		case IDRESET: {
 			set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+			reset_panel_func_pb(hDlg);
+			reset_panel_item_pb(hDlg);
 
 		}break;
 
@@ -367,4 +370,29 @@ void CTaskObj::set_panel_tip_txt()
 	SetWindowText(GetDlgItem(inf.hWnd_opepane, IDC_STATIC_TASKSET2), wstr.c_str());
 	SetWindowText(GetDlgItem(inf.hWnd_opepane, IDC_STATIC_TASKSET3), wstr_type.c_str());
 }
+
+//# タブパネルファンクションリセット
+void CTaskObj::reset_panel_func_pb(HWND hDlg) {
+	inf.panel_func_id = 0;
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_FUNC_RADIO1), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_FUNC_RADIO2), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_FUNC_RADIO3), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_FUNC_RADIO4), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_FUNC_RADIO5), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_FUNC_RADIO6), BM_SETCHECK, BST_UNCHECKED, 0L);
+	return;
+}; 
+//# タブパネルアイテムリセット
+void CTaskObj::reset_panel_item_pb(HWND hDlg) {
+	inf.panel_type_id = 0;
+
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO1), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO2), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO3), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO4), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO5), BM_SETCHECK, BST_UNCHECKED, 0L);
+	SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO6), BM_SETCHECK, BST_UNCHECKED, 0L);
+
+	return;
+}; 
 

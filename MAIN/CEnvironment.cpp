@@ -35,7 +35,9 @@ void CEnvironment::init_task(void* pobj) {
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
-
+	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
+	pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
+	
 	//クレーン仕様セット
 	pCraneStat->spec = this->spec;
 
@@ -61,54 +63,30 @@ void CEnvironment::input(){
 };
 
 //定周期処理手順2　メイン処理
-static DWORD plc_io_helthy_NGcount = 0;
-static DWORD plc_io_helthy_count_last = 0;
-static DWORD sim_helthy_NGcount = 0;
-static DWORD sim_helthy_count_last = 0;
 
 void CEnvironment::main_proc() {
 
-//サブプロセスチェック
-	if (plc_io_helthy_count_last == pPLC_IO->helthy_cnt ) plc_io_helthy_NGcount++;
-	else plc_io_helthy_NGcount = 0;
-	if (plc_io_helthy_NGcount > PLC_IO_HELTHY_NG_COUNT) st_subproc.is_plcio_join = false;
-	else st_subproc.is_plcio_join = true;
-	plc_io_helthy_count_last = pPLC_IO->helthy_cnt;
+	//メインウィンドウのTweetメッセージ更新
+	tweet_update();
 
 	return;
-
 }
 
 //定周期処理手順3　信号出力処理
+
 void CEnvironment::output() {
 	//ヘルシーカウンタセット
 	pCraneStat->env_act_count = inf.total_act;
 	
+	//サブプロセスチェック
+	chk_subproc();
+
 	//リモートモードセット
 	if(pPLC_IO->ui.pb[PLC_UI_CS_REMOTE])pCraneStat->operation_mode |= OPERATION_MODE_REMOTE;
 	else pCraneStat->operation_mode &= ~OPERATION_MODE_REMOTE;
 
 	//ノッチ指令状態セット
 	parse_notch_com();
-
-	//メインウィンドウへのメッセージ表示
-
-	if (st_subproc.is_plcio_join == true) {
-		if (pPLC_IO->mode & PLC_IF_PLC_DBG_MODE) wostrs << L" # PLC:DBG";
-		else wostrs << L" # PLC:NORMAL";
-	}
-	else wostrs << L" # PLC:NG";
-
-	if (pPLC_IO->status.ctrl[PLC_STAT_CONTROL_SOURCE] == L_ON) wostrs << L"  ! PW:ON";
-	else wostrs << L"  ! PW:OFF";
-
-	if (pPLC_IO->status.ctrl[PLC_STAT_REMOTE] == L_ON) wostrs << L"  @ REMOTE";
-	else wostrs << L"  @ CRANE";
-
-	wostrs << L" working!" << *(inf.psys_counter) % 100;
-
-	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
-
 	
 	return;
 
@@ -140,6 +118,82 @@ int CEnvironment::parse_notch_com() {
 };
 
 /****************************************************************************/
+/*　　サブプロセスの状態確認			            */
+/****************************************************************************/
+static DWORD plc_io_helthy_NGcount = 0;
+static DWORD plc_io_helthy_count_last = 0;
+static DWORD sim_helthy_NGcount = 0;
+static DWORD sim_helthy_count_last = 0;
+static DWORD sway_helthy_NGcount = 0;
+static DWORD sway_helthy_count_last = 0;
+
+void CEnvironment::chk_subproc() {
+
+	//PLC IF
+	if (plc_io_helthy_count_last == pPLC_IO->helthy_cnt) plc_io_helthy_NGcount++;
+	else plc_io_helthy_NGcount = 0;
+	if (plc_io_helthy_NGcount > PLC_IO_HELTHY_NG_COUNT) pCraneStat->subproc_stat.is_plcio_join = false;
+	else pCraneStat->subproc_stat.is_plcio_join = true;
+	plc_io_helthy_count_last = pPLC_IO->helthy_cnt;
+
+	//SWAY IF
+	if (sway_helthy_count_last == pSway_IO->helthy_cnt) sway_helthy_NGcount++;
+	else sway_helthy_NGcount = 0;
+	if (sway_helthy_NGcount > SWAY_HELTHY_NG_COUNT) pCraneStat->subproc_stat.is_sway_join = false;
+	else pCraneStat->subproc_stat.is_sway_join = true;
+	sway_helthy_count_last = pSway_IO->helthy_cnt;
+
+	//SIM
+	if (sim_helthy_count_last == pSimStat->helthy_cnt) sim_helthy_NGcount++;
+	else sim_helthy_NGcount = 0;
+	if (sim_helthy_NGcount >SIM_HELTHY_NG_COUNT) pCraneStat->subproc_stat.is_sim_join = false;
+	else pCraneStat->subproc_stat.is_sim_join = true;
+	sim_helthy_count_last = pSimStat->helthy_cnt;
+
+	return;
+
+};
+/****************************************************************************/
+/*　　メインウィンドウのTweetメッセージ更新          			            */
+/****************************************************************************/
+void CEnvironment::tweet_update() {
+
+	//PLC
+	if (pCraneStat->subproc_stat.is_plcio_join == true) {
+		if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) wostrs << L" #PLC:DBG";
+		else wostrs << L" #PLC:PLC";
+
+		if (pPLC_IO->status.ctrl[PLC_STAT_CONTROL_SOURCE] == L_ON) wostrs << L" ,! PW:ON";
+		else wostrs << L",! PW:OFF";
+
+		if (pPLC_IO->status.ctrl[PLC_STAT_REMOTE] == L_ON) wostrs << L",@ RMT";
+		else wostrs << L",@CRANE";
+	}
+	else wostrs << L" # PLC:NG";
+
+	//SWAY
+	if (pCraneStat->subproc_stat.is_sway_join == true) {
+		if (pSway_IO->proc_mode & SWAY_IF_SIM_DBG_MODE) wostrs << L" #SWY:SIM";
+		else wostrs << L" #SWY:CAM";
+	}
+	else wostrs << L" #SWY:NG";
+
+	//SIM
+	if (pCraneStat->subproc_stat.is_sim_join == true) {
+		if (pSimStat->mode & SIM_ACTIVE_MODE) wostrs << L" #SIM:ACT";
+		else wostrs << L" #SIM:STP";
+	}
+	else wostrs << L" #SIM:OUT";
+
+	wostrs << L" ---Scan " << inf.period;
+
+	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
+
+	return;
+
+};
+
+/****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
 /****************************************************************************/
 LRESULT CALLBACK CEnvironment::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
@@ -153,7 +207,9 @@ LRESULT CALLBACK CEnvironment::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM 
 		case IDC_TASK_FUNC_RADIO4:
 		case IDC_TASK_FUNC_RADIO5:
 		case IDC_TASK_FUNC_RADIO6:
-			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); break;
+			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+			reset_panel_item_pb(hDlg);
+			break;
 
 		case IDC_TASK_ITEM_RADIO1:
 		case IDC_TASK_ITEM_RADIO2:
@@ -202,7 +258,8 @@ LRESULT CALLBACK CEnvironment::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM 
 		}break;
 		case IDRESET: {
 			set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-
+			reset_panel_func_pb(hDlg);
+			reset_panel_item_pb(hDlg);
 		}break;
 
 		case IDC_TASK_OPTION_CHECK1:
@@ -387,9 +444,9 @@ void CEnvironment::set_panel_tip_txt()
 /****************************************************************************/
 void CEnvironment::set_panel_pb_txt() {
 
-	WCHAR str_func06[] = L"DEBUG";
+//	WCHAR str_func06[] = L"DEBUG";
 
-	SetDlgItemText(inf.hWnd_opepane, IDC_TASK_FUNC_RADIO6, (LPCWSTR)str_func06);
+//	SetDlgItemText(inf.hWnd_opepane, IDC_TASK_FUNC_RADIO6, (LPCWSTR)str_func06);
 
 	return;
 };

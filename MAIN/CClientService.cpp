@@ -76,10 +76,10 @@ void CClientService::main_proc() {
 	asPB_last_input = pPLC_IO->ui.pb[PLC_UI_PB_ANTISWAY];
 
 	//デバッグモード要求
-	if ((pPLC_IO->mode & PLC_IF_PLC_DBG_MODE) != PLC_Dbg_last_input) {
+	if ((pPLC_IO->mode & PLC_IF_PC_DBG_MODE) != PLC_Dbg_last_input) {
 		pPolicy->update_control(POLICY_REQ_DEBUG, NULL);
 	}
-	PLC_Dbg_last_input = pPLC_IO->mode & PLC_IF_PLC_DBG_MODE;
+	PLC_Dbg_last_input = pPLC_IO->mode & PLC_IF_PC_DBG_MODE;
 
 	
 
@@ -90,7 +90,7 @@ void CClientService::main_proc() {
 //定周期処理手順3　信号出力処理
 void CClientService::output() {
 
-	wostrs << L" working!" << *(inf.psys_counter) % 100;
+	wostrs << L" ---Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 
@@ -110,7 +110,9 @@ LRESULT CALLBACK CClientService::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARA
 		case IDC_TASK_FUNC_RADIO4:
 		case IDC_TASK_FUNC_RADIO5:
 		case IDC_TASK_FUNC_RADIO6:
-			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); break;
+			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+			reset_panel_item_pb(hDlg);
+			break;
 
 		case IDC_TASK_ITEM_RADIO1:
 		case IDC_TASK_ITEM_RADIO2:
@@ -159,7 +161,7 @@ LRESULT CALLBACK CClientService::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARA
 		}break;
 		case IDRESET: {
 			set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-
+			reset_panel_func_pb(hDlg);
 		}break;
 
 		case IDC_TASK_OPTION_CHECK1:
