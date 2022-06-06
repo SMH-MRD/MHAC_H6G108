@@ -154,7 +154,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\MAIN\CSharedMem.cpp" />
+    <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="CSwayIF.cpp" />
     <ClCompile Include="SWAY_IF.cpp" />
   </ItemGroup>

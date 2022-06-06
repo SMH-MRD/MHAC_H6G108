@@ -185,7 +185,7 @@ void CEnvironment::tweet_update() {
 	}
 	else wostrs << L" #SIM:OUT";
 
-	wostrs << L" ---Scan " << inf.period;
+	wostrs << L" --Scan " << inf.period;
 
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 

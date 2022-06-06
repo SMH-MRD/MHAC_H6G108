@@ -83,7 +83,7 @@ void CAgent::output() {
 	wostrs << L",SL " << pAgentInf->v_ref[ID_SLEW];
 	wostrs << L",BH " << pAgentInf->v_ref[ID_BOOM_H];
 
-	wostrs <<  L" ---Scan " << inf.period;;
+	wostrs <<  L" --Scan " << inf.period;;
 
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;

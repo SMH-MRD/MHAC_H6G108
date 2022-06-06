@@ -155,7 +155,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\MAIN\CSharedMem.cpp" />
+    <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="CPLC_IF.cpp" />
     <ClCompile Include="CWorkWindow_PLC.cpp" />
     <ClCompile Include="PLC_IF.cpp" />

@@ -81,8 +81,6 @@ void CClientService::main_proc() {
 	}
 	PLC_Dbg_last_input = pPLC_IO->mode & PLC_IF_PC_DBG_MODE;
 
-	
-
 	return;
 
 }
@@ -90,7 +88,7 @@ void CClientService::main_proc() {
 //’èüŠúˆ—è‡3@M†o—Íˆ—
 void CClientService::output() {
 
-	wostrs << L" ---Scan " << inf.period;
+	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 

@@ -63,8 +63,6 @@ void CPolicy::input() {
 
 //定周期処理手順2　メイン処理
 void CPolicy::main_proc() {
-
-
 	
 	return;
 
@@ -73,14 +71,12 @@ void CPolicy::main_proc() {
 //定周期処理手順3　信号出力処理
 void CPolicy::output() {
 	
-
-
 	if (pPolicyInf->antisway_mode) wostrs << L" # AS:ON";
 	else  wostrs << L" # AS:OFF";
 
 	wostrs << L", CTRL:" << hex << pPolicyInf->pc_ctrl_mode;
 
-	wostrs << L" ---Scan " << inf.period;
+	wostrs << L" --Scan " << dec << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 

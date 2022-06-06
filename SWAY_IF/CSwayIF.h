@@ -22,6 +22,9 @@ private:
  
     ST_SWAY_IO sway_io_workbuf;   //共有メモリへの出力セット作業用バッファ
 
+    LPST_SIMULATION_STATUS pSim;    //シミュレータステータス
+
+
 public:
     CSwayIF();
     ~CSwayIF();
@@ -42,5 +45,7 @@ public:
 
     int is_debug_mode() { return(mode & SWAY_IF_SIM_DBG_MODE); }
 
+    //追加メソッド
+     int set_sim_status(LPST_SWAY_IO pworkbuf);   //デバッグモード時にSimulatorからの入力で出力内容を上書き
 };
 

@@ -57,6 +57,9 @@ private:
     ST_PLC_LINK plc_link;       //PLCリンクバッファの内容
     ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ
 
+    LPST_SIMULATION_STATUS pSim;    //シミュレータステータス
+    LPST_CRANE_STATUS pCrane;
+
 public:
     CPLC_IF();
     ~CPLC_IF();
@@ -71,7 +74,8 @@ public:
     int output();           //出力処理
 
     //追加メソッド
-    int set_debug_status(); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
+    int set_debug_status(LPST_PLC_IO pworkbuf); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
+    int set_sim_status(LPST_PLC_IO pworkbuf);   //デバッグモード時にSimulatorからの入力で出力内容を上書き
     
     void set_debug_mode(int id) {
         if (id) mode |= PLC_IF_PC_DBG_MODE;

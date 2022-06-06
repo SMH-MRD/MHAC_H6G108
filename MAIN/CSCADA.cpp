@@ -6,7 +6,7 @@ extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pRemoteIO_Obj;
-extern CSharedMem*  pCSInfObj;
+extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
 
@@ -67,7 +67,8 @@ void CSCADA::main_proc() {
 //’èüŠúˆ—è‡3@M†o—Íˆ—
 void CSCADA::output() {
 
-	wostrs << L" ---Scan " << inf.period;
+	wostrs << L" V: mh " << ((LPST_PLC_IO)pPLCioObj->get_pMap())->status.v_fb[ID_HOIST];
+	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 

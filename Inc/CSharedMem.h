@@ -1,6 +1,6 @@
 #pragma once
 
-#include "framework.h"
+#include <string>
 #include "common_def.h"
 #include "spec.h"
 #include "PLC_IO_DEF.h"
@@ -71,7 +71,7 @@ typedef struct StPLCUI {
 
 // PLC_状態信号構造体（機上センサ信号)
 typedef struct StPLCStatus {
-	BOOL ctrl[PLC_CTRL_MAX];
+	BOOL ctrl[PLC_CTRL_MAX];		//制御用信号　LS,MC状態等
 	double v_fb[MOTION_ID_MAX];
 	double v_ref[MOTION_ID_MAX];
 	double trq_fb_01per[MOTION_ID_MAX];
@@ -94,27 +94,29 @@ typedef struct StPLCIO {
 /*   振れセンサ信号定義構造体                                  　         　*/
 /* 　SWAY_PC_IFがセットする共有メモリ上の情報　      　　　　　　           */
 /****************************************************************************/
-//SWAY_IO
-#ifndef SWAY_IO_ID
 
 #define SENSOR_TARGET_MAX            4//検出ターゲット最大数
-#define DETECT_AXIS_MAX              4//検出軸最大数
-#define TG_LAMP_NUM_MAX              3//ターゲット毎のランプ最大数
-
 #define SID_TG1                      0//ターゲットID
 #define SID_TG2                      1
 #define SID_TG3                      2
 #define SID_TG4                      3
 
+#define DETECT_AXIS_MAX              4//検出軸最大数
 #define SID_X                        0
 #define SID_Y                        1
 #define SID_TH                       2
 #define SID_R                        3
 
+#define TG_LAMP_NUM_MAX              3//ターゲット毎のランプ最大数
 #define SID_RED                      0
 #define SID_GREEN                    1
 #define SID_BLUE                     2
-#endif // !SWAY_IO_ID
+
+#define SWAY_FAULT_ITEM_MAX			 4//異常検出項目数
+#define SID_COMMON_FLT               0
+#define SID_GREEN                    1
+#define SID_BLUE                     2
+
 
 #define SWAY_IF_SIM_DBG_MODE  0x00000010	//振れデータをSIM出力から生成
 
@@ -123,17 +125,17 @@ typedef struct StSwayIO {
 	DWORD helthy_cnt;
 
 	char sensorID[4];
-	WORD mode[SENSOR_TARGET_MAX];
-	WORD status[SENSOR_TARGET_MAX];
-	WORD fault[SENSOR_TARGET_MAX];
-	double rad[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];
-	double w[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];
-	double ph[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];
-	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];
-	double skew_rad[SENSOR_TARGET_MAX];
-	double skew_w[SENSOR_TARGET_MAX];
-	double tilt_rad[DETECT_AXIS_MAX];
-	BOOL is_debug_mode;
+	WORD mode[SENSOR_TARGET_MAX];							//ターゲットサ検出モード
+	WORD status[SENSOR_TARGET_MAX];							//ターゲットサ検出状態
+	DWORD fault[SWAY_FAULT_ITEM_MAX];						//センサ異常状態
+	double rad[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];			//振れ角
+	double w[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];			//振れ角速度
+	double ph[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];			//振れ位相
+	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];	//ターゲット検出PIXEL数（面積）
+	double skew_rad[SENSOR_TARGET_MAX];						//スキュー角
+	double skew_w[SENSOR_TARGET_MAX];						//スキュー角速度
+	double tilt_rad[DETECT_AXIS_MAX];						//傾斜角
+
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
 /****************************************************************************/
@@ -155,9 +157,6 @@ typedef struct StRemoteIO {
 typedef struct StSimulationStatus {
 	DWORD mode;
 	DWORD helthy_cnt;
-	bool is_simproc_available;
-	bool is_simulation_active;
-	double spd_fb[MOTION_ID_MAX];
 	ST_PLC_STATUS status;
 	ST_SWAY_IO sway_io;
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;

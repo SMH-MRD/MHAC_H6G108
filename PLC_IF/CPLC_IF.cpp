@@ -43,10 +43,12 @@ int CPLC_IF::init_proc() {
     if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {
         mode |= PLC_IF_SIM_MEM_NG;
     }
+    pSim = (LPST_SIMULATION_STATUS)pSimulationStatusObj->get_pMap();
 
     if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME, sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) {
         mode |= PLC_IF_CRANE_MEM_NG;
     }
+    pCrane = (LPST_CRANE_STATUS)pCraneStatusObj->get_pMap();
 
     if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)){
         mode |= PLC_IF_AGENT_MEM_NG;
@@ -58,11 +60,10 @@ int CPLC_IF::init_proc() {
 // input()
 //*********************************************************************************************
 int CPLC_IF::input() {
-    LPST_CRANE_STATUS pcrane = (LPST_CRANE_STATUS)pCraneStatusObj->get_pMap();
-    LPST_SIMULATION_STATUS psim = (LPST_SIMULATION_STATUS)pSimulationStatusObj->get_pMap();
     
+       
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
-    source_counter = pcrane->env_act_count;
+    source_counter = pCrane->env_act_count;
 
     //PLC 入力
 
@@ -78,7 +79,15 @@ int CPLC_IF::parse() {
     if (B_HST_NOTCH_0)plc_io_workbuf.ui.notch_pos[ID_HOIST] = 0;
     
     //デバッグモード時は、操作パネルウィンドウの内容を上書き
-    if (is_debug_mode()) set_debug_status();
+    if (is_debug_mode()) set_debug_status(&plc_io_workbuf);
+
+#ifdef _DVELOPMENT_MODE
+
+    if (pSim->mode & SIM_ACTIVE_MODE) {
+        set_sim_status(&plc_io_workbuf);
+    }
+
+#endif
 
     return 0; 
 }
@@ -89,7 +98,7 @@ int CPLC_IF::output() {
  
     plc_io_workbuf.mode = this->mode;                   //モードセット
     plc_io_workbuf.helthy_cnt = my_helthy_counter++;    //ヘルシーカウンタセット
-
+       
     if (out_size) { //出力処理
         memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
     }
@@ -99,34 +108,53 @@ int CPLC_IF::output() {
 //*********************************************************************************************
 // set_debug_status()
 //*********************************************************************************************
-int CPLC_IF::set_debug_status() {
+int CPLC_IF::set_debug_status(LPST_PLC_IO pworkbuf) {
     
     CWorkWindow_PLC* pWorkWindow;
 
-    plc_io_workbuf.ui.notch_pos[ID_HOIST]       = pWorkWindow->stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH;
-    plc_io_workbuf.ui.notch_pos[ID_GANTRY]      = pWorkWindow->stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH;
-    plc_io_workbuf.ui.notch_pos[ID_BOOM_H]      = pWorkWindow->stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH;
-    plc_io_workbuf.ui.notch_pos[ID_SLEW]        = pWorkWindow->stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH;
+    pworkbuf->ui.notch_pos[ID_HOIST]       = pWorkWindow->stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH;
+    pworkbuf->ui.notch_pos[ID_GANTRY]      = pWorkWindow->stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH;
+    pworkbuf->ui.notch_pos[ID_BOOM_H]      = pWorkWindow->stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH;
+    pworkbuf->ui.notch_pos[ID_SLEW]        = pWorkWindow->stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH;
 
-    plc_io_workbuf.ui.pb[PLC_UI_PB_ESTOP]       = pWorkWindow->stOpePaneStat.check_estop;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_ANTISWAY]    = pWorkWindow->stOpePaneStat.check_antisway;
-    plc_io_workbuf.ui.pb[PLC_UI_CS_REMOTE]      = pWorkWindow->stOpePaneStat.button_remote;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_START]  = pWorkWindow->stOpePaneStat.button_auto_start;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_RESET]  = pWorkWindow->stOpePaneStat.button_auto_reset;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM1]  = pWorkWindow->stOpePaneStat.button_from1;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM2]  = pWorkWindow->stOpePaneStat.button_from2;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM3]  = pWorkWindow->stOpePaneStat.button_from3;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_FROM4]  = pWorkWindow->stOpePaneStat.button_from4;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO1]    = pWorkWindow->stOpePaneStat.button_to1;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO2]    = pWorkWindow->stOpePaneStat.button_to2;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO3]    = pWorkWindow->stOpePaneStat.button_to3;
-    plc_io_workbuf.ui.pb[PLC_UI_PB_AUTO_TO4]    = pWorkWindow->stOpePaneStat.button_to4;
+    pworkbuf->ui.pb[PLC_UI_PB_ESTOP]       = pWorkWindow->stOpePaneStat.check_estop;
+    pworkbuf->ui.pb[PLC_UI_PB_ANTISWAY]    = pWorkWindow->stOpePaneStat.check_antisway;
+    pworkbuf->ui.pb[PLC_UI_CS_REMOTE]      = pWorkWindow->stOpePaneStat.button_remote;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_START]  = pWorkWindow->stOpePaneStat.button_auto_start;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_RESET]  = pWorkWindow->stOpePaneStat.button_auto_reset;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_FROM1]  = pWorkWindow->stOpePaneStat.button_from1;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_FROM2]  = pWorkWindow->stOpePaneStat.button_from2;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_FROM3]  = pWorkWindow->stOpePaneStat.button_from3;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_FROM4]  = pWorkWindow->stOpePaneStat.button_from4;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_TO1]    = pWorkWindow->stOpePaneStat.button_to1;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_TO2]    = pWorkWindow->stOpePaneStat.button_to2;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_TO3]    = pWorkWindow->stOpePaneStat.button_to3;
+    pworkbuf->ui.pb[PLC_UI_PB_AUTO_TO4]    = pWorkWindow->stOpePaneStat.button_to4;
     
-    if(pWorkWindow->stOpePaneStat.button_source1_on)   plc_io_workbuf.status.ctrl[PLC_STAT_CONTROL_SOURCE] = L_ON;
-    if(pWorkWindow->stOpePaneStat.button_source1_off)  plc_io_workbuf.status.ctrl[PLC_STAT_CONTROL_SOURCE] = L_OFF;
-    plc_io_workbuf.status.ctrl[PLC_STAT_REMOTE] = pWorkWindow->stOpePaneStat.button_remote;
+    if(pWorkWindow->stOpePaneStat.button_source1_on)   pworkbuf->status.ctrl[PLC_STAT_CONTROL_SOURCE] = L_ON;
+    if(pWorkWindow->stOpePaneStat.button_source1_off)  pworkbuf->status.ctrl[PLC_STAT_CONTROL_SOURCE] = L_OFF;
+    pworkbuf->status.ctrl[PLC_STAT_REMOTE] = pWorkWindow->stOpePaneStat.button_remote;
  
     return 0;
 }
+
+//*********************************************************************************************
+// set_sim_status()
+//*********************************************************************************************
+int CPLC_IF::set_sim_status(LPST_PLC_IO pworkbuf) {
+
+    pworkbuf->status.v_fb[ID_HOIST]     = pSim->status.v_fb[ID_HOIST];
+    pworkbuf->status.v_fb[ID_GANTRY]    = pSim->status.v_fb[ID_GANTRY];
+    pworkbuf->status.v_fb[ID_BOOM_H]    = pSim->status.v_fb[ID_BOOM_H];
+    pworkbuf->status.v_fb[ID_SLEW]      = pSim->status.v_fb[ID_SLEW];
+
+    pworkbuf->status.pos[ID_HOIST]      = pSim->status.pos[ID_HOIST];
+    pworkbuf->status.pos[ID_GANTRY]     = pSim->status.pos[ID_GANTRY];
+    pworkbuf->status.pos[ID_BOOM_H]     = pSim->status.pos[ID_BOOM_H];
+    pworkbuf->status.pos[ID_SLEW]       = pSim->status.pos[ID_SLEW];
+
+    return 0;
+}
+
 
 

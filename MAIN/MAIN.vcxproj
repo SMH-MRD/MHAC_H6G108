@@ -160,16 +160,14 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="CAgent.cpp" />
     <ClCompile Include="CClientService.cpp" />
     <ClCompile Include="CEnvironment.cpp" />
     <ClCompile Include="CHelper.cpp" />
     <ClCompile Include="CPolicy.cpp" />
-    <ClCompile Include="CRK4.cpp" />
     <ClCompile Include="CSCADA.cpp" />
-    <ClCompile Include="CSharedMem.cpp" />
     <ClCompile Include="CTaskObj.cpp" />
-    <ClCompile Include="CVector3.cpp" />
     <ClCompile Include="MAIN.cpp" />
   </ItemGroup>
   <ItemGroup>

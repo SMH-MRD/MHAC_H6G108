@@ -548,6 +548,9 @@ int Init_tasks(HWND hWnd)
         ptempobj->inf.n_active_events = 1;
 
     }
+
+
+    
     //###Task4 設定 POLICY
     {
         /// -タスクインスタンス作成->リスト登録
@@ -613,7 +616,6 @@ int Init_tasks(HWND hWnd)
         ptempobj->inf.n_active_events = 1;
 
     }
-
 
     ///各タスク用設定ウィンドウ作成
     InitCommonControls();	//コモンコントロール初期化
