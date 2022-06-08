@@ -5,7 +5,7 @@
 #define PLC_IF_PLC_IO_MEM_NG        0x8000
 #define PLC_IF_CRANE_MEM_NG         0x4000
 #define PLC_IF_SIM_MEM_NG           0x2000
-#define PLC_IF_AGENT_MEM_NG           0x1000
+#define PLC_IF_AGENT_MEM_NG          0x1000
 
 
 //PLC IOインターフェースのデータサイズ
