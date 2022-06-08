@@ -261,6 +261,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
   
         timeKillEvent(knl_manage_set.KnlTick_TimerID);//マルチメディアタイマ停止
+        pProcObj->closeIF();
+        
         Sleep(100);//100msec待機
         
         delete pProcObj;   //メイン処理オブジェクト削除

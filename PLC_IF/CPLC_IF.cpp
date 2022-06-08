@@ -1,6 +1,8 @@
 #include "CPLC_IF.h"
 #include "PLC_IO_DEF.h"
 #include "CWorkWindow_PLC.h"
+#include <windows.h>
+#include "Mdfunc.h"
 
 CPLC_IF::CPLC_IF() {
     // 共有メモリオブジェクトのインスタンス化
@@ -10,8 +12,20 @@ CPLC_IF::CPLC_IF() {
     pAgentInfObj = new CSharedMem;
 
     out_size = 0;
-    memset(&plc_link,0,sizeof(ST_PLC_LINK)) ;       //PLCリンクバッファの内容
+    memset(&melnet,0,sizeof(ST_MELSEC_NET)) ;      //PLCリンク構造体
     memset(&plc_io_workbuf,0,sizeof(ST_PLC_IO));   //共有メモリへの出力セット作業用バッファ
+
+    melnet.chan = MELSEC_NET_CH;
+    melnet.mode = 0;
+    melnet.path = NULL;
+    melnet.err = 0;
+    melnet.status = 0;
+    melnet.retry_cnt = MELSEC_NET_RETRY_CNT;
+    melnet.read_size_b = 0;                         //PLCでLWのbitでセットする為LBは未使用
+    melnet.read_size_w = sizeof(ST_PLC_READ_W);
+    melnet.write_size_b = sizeof(ST_PLC_WRITE_B);
+    melnet.write_size_w = sizeof(ST_PLC_WRITE_W);
+
 };
 CPLC_IF::~CPLC_IF() {
     // 共有メモリオブジェクトの解放
@@ -34,7 +48,7 @@ int CPLC_IF::init_proc() {
 
      // 出力用共有メモリ取得
     out_size = sizeof(ST_PLC_IO);
-    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, out_size, MUTEX_PLC_IO_NAME)) {
+    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, (DWORD)out_size, MUTEX_PLC_IO_NAME)) {
         mode |= PLC_IF_PLC_IO_MEM_NG;
     }
     set_outbuf(pPLCioObj->get_pMap());
@@ -61,13 +75,34 @@ int CPLC_IF::init_proc() {
 //*********************************************************************************************
 int CPLC_IF::input() {
     
+    plc_io_workbuf.helthy_cnt++;
+
+    //PLC 入力処理
+    //MELSECNET回線確認
+    if ((!melnet.status)&&(!(plc_io_workbuf.helthy_cnt% melnet.retry_cnt))) {
+        if (!(melnet.err = mdOpen(melnet.chan, melnet.chan, &melnet.path)))
+            melnet.status = MELSEC_NET_OK;
+    }
+    //PLC Read
+    if (melnet.status == MELSEC_NET_OK) {
+        //LB読み込み　無し
+
+        //LW書き込み
+        melnet.err = mdReceive(melnet.path, //チャネルのパス
+            MELSEC_NET_SOURCE_STATION,      //局番
+            MELSEC_NET_CODE_LW,             //デバイスタイプ
+            MELSEC_NET_W_READ_START,        //先頭デバイス
+            &melnet.read_size_w,            //読み込みバイトサイズ
+            melnet.plc_r_buf_W.main_x_buf);     //読み込みバッファ
+
+        if (melnet.err < 0)melnet.status = MELSEC_NET_RECEIVE_ERR;
+    }
        
+     
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pCrane->env_act_count;
 
-    //PLC 入力
-
-    return 0;
+     return 0;
 }
 //*********************************************************************************************
 // parse()
@@ -98,9 +133,29 @@ int CPLC_IF::output() {
  
     plc_io_workbuf.mode = this->mode;                   //モードセット
     plc_io_workbuf.helthy_cnt = my_helthy_counter++;    //ヘルシーカウンタセット
-       
-    if (out_size) { //出力処理
+    
+    //共有メモリ出力処理
+    if(out_size) { 
         memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
+    }
+    //PLC出力処理
+    if (melnet.status == MELSEC_NET_OK) {
+        //LB書き込み
+        melnet.err = mdSend(melnet.path,    //チャネルのパス
+            MELSEC_NET_MY_STATION,          //局番
+            MELSEC_NET_CODE_LB,             //デバイスタイプ
+            MELSEC_NET_B_WRITE_START,       //先頭デバイス
+            &melnet.write_size_b,           //書き込みバイトサイズ
+            melnet.plc_w_buf_B.pc_com_buf);     //ソースバッファ
+        //LW書き込み
+        melnet.err = mdSend(melnet.path,    //チャネルのパス
+            MELSEC_NET_MY_STATION,          //局番
+            MELSEC_NET_CODE_LW,             //デバイスタイプ
+            MELSEC_NET_W_WRITE_START,       //先頭デバイス
+            &melnet.write_size_w,           //書き込みバイトサイズ
+            melnet.plc_w_buf_W.pc_com_buf);     //ソースバッファ
+       
+        if (melnet.err < 0)melnet.status = MELSEC_NET_SEND_ERR;
     }
 
     return 0;
@@ -154,6 +209,16 @@ int CPLC_IF::set_sim_status(LPST_PLC_IO pworkbuf) {
     pworkbuf->status.pos[ID_SLEW]       = pSim->status.pos[ID_SLEW];
 
     return 0;
+}
+//*********************************************************************************************
+// closeIF()
+//*********************************************************************************************
+int CPLC_IF::closeIF() {
+
+   //MELSECNET回線クローズ
+        melnet.err = mdClose(melnet.path);
+        melnet.status = MELSEC_NET_CLOSE;
+   return 0;
 }
 
 

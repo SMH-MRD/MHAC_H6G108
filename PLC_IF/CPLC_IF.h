@@ -19,30 +19,82 @@
 #define PLC_IF_CC_X_BUFSIZE         12
 #define PLC_IF_CC_Y_BUFSIZE         12
 #define PLC_IF_CC_W_BUFSIZE         43
-#define PLC_IF_ABS_DW_BUFSIZE       4
+#define PLC_IF_ABS_DW_BUFSIZE       8   //WORD数　DWORDx2
 #define PLC_IF_SENS_W_BUFSIZE       5
-#define PLC_IF_PC_B_BUFSIZE         16
-#define PLC_IF_PC_W_BUFSIZE         32
-typedef struct st_PLClink_tag{
-    WORD main_x_buf[PLC_IF_MAIN_X_BUFSIZE];
-    WORD main_y_buf[PLC_IF_MAIN_Y_BUFSIZE];
-    WORD gnt_x_buf[PLC_IF_GNT_X_BUFSIZE];
-    WORD gnt_y_buf[PLC_IF_GNT_Y_BUFSIZE];
-    WORD ope_x_buf[PLC_IF_OPE_X_BUFSIZE];
-    WORD ope_y_buf[PLC_IF_OPE_Y_BUFSIZE];
-    WORD cc_x_buf[PLC_IF_CC_X_BUFSIZE];
-    WORD cc_y_buf[PLC_IF_CC_Y_BUFSIZE];
-    WORD padding_buf[2];
-    WORD cc_w_buf[PLC_IF_CC_W_BUFSIZE];
-    DWORD abso_dw_buf[PLC_IF_ABS_DW_BUFSIZE];
-    WORD sensor_buf[PLC_IF_SENS_W_BUFSIZE];
-    WORD pc_b_buf[PLC_IF_PC_B_BUFSIZE];
-    WORD pc_w_buf[PLC_IF_PC_W_BUFSIZE];
-}ST_PLC_LINK, * LPST_PLC_LINK;
+
+typedef struct st_PLCreadW_tag{
+    short main_x_buf[PLC_IF_MAIN_X_BUFSIZE];    //MAINPLC X
+    short main_y_buf[PLC_IF_MAIN_Y_BUFSIZE];    //MAINPLC Y
+    short gnt_x_buf[PLC_IF_GNT_X_BUFSIZE];      //走行PLC X
+    short gnt_y_buf[PLC_IF_GNT_Y_BUFSIZE];      //走行PLC Y
+    short ope_x_buf[PLC_IF_OPE_X_BUFSIZE];      //運転室PLC X
+    short ope_y_buf[PLC_IF_OPE_Y_BUFSIZE];      //運転室PLC Y
+    short cc_x_buf[PLC_IF_CC_X_BUFSIZE];        //CC　LINK X
+    short cc_y_buf[PLC_IF_CC_Y_BUFSIZE];        //CC　LINK Y
+    short padding_buf[2];                       //予備(DI,AI境界
+    short cc_w_buf[PLC_IF_CC_W_BUFSIZE];        //CC　LINK W
+    short abso_dw_buf[PLC_IF_ABS_DW_BUFSIZE];   //アブソコーダdata
+    short sensor_buf[PLC_IF_SENS_W_BUFSIZE];    //その他アナログ信号
+}ST_PLC_READ_W, * LPST_PLC_READ_W;
+
+#define PLC_IF_PC_B_WRITE_COMSIZE         16    //PCコマンド出力部サイズ
+#define PLC_IF_PC_B_WRITE_SIMSIZE         4     //PCシミュレーション出力部サイズ
+#define PLC_IF_PC_W_WRITE_COMSIZE         16    //PCコマンド出力部サイズ
+#define PLC_IF_PC_W_WRITE_SIMSIZE         PLC_IF_CC_W_BUFSIZE + PLC_IF_ABS_DW_BUFSIZE + PLC_IF_SENS_W_BUFSIZE //PCシミュレーション出力部サイズ
+
+typedef struct st_PLCwriteB_tag {
+    short pc_com_buf[PLC_IF_PC_B_WRITE_COMSIZE];
+    short pc_sim_buf[PLC_IF_PC_B_WRITE_SIMSIZE];
+}ST_PLC_WRITE_B, * LPST_PLC_WRITE_B;
+
+typedef struct st_PLCwriteW_tag {
+    short pc_com_buf[PLC_IF_PC_W_WRITE_COMSIZE];
+    short pc_sim_buf[PLC_IF_PC_W_WRITE_SIMSIZE];
+}ST_PLC_WRITE_W, * LPST_PLC_WRITE_W;
+
+#define MELSEC_NET_CH               51
+#define MELSEC_NET_MY_STATION       0x0202  //局番 0xhhll hh:NW No. ll:Station No.
+#define MELSEC_NET_SOURCE_STATION   0x0201  //局番 0xhhll hh:NW No. ll:Station No.
+#define MELSEC_NET_B_WRITE_START    0x0A00  //書き込み開始アドレス
+#define MELSEC_NET_W_WRITE_START    0x0A00  //書き込み開始アドレス
+#define MELSEC_NET_B_READ_START     0x0900  //読み込み開始アドレス
+#define MELSEC_NET_W_READ_START     0x08C0  //読み込み開始アドレス
+
+#define MELSEC_NET_OK               1
+#define MELSEC_NET_SEND_ERR         -1
+#define MELSEC_NET_RECEIVE_ERR      -2
+#define MELSEC_NET_CLOSE            0
+
+#define MELSEC_NET_RETRY_CNT        100 //エラー時Retryカウント周期
+
+#define MELSEC_NET_CODE_LW          24  //デバイスコード
+#define MELSEC_NET_CODE_LB          23  //デバイスコード
+#define MELSEC_NET_CODE_SM          5   //デバイスコード
+#define MELSEC_NET_CODE_SB          5   //デバイスコード
+#define MELSEC_NET_CODE_SD          14  //デバイスコード
+#define MELSEC_NET_CODE_SW          14  //デバイスコード
+
+typedef struct st_MelsecNet_tag {
+    short chan;             //通信回線のチャネルNo.
+    short mode;             //ダミー
+    long  path;             //オープンされた回線のパス　回線クローズ時に必要
+    short err;              //エラーコード
+    short status;           //回線の状態　0:回線未確立　0より上：正常　0より下：異常
+    short retry_cnt;        //回線オープンリトライカウント マルチメディアタイマ周期の倍数が時間間隔
+    
+    short write_size_w;     //LW書き込みサイズ
+    short write_size_b;     //LB書き込みサイズ
+    ST_PLC_WRITE_B plc_w_buf_B; //PLC出力元バッファ
+    ST_PLC_WRITE_W plc_w_buf_W; //PLC出力元バッファ
+
+    short read_size_w;          //LW読み込みサイズ
+    short read_size_b;          //LB読み込みサイズ
+    ST_PLC_READ_W  plc_r_buf_W; //PLC入力バッファ
+
+}ST_MELSEC_NET, * LPST_MELSEC_NET;
 
 
-class CPLC_IF :
-    public CBasicControl
+class CPLC_IF :    public CBasicControl
 {
 
 private:
@@ -54,7 +106,7 @@ private:
     CSharedMem* pSimulationStatusObj;
     CSharedMem* pAgentInfObj;
 
-    ST_PLC_LINK plc_link;       //PLCリンクバッファの内容
+    ST_MELSEC_NET   melnet;
     ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ
 
     LPST_SIMULATION_STATUS pSim;    //シミュレータステータス
@@ -76,6 +128,7 @@ public:
     //追加メソッド
     int set_debug_status(LPST_PLC_IO pworkbuf); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
     int set_sim_status(LPST_PLC_IO pworkbuf);   //デバッグモード時にSimulatorからの入力で出力内容を上書き
+    int closeIF();
     
     void set_debug_mode(int id) {
         if (id) mode |= PLC_IF_PC_DBG_MODE;

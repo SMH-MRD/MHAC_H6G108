@@ -1,4 +1,5 @@
 #include "CSCADA.h"
+#include "CMonWin.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -83,6 +84,10 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 	case WM_COMMAND:
 		switch (LOWORD(wp)) {
 		case IDC_TASK_FUNC_RADIO1:
+		{
+			CMonWin pmon;
+			pmon.open_mon(hDlg);
+		}break;
 		case IDC_TASK_FUNC_RADIO2:
 		case IDC_TASK_FUNC_RADIO3:
 		case IDC_TASK_FUNC_RADIO4:
@@ -91,6 +96,8 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 			reset_panel_item_pb(hDlg);
 			break;
+
+
 
 		case IDC_TASK_ITEM_RADIO1:
 		case IDC_TASK_ITEM_RADIO2:

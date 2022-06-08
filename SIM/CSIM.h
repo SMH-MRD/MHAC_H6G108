@@ -33,8 +33,6 @@ public:
     CSIM();
     ~CSIM();
 
-    WORD helthy_cnt = 0;
-
     //オーバーライド
     int set_outbuf(LPVOID); //出力バッファセット
     int init_proc();        //初期化処理

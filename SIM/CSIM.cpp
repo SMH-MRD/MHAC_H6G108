@@ -63,7 +63,7 @@ int CSIM::init_proc() {
 // input()
 //*********************************************************************************************
 int CSIM::input() {
-
+    sim_stat_workbuf.helthy_cnt++;
 
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pCrane->env_act_count;

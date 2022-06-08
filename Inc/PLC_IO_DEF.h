@@ -17,7 +17,7 @@
 #define BIT14   0x4000
 #define BIT15   0x8000
 
-#define B_HST_NOTCH_0 (plc_link.ope_x_buf[0]) & BIT0
+#define B_HST_NOTCH_0 (melnet.plc_r_buf_W.ope_x_buf[0]) & BIT0
 
 //PLC UI PB
 #define PLC_UI_PB_ESTOP         0
