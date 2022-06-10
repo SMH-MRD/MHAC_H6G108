@@ -126,7 +126,7 @@ int CPLC_IF::parse() {
     //PLCリンク入力を解析
     if (B_HST_NOTCH_0)plc_io_workbuf.ui.notch_pos[ID_HOIST] = 0;
     
-    //デバッグモード時は、操作パネルウィンドウの内容を上書き
+    //デバッグモード時は、操作パネルウィンドウの内容を上書き 
     if (is_debug_mode()) set_debug_status(&plc_io_workbuf);
 
 #ifdef _DVELOPMENT_MODE
