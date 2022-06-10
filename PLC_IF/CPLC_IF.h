@@ -22,6 +22,13 @@
 #define PLC_IF_ABS_DW_BUFSIZE       8   //WORD数　DWORDx2
 #define PLC_IF_SENS_W_BUFSIZE       5
 
+#define PLC_IF_READ_B_BUFSIZE       32
+
+
+typedef struct st_PLCreadB_tag {                //今回未使用
+    short dummy_buf[PLC_IF_READ_B_BUFSIZE];     
+}ST_PLC_READ_B, * LPST_PLC_READ_B;
+
 typedef struct st_PLCreadW_tag{
     short main_x_buf[PLC_IF_MAIN_X_BUFSIZE];    //MAINPLC X
     short main_y_buf[PLC_IF_MAIN_Y_BUFSIZE];    //MAINPLC Y
@@ -52,13 +59,15 @@ typedef struct st_PLCwriteW_tag {
     short pc_sim_buf[PLC_IF_PC_W_WRITE_SIMSIZE];
 }ST_PLC_WRITE_W, * LPST_PLC_WRITE_W;
 
-#define MELSEC_NET_CH               51
-#define MELSEC_NET_MY_STATION       0x0202  //局番 0xhhll hh:NW No. ll:Station No.
-#define MELSEC_NET_SOURCE_STATION   0x0201  //局番 0xhhll hh:NW No. ll:Station No.
-#define MELSEC_NET_B_WRITE_START    0x0A00  //書き込み開始アドレス
-#define MELSEC_NET_W_WRITE_START    0x0A00  //書き込み開始アドレス
-#define MELSEC_NET_B_READ_START     0x0900  //読み込み開始アドレス
-#define MELSEC_NET_W_READ_START     0x08C0  //読み込み開始アドレス
+#define MELSEC_NET_CH               51      //MELSECNET/HボードのチャネルNo.
+#define MELSEC_NET_NW_NO            2       //MELSECNET/Hネットワーク番号
+#define MELSEC_NET_MY_NW_NO         0       //MELSECNET/Hボード  自NW指定 0（ボード設定値とは異なる）
+#define MELSEC_NET_MY_STATION       255     //MELSECNET/Hボード」自局番 255（ボード設定値とは異なる）
+#define MELSEC_NET_SOURCE_STATION   1       //PLC局番
+#define MELSEC_NET_B_WRITE_START    0x0A00  //書き込み開始アドレス（PCボードはLBのアドレス指定）
+#define MELSEC_NET_W_WRITE_START    0x0A00  //書き込み開始アドレス（PCボードはLWのアドレス指定）
+#define MELSEC_NET_B_READ_START     0x0000  //読み込み開始アドレス（PLC MAPしたBのアドレス指定）
+#define MELSEC_NET_W_READ_START     0x0000  //読み込み開始アドレス（PLC MAPしたWのアドレス指定）
 
 #define MELSEC_NET_OK               1
 #define MELSEC_NET_SEND_ERR         -1
@@ -75,20 +84,21 @@ typedef struct st_PLCwriteW_tag {
 #define MELSEC_NET_CODE_SW          14  //デバイスコード
 
 typedef struct st_MelsecNet_tag {
-    short chan;             //通信回線のチャネルNo.
-    short mode;             //ダミー
-    long  path;             //オープンされた回線のパス　回線クローズ時に必要
-    short err;              //エラーコード
-    short status;           //回線の状態　0:回線未確立　0より上：正常　0より下：異常
-    short retry_cnt;        //回線オープンリトライカウント マルチメディアタイマ周期の倍数が時間間隔
+    short chan;                 //通信回線のチャネルNo.
+    short mode;                 //ダミー
+    long  path;                 //オープンされた回線のパス　回線クローズ時に必要
+    long err;                  //エラーコード
+    short status;               //回線の状態　0:回線未確立　0より上：正常　0より下：異常
+    short retry_cnt;            //回線オープンリトライカウント マルチメディアタイマ周期の倍数が時間間隔
     
-    short write_size_w;     //LW書き込みサイズ
-    short write_size_b;     //LB書き込みサイズ
+    long write_size_w;          //LW書き込みサイズ
+    long write_size_b;          //LB書き込みサイズ
     ST_PLC_WRITE_B plc_w_buf_B; //PLC出力元バッファ
     ST_PLC_WRITE_W plc_w_buf_W; //PLC出力元バッファ
 
-    short read_size_w;          //LW読み込みサイズ
-    short read_size_b;          //LB読み込みサイズ
+    long read_size_w;           //LW読み込みサイズ
+    long read_size_b;           //LB読み込みサイズ
+    ST_PLC_READ_B  plc_r_buf_B; //PLC入力バッファ
     ST_PLC_READ_W  plc_r_buf_W; //PLC入力バッファ
 
 }ST_MELSEC_NET, * LPST_MELSEC_NET;

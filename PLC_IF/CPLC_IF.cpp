@@ -87,15 +87,25 @@ int CPLC_IF::input() {
     if (melnet.status == MELSEC_NET_OK) {
         //LB読み込み　無し
 
-        //LW書き込み
-        melnet.err = mdReceive(melnet.path, //チャネルのパス
-            MELSEC_NET_SOURCE_STATION,      //局番
-            MELSEC_NET_CODE_LW,             //デバイスタイプ
-            MELSEC_NET_W_READ_START,        //先頭デバイス
-            &melnet.read_size_w,            //読み込みバイトサイズ
+        //B読み込み
+        melnet.err = mdReceiveEx(melnet.path,   //チャネルのパス
+            MELSEC_NET_NW_NO,                   //ネットワーク番号           
+            MELSEC_NET_SOURCE_STATION,          //局番
+            MELSEC_NET_CODE_LB,                 //デバイスタイプ
+            MELSEC_NET_B_READ_START,            //先頭デバイス
+            &melnet.read_size_w,                //読み込みバイトサイズ
+            melnet.plc_r_buf_B.dummy_buf);     //読み込みバッファ
+
+         //W読み込み
+        melnet.err = mdReceiveEx(melnet.path,    //チャネルのパス
+            MELSEC_NET_NW_NO,                   //ネットワーク番号      
+            MELSEC_NET_SOURCE_STATION,          //局番
+            MELSEC_NET_CODE_LW,                 //デバイスタイプ
+            MELSEC_NET_W_READ_START,            //先頭デバイス
+            &melnet.read_size_w,                //読み込みバイトサイズ
             melnet.plc_r_buf_W.main_x_buf);     //読み込みバッファ
 
-        if (melnet.err < 0)melnet.status = MELSEC_NET_RECEIVE_ERR;
+        if (melnet.err != 0)melnet.status = MELSEC_NET_RECEIVE_ERR;
     }
        
      
@@ -109,6 +119,9 @@ int CPLC_IF::input() {
 //*********************************************************************************************
 int CPLC_IF::parse() { 
 
+    //PLCからの入力をオウム返しで出力（試験対応処理）
+    memcpy_s(melnet.plc_r_buf_B.dummy_buf,16,melnet.plc_w_buf_B.pc_com_buf,16);     //Bレジスタ
+    memcpy_s(melnet.plc_r_buf_W.main_x_buf, 16, melnet.plc_w_buf_W.pc_com_buf, 16); //Wレジスタ
 
     //PLCリンク入力を解析
     if (B_HST_NOTCH_0)plc_io_workbuf.ui.notch_pos[ID_HOIST] = 0;
@@ -141,19 +154,21 @@ int CPLC_IF::output() {
     //PLC出力処理
     if (melnet.status == MELSEC_NET_OK) {
         //LB書き込み
-        melnet.err = mdSend(melnet.path,    //チャネルのパス
+        melnet.err = mdSendEx(melnet.path,  //チャネルのパス
+            MELSEC_NET_MY_NW_NO,            //ネットワーク番号   
             MELSEC_NET_MY_STATION,          //局番
             MELSEC_NET_CODE_LB,             //デバイスタイプ
             MELSEC_NET_B_WRITE_START,       //先頭デバイス
             &melnet.write_size_b,           //書き込みバイトサイズ
-            melnet.plc_w_buf_B.pc_com_buf);     //ソースバッファ
+            melnet.plc_w_buf_B.pc_com_buf); //ソースバッファ
         //LW書き込み
-        melnet.err = mdSend(melnet.path,    //チャネルのパス
+        melnet.err = mdSendEx(melnet.path,  //チャネルのパス
+            MELSEC_NET_MY_NW_NO,            //ネットワーク番号  
             MELSEC_NET_MY_STATION,          //局番
             MELSEC_NET_CODE_LW,             //デバイスタイプ
             MELSEC_NET_W_WRITE_START,       //先頭デバイス
             &melnet.write_size_w,           //書き込みバイトサイズ
-            melnet.plc_w_buf_W.pc_com_buf);     //ソースバッファ
+            melnet.plc_w_buf_W.pc_com_buf); //ソースバッファ
        
         if (melnet.err < 0)melnet.status = MELSEC_NET_SEND_ERR;
     }

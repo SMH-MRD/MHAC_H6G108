@@ -17,7 +17,9 @@ extern CSharedMem* pAgentInfObj;
 CEnvironment::CEnvironment() {
 	pCraneStat = NULL;
 	pPLC_IO = NULL;
+	pSway_IO = NULL;
 	pRemoteIO = NULL;
+	pSimStat = NULL;
 }
 
 CEnvironment::~CEnvironment() {
