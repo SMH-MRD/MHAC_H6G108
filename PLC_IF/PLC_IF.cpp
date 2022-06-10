@@ -333,11 +333,9 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
      knl_manage_set.sys_counter++;
       
      TCHAR tbuf[32];
-     
      pProcObj->input();     //入力
      pProcObj->parse();      //データ解析処理
      pProcObj->output();    //出力
-
      //Statusバーにメインプロセスのカウンタ表示
      if (psource_proc_counter != NULL) {
          if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
