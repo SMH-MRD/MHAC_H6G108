@@ -147,11 +147,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Inc\CHelper.h" />
     <ClInclude Include="CAgent.h" />
     <ClInclude Include="CClientService.h" />
     <ClInclude Include="CEnvironment.h" />
-    <ClInclude Include="CHelper.h" />
-    <ClInclude Include="CMonWin.h" />
     <ClInclude Include="CPolicy.h" />
     <ClInclude Include="CSCADA.h" />
     <ClInclude Include="CTaskObj.h" />
@@ -161,12 +160,11 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Source\CHelper.cpp" />
     <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="CAgent.cpp" />
     <ClCompile Include="CClientService.cpp" />
     <ClCompile Include="CEnvironment.cpp" />
-    <ClCompile Include="CHelper.cpp" />
-    <ClCompile Include="CMonWin.cpp" />
     <ClCompile Include="CPolicy.cpp" />
     <ClCompile Include="CSCADA.cpp" />
     <ClCompile Include="CTaskObj.cpp" />

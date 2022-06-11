@@ -1,5 +1,16 @@
 #pragma once
-#include "framework.h"
+
+#include <windows.h>
+// C ランタイム ヘッダー ファイル
+#include <stdlib.h>
+#include <malloc.h>
+#include <memory.h>
+#include <tchar.h>
+
+#include <string>
+#include <time.h>
+#include <vector>
+#include <mmsystem.h>
 
 #define Bitcheck(a,b)	(a >> b) & 1
 #define Bitset(a,b)		a |= (1<<b)

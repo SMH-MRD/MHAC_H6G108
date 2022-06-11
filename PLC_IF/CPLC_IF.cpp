@@ -120,8 +120,8 @@ int CPLC_IF::input() {
 int CPLC_IF::parse() { 
 
     //PLCからの入力をオウム返しで出力（試験対応処理）
-    memcpy_s(melnet.plc_r_buf_B.dummy_buf,16,melnet.plc_w_buf_B.pc_com_buf,16);     //Bレジスタ
-    memcpy_s(melnet.plc_r_buf_W.main_x_buf, 16, melnet.plc_w_buf_W.pc_com_buf, 16); //Wレジスタ
+    memcpy_s(melnet.plc_w_buf_B.pc_com_buf, 16, melnet.plc_r_buf_B.dummy_buf, 16);     //Bレジスタ
+    memcpy_s(melnet.plc_w_buf_W.pc_com_buf, 16, melnet.plc_r_buf_W.main_x_buf, 16); //Wレジスタ
 
     //PLCリンク入力を解析
     if (B_HST_NOTCH_0)plc_io_workbuf.ui.notch_pos[ID_HOIST] = 0;

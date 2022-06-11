@@ -7,8 +7,8 @@
 
 #define DIALOG_WND_TYPE
 
-#define WORK_WND_X							600			//MAP表示位置X
-#define WORK_WND_Y							425			//MAP表示位置Y
+#define WORK_WND_X							1050		//MAP表示位置X
+#define WORK_WND_Y							20 			//MAP表示位置Y
 #define WORK_WND_W							480		    //MAP WINDOW幅
 #define WORK_WND_H							320			//MAP WINDOW高さ
 

@@ -16,7 +16,6 @@ HINSTANCE hInst;                                // 現在のインターフェ�
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
 WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
-//# ステータスバーのウィンドウのハンドル
 static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
 static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
 DWORD* psource_proc_counter = NULL;             //メインプロセスのヘルシーカウンタ
@@ -30,7 +29,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-//# ウィンドウにステータスバーを追加追加
+//# ウィンドウにステータスバーを追加
 HWND CreateStatusbarMain(HWND hWnd);
 
 //# マルチメディアタイマイベントコールバック関数

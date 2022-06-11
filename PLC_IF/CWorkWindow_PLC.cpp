@@ -84,8 +84,8 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_MH), UDM_SETPOS, 0, MH_SLIDAR_0_NOTCH);
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_GT), UDM_SETRANGE, 0, MAKELONG(GT_SLIDAR_MAX, GT_SLIDAR_MIN));
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_GT), UDM_SETPOS, 0, GT_SLIDAR_0_NOTCH);
+				
 
-		stOpePaneStat.slider_mh = stOpePaneStat.slider_bh = stOpePaneStat.slider_slew = stOpePaneStat.slider_gt = SLW_SLIDAR_0_NOTCH;
 
 
 		//コントロール初期状態設定
@@ -263,7 +263,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		{
 			SendMessage(GetDlgItem(hDlg, IDC_SPIN_BH), UDM_SETPOS, 0, BH_SLIDAR_0_NOTCH);
 			stOpePaneStat.slider_bh = BH_SLIDAR_0_NOTCH;
-			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, BH_SLIDAR_MAX - stOpePaneStat.slider_bh);
+			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, BH_SLIDAR_MAX - (short)stOpePaneStat.slider_bh);
 			wsprintf(stOpePaneStat.static_bh_label, L"引込 %02d", stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH);
 			SetWindowText(GetDlgItem(hDlg, IDC_STATIC_BH_LABEL), stOpePaneStat.static_bh_label);
 		}break;
@@ -305,7 +305,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 			lpnmud = (LPNMUPDOWN)lp;
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
 				stOpePaneStat.slider_bh = lpnmud->iPos;
-				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, BH_SLIDAR_MAX - stOpePaneStat.slider_bh);
+				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, BH_SLIDAR_MAX - (short)stOpePaneStat.slider_bh);
 				wsprintf(stOpePaneStat.static_bh_label, L"引込 %02d", stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_BH_LABEL), stOpePaneStat.static_bh_label);
 			}
@@ -314,7 +314,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 			lpnmud = (LPNMUPDOWN)lp;
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
 				stOpePaneStat.slider_mh = lpnmud->iPos;
-				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, MH_SLIDAR_MAX - stOpePaneStat.slider_mh );
+				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, MH_SLIDAR_MAX - (short)stOpePaneStat.slider_mh );
 				wsprintf(stOpePaneStat.static_mh_label, L"巻 %02d", stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_MH_LABEL), stOpePaneStat.static_mh_label);
 			}
@@ -323,7 +323,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 			lpnmud = (LPNMUPDOWN)lp;
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
 				stOpePaneStat.slider_gt = lpnmud->iPos;
-				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_GT), TBM_SETPOS, TRUE, GT_SLIDAR_MAX - stOpePaneStat.slider_gt);
+				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_GT), TBM_SETPOS, TRUE, GT_SLIDAR_MAX - (short)stOpePaneStat.slider_gt);
 				wsprintf(stOpePaneStat.static_gt_label, L"走行 %02d", stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_GT_LABEL), stOpePaneStat.static_gt_label);
 			}
@@ -365,9 +365,24 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 #endif
 
 int CWorkWindow_PLC::update_all_controls(HWND hDlg) {
-	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew + SLW_SLIDAR_0_NOTCH);
-	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew + BH_SLIDAR_0_NOTCH);
-	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew + MH_SLIDAR_0_NOTCH);
-	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_GT), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew + GT_SLIDAR_0_NOTCH);
+	stOpePaneStat.slider_slew = SLW_SLIDAR_0_NOTCH;
+	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew);
+	wsprintf(stOpePaneStat.static_slew_label, L"旋回 %02d", stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH);
+	SetWindowText(GetDlgItem(hDlg, IDC_STATIC_SLEW_LABEL), stOpePaneStat.static_slew_label);
+
+	stOpePaneStat.slider_mh = MH_SLIDAR_0_NOTCH;
+	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, stOpePaneStat.slider_mh);
+	wsprintf(stOpePaneStat.static_mh_label, L"巻 %02d", stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH);
+	SetWindowText(GetDlgItem(hDlg, IDC_STATIC_MH_LABEL), stOpePaneStat.static_mh_label);
+
+	stOpePaneStat.slider_bh = BH_SLIDAR_0_NOTCH;
+	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, BH_SLIDAR_MAX - (short)stOpePaneStat.slider_bh);
+	wsprintf(stOpePaneStat.static_bh_label, L"引込 %02d", stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH);
+	SetWindowText(GetDlgItem(hDlg, IDC_STATIC_BH_LABEL), stOpePaneStat.static_bh_label);
+
+	stOpePaneStat.slider_gt = GT_SLIDAR_0_NOTCH;
+	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_GT), TBM_SETPOS, TRUE, stOpePaneStat.slider_gt);
+	wsprintf(stOpePaneStat.static_gt_label, L"走行 %02d", stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH);
+	SetWindowText(GetDlgItem(hDlg, IDC_STATIC_GT_LABEL), stOpePaneStat.static_gt_label);
 	return 0;
 }

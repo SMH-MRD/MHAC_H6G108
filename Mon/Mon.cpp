@@ -3,6 +3,10 @@
 
 #include "framework.h"
 #include "Mon.h"
+#include "CMonWin.h"
+
+#include <windowsx.h>       //コモンコントロール用
+#include <commctrl.h>       //コモンコントロール用
 
 #define MAX_LOADSTRING 100
 
@@ -11,11 +15,36 @@ HINSTANCE hInst;                                // 現在のインターフェ�
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
 WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
+//-共有メモリオブジェクトポインタ:
+CSharedMem* pCraneStatusObj = NULL;
+CSharedMem* pSwayStatusObj = NULL;
+CSharedMem* pPLCioObj = NULL;
+CSharedMem* pSwayIO_Obj = NULL;
+CSharedMem* pRemoteIO_Obj = NULL;
+CSharedMem* pCSInfObj = NULL;
+CSharedMem* pPolicyInfObj = NULL;
+CSharedMem* pAgentInfObj = NULL;
+
+LPST_CRANE_STATUS pCraneStat = NULL;
+LPST_PLC_IO pPLC_IO = NULL;
+LPST_SWAY_IO pSway_IO = NULL;
+LPST_REMOTE_IO pRemoteIO = NULL;
+LPST_CS_INFO pCSinf = NULL;
+LPST_POLICY_INFO pPOLICYinf = NULL;
+LPST_AGENT_INFO pAGENTinf = NULL;
+
+CMonWin* pMonWin;
+
+static HWND                 hWnd_status_bar;    //ステータスバーのウィンドウのハンドル
+
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+//# ウィンドウにステータスバーを追加
+HWND CreateStatusbarMain(HWND hWnd);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -32,6 +61,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     LoadStringW(hInstance, IDC_MON, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
+    // 共有メモリオブジェクトのインスタンス化
+    pCraneStatusObj = new CSharedMem;
+    pPLCioObj = new CSharedMem;
+    pSwayIO_Obj = new CSharedMem;
+    pRemoteIO_Obj = new CSharedMem;
+    pCSInfObj = new CSharedMem;
+    pPolicyInfObj = new CSharedMem;
+    pAgentInfObj = new CSharedMem;
+    
+
     // アプリケーション初期化の実行:
     if (!InitInstance (hInstance, nCmdShow))
     {
@@ -41,7 +80,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MON));
 
     MSG msg;
-
+   
     // メイン メッセージ ループ:
     while (GetMessage(&msg, nullptr, 0, 0))
     {
@@ -52,9 +91,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
 
+    // 共有メモリオブジェクト削除
+    delete pCraneStatusObj;
+    delete pPLCioObj;
+    delete pSwayIO_Obj;
+    delete pRemoteIO_Obj;
+    delete  pCSInfObj;
+    delete pPolicyInfObj;
+    delete pAgentInfObj;
+
     return (int) msg.wParam;
 }
-
 
 
 //
@@ -97,18 +144,42 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
-//   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-//      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+   ///-共有メモリ取得 ##################
+   if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME, sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) return(FALSE);
+   else if ((pCraneStat = (LPST_CRANE_STATUS)pCraneStatusObj->get_pMap()) == NULL) return(FALSE);
+
+   if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) return(FALSE);
+   else if ((pPLC_IO = (LPST_PLC_IO)pPLCioObj->get_pMap()) == NULL) return(FALSE);
+
+   if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME, sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
+   else if ((pSway_IO = (LPST_SWAY_IO)pSwayIO_Obj->get_pMap()) == NULL) return(FALSE);
+
+   if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME, sizeof(ST_REMOTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
+   else if ((pRemoteIO = (LPST_REMOTE_IO)pRemoteIO_Obj->get_pMap()) == NULL) return(FALSE);
+
+   if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) return(FALSE);
+   else if ((pCSinf = (LPST_CS_INFO)pCSInfObj->get_pMap()) == NULL) return(FALSE);
+
+   if (OK_SHMEM != pPolicyInfObj->create_smem(SMEM_POLICY_INFO_NAME, sizeof(ST_POLICY_INFO), MUTEX_POLICY_INFO_NAME)) return(FALSE);
+   else if ((pPOLICYinf = (LPST_POLICY_INFO)pPolicyInfObj->get_pMap()) == NULL) return(FALSE);
+
+   if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) return(FALSE);
+   else if ((pAGENTinf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap()) == NULL) return(FALSE);
+
+   //メインウィンドウクリエイト
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
        MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,
        MAIN_WND_INIT_SIZE_W, MAIN_WND_INIT_SIZE_H,
        nullptr, nullptr, hInstance, nullptr);
-
-   if (!hWnd)
-   {
+   if (!hWnd){
       return FALSE;
    }
+   else {
+       pMonWin = new CMonWin(hWnd);
+       pMonWin->init_main_window();
+   }
 
+   
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -125,10 +196,43 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 中止メッセージを表示して戻る
 //
 //
+
+static UINT16 helthy_count=0;
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    
+    case WM_CREATE: {
+  
+        //メインウィンドウにコントロール配置
+        pMonWin->init_main_window();
+
+        //メインウィンドウにステータスバー付加
+        hWnd_status_bar = CreateStatusbarMain(hWnd);
+
+        //表示更新タイマ起動
+        SetTimer(hWnd, ID_UPDATE_TIMER, TIMER_PRIOD, NULL);
+
+    }break;
+
+    case WM_TIMER: {
+        switch (wParam)
+        {
+        case ID_UPDATE_TIMER:
+            pMonWin->disp_update();
+
+            TCHAR tbuf[32];
+            wsprintf(tbuf, L"%06d", helthy_count);
+            SendMessage(hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
+            helthy_count++;
+            return 0;
+        default:
+            return 0;
+        }
+    }break;
+    
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -146,6 +250,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+
+    case WM_SIZE:
+    {
+        //ステータスバーにサイズ変更を通知付加
+        SendMessage(hWnd_status_bar, WM_SIZE, wParam, lParam);
+    }
+    break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -155,6 +266,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+        //表示更新タイマ破棄
+        KillTimer(hWnd, ID_UPDATE_TIMER);
         PostQuitMessage(0);
         break;
     default:
@@ -181,4 +294,31 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+///#　*****************************************************************************************************************
+//  関数: CreateStatusbarMain(HWND)
+//
+//  目的: メイン ウィンドウ下部にアプリケーションの状態を表示用のステータスバーを配置します。
+//  
+HWND CreateStatusbarMain(HWND hWnd)
+{
+    HWND hSBWnd;
+    int sb_size[] = { 180,360,540,720,900,1080 };//ステータス区切り位置
+
+    InitCommonControls();
+    hSBWnd = CreateWindowEx(
+        0, //拡張スタイル
+        STATUSCLASSNAME, //ウィンドウクラス
+        NULL, //タイトル
+        WS_CHILD | SBS_SIZEGRIP, //ウィンドウスタイル
+        0, 0, //位置
+        0, 0, //幅、高さ
+        hWnd, //親ウィンドウ
+        (HMENU)ID_STATUS, //ウィンドウのＩＤ
+        hInst, //インスタンスハンドル
+        NULL);
+    SendMessage(hSBWnd, SB_SETPARTS, (WPARAM)6, (LPARAM)(LPINT)sb_size);//6枠で各枠の仕切り位置をパラーメータ指定
+    ShowWindow(hSBWnd, SW_SHOW);
+    return hSBWnd;
 }

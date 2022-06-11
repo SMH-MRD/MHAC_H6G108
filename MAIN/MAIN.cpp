@@ -99,7 +99,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
      
     // 共有メモリオブジェクトのインスタンス化
     pCraneStatusObj         = new CSharedMem;
-    pSwayStatusObj          = new CSharedMem;
     pSimulationStatusObj    = new CSharedMem;
     pPLCioObj               = new CSharedMem;
     pSwayIO_Obj             = new CSharedMem;
@@ -204,7 +203,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
   ///-共有メモリ割付&設定##################
    if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME,  sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) return(FALSE);
-   if (OK_SHMEM != pSwayStatusObj->create_smem(SMEM_SWAY_STATUS_NAME,  sizeof(ST_SWAY_STATUS), MUTEX_SWAY_STATUS_NAME)) return(FALSE);
    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME,  sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME,  sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
