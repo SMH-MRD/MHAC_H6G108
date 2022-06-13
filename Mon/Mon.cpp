@@ -223,7 +223,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             pMonWin->disp_update();
 
             TCHAR tbuf[32];
-            wsprintf(tbuf, L"%06d", helthy_count);
+            wsprintf(tbuf, L"　Helty:%06d", helthy_count);
             SendMessage(hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
             helthy_count++;
             return 0;
@@ -267,6 +267,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         //表示更新タイマ破棄
         KillTimer(hWnd, ID_UPDATE_TIMER);
+        pMonWin->close_mon();
+
         PostQuitMessage(0);
         break;
     default:

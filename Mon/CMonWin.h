@@ -2,11 +2,15 @@
 
 #include "framework.h"
 
-#define GRAPHIC_AREA_X		0		//グラフィック部メインウィンドウ上表示位置X
-#define GRAPHIC_AREA_Y		0		//グラフィック部メインウィンドウ上表示位置Y
-#define GRAPHIC_AREA_W		600	    //グラフィック部幅
-#define GRAPHIC_AREA_H		480		//グラフィック部高さ
+#define INF_AREA_X		    10		    //テキスト部メインウィンドウ上表示位置X
+#define INF_AREA_Y		    30		    //テキスト部メインウィンドウ上表示位置Y
+#define INF_AREA_W		    1000        //テキスト部幅
+#define INF_AREA_H		    450		    //テキスト部高さ
 
+#define GRAPHIC_AREA_X		10		    //グラフィック部メインウィンドウ上表示位置X
+#define GRAPHIC_AREA_Y		30		    //グラフィック部メインウィンドウ上表示位置Y
+#define GRAPHIC_AREA_W		600	        //グラフィック部幅
+#define GRAPHIC_AREA_H		450		    //グラフィック部高さ
 
 //Monitor画面グラフィック部管理構造体
 typedef struct _stMonGraphic {  
@@ -17,14 +21,15 @@ typedef struct _stMonGraphic {
 
     HBITMAP hBmap_mem0;
     HBITMAP hBmap_bg;
-    HBITMAP hBmap_graph;
+    HBITMAP hBmap_gr;
     HBITMAP hBmap_inf;
-    HDC hdc_mem0;								//合成画面メモリデバイスコンテキスト
-    HDC hdc_mem_bg;								//背景画面メモリデバイスコンテキスト
-    HDC hdc_mem_graph;							//グラフ画面メモリデバイスコンテキスト
-    HDC hdc_mem_inf;							//文字画面メモリデバイスコンテキスト
-    HFONT hfont_inftext;						//テキスト用フォント
-    BLENDFUNCTION bf;							//半透過設定構造体
+    HDC hdc_mem0;						//合成画面メモリデバイスコンテキスト
+    HDC hdc_mem_bg;					    //グラフィック背景画面メモリデバイスコンテキスト
+    HDC hdc_mem_gr;					    //グラフィック部メモリデバイスコンテキスト
+    HDC hdc_mem_inf;					//文字画面メモリデバイスコンテキスト
+
+    HFONT hfont_inftext;				//テキスト用フォント
+    BLENDFUNCTION bf;					//半透過設定構造体
 
     HPEN hpen;
     HBRUSH hbrush;
@@ -33,7 +38,7 @@ typedef struct _stMonGraphic {
 
 
 //操作ボタンID
-#define IDC_MON_START_PB					10601
+#define IDC_MON_START_PB				10601
 #define IDC_MON_STOP_PB					10602
 #define IDC_MON_RADIO_DISP1				10605   //表示切替１
 #define IDC_MON_RADIO_DISP2				10606   //表示切替２
@@ -79,13 +84,18 @@ public:
     ~CMonWin() {}
     int init_main_window();
     int disp_update();
+    int close_mon();
 
+private:
     HWND hWnd_parent;
 
     ST_MON_GRAPHIC stGraphic;
     ST_MON_COM_OBJ stComCtrl;
 
-private:
+    VOID draw_bg();
+
+
+
  
 };
 
