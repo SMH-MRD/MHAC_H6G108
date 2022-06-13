@@ -166,6 +166,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) return(FALSE);
    else if ((pAGENTinf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap()) == NULL) return(FALSE);
 
+   
    //メインウィンドウクリエイト
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
        MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,
@@ -176,6 +177,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    }
    else {
        pMonWin = new CMonWin(hWnd);
+       //メインウィンドウにコントロール配置
        pMonWin->init_main_window();
    }
 
@@ -205,9 +207,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     
     case WM_CREATE: {
-  
-        //メインウィンドウにコントロール配置
-        pMonWin->init_main_window();
 
         //メインウィンドウにステータスバー付加
         hWnd_status_bar = CreateStatusbarMain(hWnd);
