@@ -10,7 +10,7 @@
 #define GRAPHIC_AREA_X		10		    //グラフィック部メインウィンドウ上表示位置X
 #define GRAPHIC_AREA_Y		30		    //グラフィック部メインウィンドウ上表示位置Y
 #define GRAPHIC_AREA_W		600	        //グラフィック部幅
-#define GRAPHIC_AREA_H		450		    //グラフィック部高さ
+#define GRAPHIC_AREA_H		350		    //グラフィック部高さ
 
 //Monitor画面グラフィック部管理構造体
 typedef struct _stMonGraphic {  
@@ -80,22 +80,25 @@ typedef struct _stMonComObj {
 class CMonWin
 {
 public:
-    CMonWin(HWND hWnd) { hWnd_parent = hWnd; }
+    CMonWin(HWND hWnd) {
+        hWnd_parent = hWnd; 
+        memset(&stGraphic, 0, sizeof(ST_MON_GRAPHIC));
+        memset(&stComCtrl, 0, sizeof(ST_MON_COM_OBJ));
+    }
     ~CMonWin() {}
     int init_main_window();
     int disp_update();
     int close_mon();
-
-private:
-    HWND hWnd_parent;
+    int combine_map();
 
     ST_MON_GRAPHIC stGraphic;
     ST_MON_COM_OBJ stComCtrl;
 
+private:
+    HWND hWnd_parent;
+
+
     VOID draw_bg();
-
-
-
  
 };
 

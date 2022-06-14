@@ -147,6 +147,12 @@ typedef struct StSpec {
 	{ 0.1,0.1,0.1,0.1,0.1 },										//[ID_BOOM_H]
 	{ 0.1,0.1,0.1,0.1,0.1 },										//[ID_SLEW]
 	};
+	
+	//構造寸法
+	double boom_high = 25.0, wheel_span = 20.0, leg_span = 15.0;// ブーム高さ,ホイルスパン,脚間スパン
+	//極限
+	double hoist_min = -10.0, hoist_max = 20.0, boom_min = 5.0, boom_max = 20.0, gantry_min = 0.0, gantry_max = 80.0;
+
 }ST_SPEC, * LPST_SPEC;
 
 

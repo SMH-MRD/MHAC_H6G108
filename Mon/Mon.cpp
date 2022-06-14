@@ -261,6 +261,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: HDC を使用する描画コードをここに追加してください...
+            pMonWin->combine_map();
+            BitBlt(hdc, 0, 0, MAIN_WND_INIT_SIZE_W, MAIN_WND_INIT_SIZE_H, pMonWin->stGraphic.hdc_mem0, 0, 0, SRCCOPY);
+ 
             EndPaint(hWnd, &ps);
         }
         break;
