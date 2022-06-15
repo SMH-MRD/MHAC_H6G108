@@ -37,7 +37,6 @@ ST_iTask        g_itask;	                    //タスクオブジェクトのイ
 
 //-共有メモリオブジェクトポインタ:
 CSharedMem*  pCraneStatusObj;
-CSharedMem*  pSwayStatusObj;
 CSharedMem*  pSimulationStatusObj;
 CSharedMem*  pPLCioObj;
 CSharedMem*  pSwayIO_Obj;
@@ -364,11 +363,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
            
         timeKillEvent(knl_manage_set.KnlTick_TimerID);//マルチメディアタイマ停止
-        Sleep(100);//100msec待機      
+        ///-タスクスレッド終了##################
+        for (unsigned i = 0; i < VectpCTaskObj.size(); i++) {
+
+            CTaskObj* pobj = (CTaskObj*)VectpCTaskObj[i];
+            pobj->inf.thread_com = TERMINATE_THREAD;		// 基本ティックのカウンタ変数クリア
+        }
+        Sleep(1000);//スレッド終了待機
 
          ///-共有メモリ解放##################
          pCraneStatusObj->delete_smem();
-         pSwayStatusObj->delete_smem();
          pSimulationStatusObj->delete_smem();
          pPLCioObj->delete_smem();
          pSwayIO_Obj->delete_smem();

@@ -34,10 +34,10 @@ CMob::CMob(double _dt, Vector3& _r, Vector3& _v) {
 CMob::~CMob() {}
 
 //加速度ベクトル　継承先で再定義する
-Vector3 CMob::A(double, Vector3&, Vector3&) {
+Vector3 CMob::A(double, Vector3& r, Vector3& v) {
 	return r.clone();
 };
-Vector3 CMob::A(double, Vector3&, Vector3&, Vector3&, Vector3&) {
+Vector3 CMob::A(double, Vector3& r, Vector3& v, Vector3& trq, Vector3& f) {
 	return r.clone();
 };
 
@@ -74,3 +74,12 @@ void CMob::timeEvolution(double t) {
 	dv.z = dt / 6.0 * (a1.z + 2.0 * a2.z + 2.0 * a3.z + a4.z);
 
 }
+
+/********************************************************************************/
+/*       Crane Object                                                          */
+/********************************************************************************/
+// ﾄﾙｸT(N・m）= F x R　= J x dω/dt  仕事率P=Tω=Mav　a=Tω/Mv=MT/r
+
+Vector3 CCrane::A(double _dt, Vector3& _r, Vector3& _v, Vector3& trqf, Vector3& _f) {
+	return _r.clone();
+};

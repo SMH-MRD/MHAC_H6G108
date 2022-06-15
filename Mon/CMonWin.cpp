@@ -82,7 +82,7 @@ int CMonWin::init_main_window() {
 	stGraphic.hdc_mem0 = CreateCompatibleDC(hdc);
 	SelectObject(stGraphic.hdc_mem0, stGraphic.hBmap_mem0);
 
-	stGraphic.hBmap_bg = CreateCompatibleBitmap(hdc, GRAPHIC_AREA_W, GRAPHIC_AREA_H);
+	stGraphic.hBmap_bg = CreateCompatibleBitmap(hdc, INF_AREA_W, INF_AREA_H);
 	stGraphic.hdc_mem_bg = CreateCompatibleDC(hdc);
 	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hBmap_bg);
 
@@ -97,7 +97,7 @@ int CMonWin::init_main_window() {
 	PatBlt(stGraphic.hdc_mem0, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
 	stGraphic.hbrush = CreateSolidBrush(RGB(240, 240, 240));
 	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hbrush);//PATCOPY用に塗りつぶしパターンを指定
-	PatBlt(stGraphic.hdc_mem_bg, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, PATCOPY);
+	PatBlt(stGraphic.hdc_mem_bg, 0, 0, INF_AREA_W, INF_AREA_H, PATCOPY);
 
 	PatBlt(stGraphic.hdc_mem_gr, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, WHITENESS);
 	PatBlt(stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
@@ -119,26 +119,27 @@ VOID CMonWin::draw_bg() {
 
 
 //	PatBlt(stGraphic.hdc_mem0, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
-//	PatBlt(stGraphic.hdc_mem_bg, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, WHITENESS);
+//	PatBlt(stGraphic.hdc_mem_bg, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, PATCOPY);
 
 	//マップ背景ライン描画
 	stGraphic.hpen = CreatePen(PS_DOT, 2, RGB(150, 150, 150));
 	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hpen);
 
 	//座標軸描画
-	MoveToEx(stGraphic.hdc_mem_bg, 20, 240, NULL);
-	LineTo(stGraphic.hdc_mem_bg, 580, 240);
+	MoveToEx(stGraphic.hdc_mem_bg, 20, 195, NULL);
+	LineTo(stGraphic.hdc_mem_bg, 580, 195);
 
 	MoveToEx(stGraphic.hdc_mem_bg, 300, 30, NULL);
 	LineTo(stGraphic.hdc_mem_bg, 300, 350);
-
+	
+	InvalidateRect(hWnd_parent, NULL, TRUE);
 	return;
 }
 
 int CMonWin::combine_map() {
 	//背景を重ね合わせ
 	TransparentBlt(stGraphic.hdc_mem0, 0, 0, INF_AREA_W, INF_AREA_H,
-					stGraphic.hdc_mem_bg, 0, 0, 100, 100,
+					stGraphic.hdc_mem_bg, 0, 0, INF_AREA_W, INF_AREA_H,
 					RGB(255, 255, 255));
 /*
 	//グラフィックを重ね合わせ

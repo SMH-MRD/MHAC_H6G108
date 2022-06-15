@@ -8,6 +8,9 @@ CSIM::CSIM() {
     pCraneStatusObj = new CSharedMem;
     pAgentInfObj = new CSharedMem;
 
+    pCrane = new CCrane(); //クレーンのモデル
+    CLoad* pLoad;   //吊荷のモデル
+
     out_size = 0;
  
     memset(&sim_stat_workbuf, 0, sizeof(ST_SIMULATION_STATUS));   //共有メモリへの出力セット作業用バッファ
@@ -52,7 +55,7 @@ int CSIM::init_proc() {
      
     set_outbuf(pSimulationStatusObj->get_pMap());
 
-    pCrane = (LPST_CRANE_STATUS)pCraneStatusObj->get_pMap();
+    pCraneStat = (LPST_CRANE_STATUS)pCraneStatusObj->get_pMap();
     pPLC = (LPST_PLC_IO)pPLCioObj->get_pMap();
     pAgent = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
@@ -66,7 +69,7 @@ int CSIM::input() {
     sim_stat_workbuf.helthy_cnt++;
 
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
-    source_counter = pCrane->env_act_count;
+    source_counter = pCraneStat->env_act_count;
 
     //PLC 入力
 
@@ -77,7 +80,7 @@ int CSIM::input() {
 //*********************************************************************************************
 int CSIM::parse() {
 
-    sim_stat_workbuf.status.v_fb[ID_HOIST] = pCrane->notch_spd_ref[ID_HOIST];
+    sim_stat_workbuf.status.v_fb[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
 
     return 0;
 }

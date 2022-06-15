@@ -287,7 +287,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 HWND CreateStatusbarMain(HWND hWnd)
 {
     HWND hSBWnd;
-    int sb_size[] = { 60,120,180,240,290,360 };//ステータス区切り位置
+    int sb_size[] = { 50,120,180,240,290,360 };//ステータス区切り位置
 
     InitCommonControls();
     hSBWnd = CreateWindowEx(
@@ -310,26 +310,37 @@ HWND CreateStatusbarMain(HWND hWnd)
 //  関数: alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 //
 //  目的: マルチメディアタイマーイベント処理関数
-//  
+//
+static LARGE_INTEGER freq,count_now,count_last;
+
 VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
- 
+    LARGE_INTEGER freq;
+
     knl_manage_set.sys_counter++;
 
-    pProcObj->input();     //入力
-    pProcObj->parse();      //データ解析処理
-    pProcObj->output();    //出力
- 
-    TCHAR tbuf[32];
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&count_now);
+    double time = static_cast<double>(count_now.QuadPart - count_last.QuadPart)/ freq.QuadPart;
+    count_last = count_now;
 
-    //Statusバーにメインプロセスのカウンタ表示
+    pProcObj->set_dt(time);     //サンプリング時間セット
+    pProcObj->input();          //入力
+    pProcObj->parse();          //データ解析処理
+    pProcObj->output();         //出力
+
+ 
+    //Statusバーにメインプロセスのスキャンタイムとカウンタ表示
+    TCHAR tbuf[1024];
     if (psource_proc_counter != NULL) {
         if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
+            int itime = (int)(time * 1000000.0);
+            wsprintf(tbuf, L"%06d [μs]", itime);
+            SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 1, (LPARAM)tbuf);
             wsprintf(tbuf, L"%08d", *psource_proc_counter);
             SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 5, (LPARAM)tbuf);
         }
     }
- 
     return;
 }
 
