@@ -16,6 +16,8 @@ HINSTANCE hInst;                                // 現在のインターフェ�
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
 WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ クラス名
 
+ST_SPEC def_spec;
+
 //# 共有メモリオブジェクトポインタ:
 CSharedMem* pCraneStatusObj;
 CSharedMem* pSwayStatusObj;

@@ -1,5 +1,8 @@
 #include "CSIM.h"
 #include "CWorkWindow_SIM.h"
+#include "Spec.h"
+
+extern ST_SPEC def_spec;
 
 CSIM::CSIM() {
     // 共有メモリオブジェクトのインスタンス化
@@ -59,6 +62,7 @@ int CSIM::init_proc() {
     pPLC = (LPST_PLC_IO)pPLCioObj->get_pMap();
     pAgent = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
+    pCrane->set_spec(&def_spec);
 
     return int(mode & 0xff00);
 }
@@ -72,6 +76,15 @@ int CSIM::input() {
     source_counter = pCraneStat->env_act_count;
 
     //PLC 入力
+    pCrane->set_v_ref(
+        pCraneStat->notch_spd_ref[ID_HOIST],
+        pCraneStat->notch_spd_ref[ID_GANTRY],
+        pCraneStat->notch_spd_ref[ID_SLEW],
+        pCraneStat->notch_spd_ref[ID_BOOM_H]
+    );
+
+
+
 
     return 0;
 }
@@ -80,7 +93,9 @@ int CSIM::input() {
 //*********************************************************************************************
 int CSIM::parse() {
 
-    sim_stat_workbuf.status.v_fb[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
+    pCrane->update_ref_elapsed();   //指令出力経過時間更新
+    pCrane->update_break_status();  //ブレーキ状態更新
+
 
     return 0;
 }
