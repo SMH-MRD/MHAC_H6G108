@@ -2,15 +2,38 @@
 
 #include "framework.h"
 
-#define INF_AREA_X		    10		    //テキスト部メインウィンドウ上表示位置X
-#define INF_AREA_Y		    30		    //テキスト部メインウィンドウ上表示位置Y
-#define INF_AREA_W		    1000        //テキスト部幅
-#define INF_AREA_H		    450		    //テキスト部高さ
+#define INF_AREA_X		        10		//テキスト部メインウィンドウ上表示位置X
+#define INF_AREA_Y		        30		//テキスト部メインウィンドウ上表示位置Y
+#define INF_AREA_W		        1020    //テキスト部幅
+#define INF_AREA_H		        450		//テキスト部高さ
 
-#define GRAPHIC_AREA_X		10		    //グラフィック部メインウィンドウ上表示位置X
-#define GRAPHIC_AREA_Y		30		    //グラフィック部メインウィンドウ上表示位置Y
-#define GRAPHIC_AREA_W		600	        //グラフィック部幅
-#define GRAPHIC_AREA_H		350		    //グラフィック部高さ
+#define GRAPHIC_AREA_X		    10		//グラフィック部左上表示位置X
+#define GRAPHIC_AREA_Y		    30		//グラフィック部左上表示位置Y
+#define GRAPHIC_AREA_W		    620	    //グラフィック部幅
+#define GRAPHIC_AREA_H		    350		//グラフィック部高さ
+
+#define COF_DIM_REAL_TO_PIX     5       //1m→5PIX　30m→150PIX
+
+#define CRANE_GRAPHIC_CENTER_X  160	    //クレーングラフィック中心位置X
+#define CRANE_GRAPHIC_CENTER_Y	230		//クレーングラフィック中心位置Y
+#define CRANE_GRAPHIC_W         290	    //クレーングラフィック中心位置X
+#define CRANE_GRAPHIC_H	        290		//クレーングラフィック中心位置Y
+#define LOAD_GRAPHIC_CENTER_X   480		//吊荷グラフィック中心位置X
+#define LOAD_GRAPHIC_CENTER_Y	230		//吊荷グラフィック中心位置Y
+#define LOAD_GRAPHIC_W          290		//吊荷グラフィック幅W
+#define LOAD_GRAPHIC_H	        290		//吊荷グラフィック高さH
+#define GNT_GRAPHIC_AREA_X      10		//走行位置表示グラフィック左上位置X
+#define GNT_GRAPHIC_AREA_Y	    10		//走行位置表示グラフィック左上位置Y
+#define GNT_GRAPHIC_AREA_W      620		//走行位置表示グラフィック幅W
+#define GNT_GRAPHIC_AREA_H	    20		//走行位置表示グラフィック高さH
+#define MH_GRAPHIC_AREA_X       315		//巻位置表示グラフィック左上位置X
+#define MH_GRAPHIC_AREA_Y	    80		//巻位置表示グラフィック左上位置Y
+#define MH_GRAPHIC_AREA_W       10		//巻位置表示グラフィック幅W
+#define MH_GRAPHIC_AREA_H	    128		//巻位置表示グラフィック高さH
+#define MH_GRAPHIC_Y0	        230		//巻位置表示グラフィック0m位置Y
+#define MH_GRAPHIC_UPPER_LIM	84		//巻上限位置表示Y0位置から14.5m分(146PIX)上
+#define MH_GRAPHIC_LOWER_LIM	340		//巻上限位置表示Y0位置から11m分(110PIX)下
+
 
 //Monitor画面グラフィック部管理構造体
 typedef struct _stMonGraphic {  

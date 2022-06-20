@@ -122,17 +122,34 @@ VOID CMonWin::draw_bg() {
 //	PatBlt(stGraphic.hdc_mem_bg, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, PATCOPY);
 
 	//マップ背景ライン描画
-	stGraphic.hpen = CreatePen(PS_DOT, 2, RGB(150, 150, 150));
+	stGraphic.hpen = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
 	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hpen);
 
 	//座標軸描画
-	MoveToEx(stGraphic.hdc_mem_bg, 20, 195, NULL);
-	LineTo(stGraphic.hdc_mem_bg, 580, 195);
-
-	MoveToEx(stGraphic.hdc_mem_bg, 300, 30, NULL);
-	LineTo(stGraphic.hdc_mem_bg, 300, 350);
+	//クレーン部
+	MoveToEx(stGraphic.hdc_mem_bg, CRANE_GRAPHIC_CENTER_X - CRANE_GRAPHIC_W/2, CRANE_GRAPHIC_CENTER_Y, NULL);	//横軸
+	LineTo(stGraphic.hdc_mem_bg, CRANE_GRAPHIC_CENTER_X + CRANE_GRAPHIC_W / 2, CRANE_GRAPHIC_CENTER_Y);
 	
+	MoveToEx(stGraphic.hdc_mem_bg, CRANE_GRAPHIC_CENTER_X, CRANE_GRAPHIC_CENTER_Y - CRANE_GRAPHIC_H/2, NULL);	//縦軸
+	LineTo(stGraphic.hdc_mem_bg, CRANE_GRAPHIC_CENTER_X, CRANE_GRAPHIC_CENTER_Y + CRANE_GRAPHIC_H/2);
+
+	//吊荷部
+	MoveToEx(stGraphic.hdc_mem_bg, LOAD_GRAPHIC_CENTER_X - LOAD_GRAPHIC_W/2 , LOAD_GRAPHIC_CENTER_Y, NULL);
+	LineTo(stGraphic.hdc_mem_bg, LOAD_GRAPHIC_CENTER_X + LOAD_GRAPHIC_W/2, LOAD_GRAPHIC_CENTER_Y);
+
+	MoveToEx(stGraphic.hdc_mem_bg, LOAD_GRAPHIC_CENTER_X, LOAD_GRAPHIC_CENTER_Y - LOAD_GRAPHIC_H / 2, NULL);
+	LineTo(stGraphic.hdc_mem_bg, LOAD_GRAPHIC_CENTER_X, LOAD_GRAPHIC_CENTER_Y + LOAD_GRAPHIC_H/2);
+
+	//走行位置表示部
+	Rectangle(stGraphic.hdc_mem_bg, GNT_GRAPHIC_AREA_X, GNT_GRAPHIC_AREA_Y, GNT_GRAPHIC_AREA_X + GNT_GRAPHIC_AREA_W, GNT_GRAPHIC_AREA_Y + GNT_GRAPHIC_AREA_H);
+
+	//巻位置表示部
+	Rectangle(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X, MH_GRAPHIC_UPPER_LIM, MH_GRAPHIC_AREA_X + MH_GRAPHIC_AREA_W, MH_GRAPHIC_LOWER_LIM);
+	MoveToEx(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X, MH_GRAPHIC_Y0, NULL);
+	LineTo(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X + MH_GRAPHIC_AREA_W-1, MH_GRAPHIC_Y0);
+
 	InvalidateRect(hWnd_parent, NULL, TRUE);
+
 	return;
 }
 
