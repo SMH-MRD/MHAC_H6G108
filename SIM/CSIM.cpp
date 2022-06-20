@@ -77,13 +77,14 @@ int CSIM::input() {
 
     //PLC 入力
     pCrane->set_v_ref(
-        pCraneStat->notch_spd_ref[ID_HOIST],
-        pCraneStat->notch_spd_ref[ID_GANTRY],
-        pCraneStat->notch_spd_ref[ID_SLEW],
-        pCraneStat->notch_spd_ref[ID_BOOM_H]
+        pAgent->v_ref[ID_HOIST],
+        pAgent->v_ref[ID_GANTRY],
+        pAgent->v_ref[ID_SLEW],
+        pAgent->v_ref[ID_BOOM_H]
     );
 
-
+    //スキャンタイムセット
+    pCrane->set_dt(dt);
 
 
     return 0;
@@ -93,8 +94,8 @@ int CSIM::input() {
 //*********************************************************************************************
 int CSIM::parse() {
 
-    pCrane->update_ref_elapsed();   //指令出力経過時間更新
-    pCrane->update_break_status();  //ブレーキ状態更新
+     pCrane->update_break_status();  //ブレーキ状態更新
+     pCrane->timeEvolution();
 
 
     return 0;

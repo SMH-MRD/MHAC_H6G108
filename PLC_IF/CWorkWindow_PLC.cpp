@@ -295,7 +295,10 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 			lpnmud = (LPNMUPDOWN)lp;
 	
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
-				stOpePaneStat.slider_slew = lpnmud->iPos;
+				stOpePaneStat.slider_slew = lpnmud->iPos + lpnmud->iDelta;
+				if (stOpePaneStat.slider_slew < 0) stOpePaneStat.slider_slew = 0;
+				else if (stOpePaneStat.slider_slew > SLW_SLIDAR_MAX) stOpePaneStat.slider_slew = SLW_SLIDAR_MAX;
+				else;
 				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew );
 				wsprintf(stOpePaneStat.static_slew_label, L"ê˘âÒ %02d", stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_SLEW_LABEL), stOpePaneStat.static_slew_label);
@@ -304,7 +307,10 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		else if(wp == (WPARAM)IDC_SPIN_BH) {
 			lpnmud = (LPNMUPDOWN)lp;
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
-				stOpePaneStat.slider_bh = lpnmud->iPos;
+				stOpePaneStat.slider_bh = lpnmud->iPos + lpnmud->iDelta;
+				if (stOpePaneStat.slider_bh < 0) stOpePaneStat.slider_bh = 0;
+				else if (stOpePaneStat.slider_bh > BH_SLIDAR_MAX) stOpePaneStat.slider_bh = BH_SLIDAR_MAX;
+				else;
 				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, BH_SLIDAR_MAX - (short)stOpePaneStat.slider_bh);
 				wsprintf(stOpePaneStat.static_bh_label, L"à¯çû %02d", stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_BH_LABEL), stOpePaneStat.static_bh_label);
@@ -313,7 +319,10 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		else if (wp == (WPARAM)IDC_SPIN_MH) {
 			lpnmud = (LPNMUPDOWN)lp;
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
-				stOpePaneStat.slider_mh = lpnmud->iPos;
+				stOpePaneStat.slider_mh = lpnmud->iPos + lpnmud->iDelta;
+				if (stOpePaneStat.slider_mh < 0) stOpePaneStat.slider_mh = 0;
+				else if (stOpePaneStat.slider_mh > MH_SLIDAR_MAX) stOpePaneStat.slider_mh = MH_SLIDAR_MAX;
+				else;
 				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, MH_SLIDAR_MAX - (short)stOpePaneStat.slider_mh );
 				wsprintf(stOpePaneStat.static_mh_label, L"ä™ %02d", stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_MH_LABEL), stOpePaneStat.static_mh_label);
@@ -322,12 +331,14 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		else if (wp == (WPARAM)IDC_SPIN_GT) {
 			lpnmud = (LPNMUPDOWN)lp;
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
-				stOpePaneStat.slider_gt = lpnmud->iPos;
+				stOpePaneStat.slider_gt = lpnmud->iPos + lpnmud->iDelta;
+				if (stOpePaneStat.slider_gt < 0) stOpePaneStat.slider_gt = 0;
+				else if (stOpePaneStat.slider_gt > GT_SLIDAR_MAX) stOpePaneStat.slider_gt = GT_SLIDAR_MAX;
+				else;
 				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_GT), TBM_SETPOS, TRUE, GT_SLIDAR_MAX - (short)stOpePaneStat.slider_gt);
 				wsprintf(stOpePaneStat.static_gt_label, L"ëñçs %02d", stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_GT_LABEL), stOpePaneStat.static_gt_label);
 			}
-
 		}
 
 		break;

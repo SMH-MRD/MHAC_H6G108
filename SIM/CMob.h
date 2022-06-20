@@ -24,6 +24,7 @@ public:
     //加速度ベクトルを与えるメソッド　　継承先で再定義する
     virtual Vector3 A(Vector3& r, Vector3& v); 
     virtual void set_fex(double,double,double);//外力
+    virtual void set_dt(double);//計算時間間隔セット
 
     //速度ベクトルを与えるメソッド
     virtual Vector3 V(Vector3& r, Vector3& v);
@@ -59,6 +60,7 @@ public:
     double a0[MOTION_ID_MAX];        //加速度・角加速度
 
     double v_ref[MOTION_ID_MAX];     //速度・角速度指令
+    double a_ref[MOTION_ID_MAX];     //加速度・角加速度指令
  
     double trq_fb[MOTION_ID_MAX];    //モータートルクFB
     bool motion_break[MOTION_ID_MAX];//ブレーキ開閉状態
@@ -66,20 +68,20 @@ public:
     void set_v_ref(double hoist_ref,double gantry_ref,double slew_ref,double boomh_ref); //速度指令値入力
     void init_crane(double _dt, Vector3& _r, Vector3& _v,Vector3& r_offset, Vector3& v_offset); //入力：クレーン中心部　オフセット：クレーン中心と吊点との相対
     int set_spec(LPST_SPEC _pspec) { pspec = _pspec; return 0; }
-    void update_ref_elapsed();     //各軸の指令出力経過時間セット
     void update_break_status();    //ブレーキ状態, ブレーキ開放経過時間セット
     
     //時間発展を計算するメソッド
     void timeEvolution();
 
 private:
-    double elaped_time[MOTION_ID_MAX];     //ブレーキ開放経過時間
-    double Tf[MOTION_ID_MAX];              //加速度一時遅れ
+    double brk_elaped_time[MOTION_ID_MAX];      //ブレーキ開放経過時間
+    double Tf[MOTION_ID_MAX];                   //加速度一時遅れ
 
-    Vector3 A(Vector3& _r, Vector3& _v);    //吊点加速度計算
-    void Ac();                              //クレーン加速度計算
+    Vector3 A(Vector3& _r, Vector3& _v);        //吊点加速度計算
+    void Ac();                                  //クレーン加速度計算
 
     LPST_SPEC pspec;
+    double accdec_cut_spd_range[MOTION_ID_MAX]; //加減速指令を0にする速度指令とFBの差の範囲
 };
 
 //計算誤差吸収処理　紐長さ補正力＝補正ばね弾性力＋補正粘性抵抗力

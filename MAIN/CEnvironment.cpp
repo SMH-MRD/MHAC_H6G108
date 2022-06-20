@@ -41,7 +41,7 @@ void CEnvironment::init_task(void* pobj) {
 	pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
 	
 	//クレーン仕様セット
-	pCraneStat->spec = this->spec;
+	stWorkCraneStat.spec = this->spec;
 
 	set_panel_tip_txt();
 	return;
@@ -78,17 +78,20 @@ void CEnvironment::main_proc() {
 
 void CEnvironment::output() {
 	//ヘルシーカウンタセット
-	pCraneStat->env_act_count = inf.total_act;
+	stWorkCraneStat.env_act_count = inf.total_act;
 	
 	//サブプロセスチェック
 	chk_subproc();
 
 	//リモートモードセット
-	if(pPLC_IO->ui.pb[PLC_UI_CS_REMOTE])pCraneStat->operation_mode |= OPERATION_MODE_REMOTE;
-	else pCraneStat->operation_mode &= ~OPERATION_MODE_REMOTE;
+	if(pPLC_IO->ui.pb[PLC_UI_CS_REMOTE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
+	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_REMOTE;
 
 	//ノッチ指令状態セット
 	parse_notch_com();
+
+	//共有メモリ出力
+	memcpy_s(pCraneStat, sizeof(ST_CRANE_STATUS), &stWorkCraneStat, sizeof(ST_CRANE_STATUS));
 	
 	return;
 
@@ -100,20 +103,24 @@ void CEnvironment::output() {
 int CEnvironment::parse_notch_com() {
 
 	int* p_notch;
-	if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) p_notch = pRemoteIO->PLCui.notch_pos;
+	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) p_notch = pRemoteIO->PLCui.notch_pos;
 	else p_notch = pPLC_IO->ui.notch_pos;
 
-	pCraneStat->notch_spd_ref[ID_HOIST] = pCraneStat->spec.notch_spd[ID_HOIST][iABS(p_notch[ID_HOIST])];
-	if (pPLC_IO->ui.notch_pos[ID_HOIST] < 0) pCraneStat->notch_spd_ref[ID_HOIST] *= -1.0;
 
-	pCraneStat->notch_spd_ref[ID_GANTRY] = pCraneStat->spec.notch_spd[ID_GANTRY][iABS(p_notch[ID_GANTRY])];
-	if (pPLC_IO->ui.notch_pos[ID_GANTRY] < 0) pCraneStat->notch_spd_ref[ID_GANTRY] *= -1.0;
+	if (pPLC_IO->ui.notch_pos[ID_HOIST] < 0) stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_r[ID_HOIST][iABS(p_notch[ID_HOIST])];
+	else stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_f[ID_HOIST][iABS(p_notch[ID_HOIST])];
 
-	pCraneStat->notch_spd_ref[ID_BOOM_H] = pCraneStat->spec.notch_spd[ID_BOOM_H][iABS(p_notch[ID_BOOM_H])];
-	if (pPLC_IO->ui.notch_pos[ID_BOOM_H] < 0) pCraneStat->notch_spd_ref[ID_BOOM_H] *= -1.0;
 
-	pCraneStat->notch_spd_ref[ID_SLEW] = pCraneStat->spec.notch_spd[ID_SLEW][iABS(p_notch[ID_SLEW])];
-	if (pPLC_IO->ui.notch_pos[ID_SLEW] < 0) pCraneStat->notch_spd_ref[ID_SLEW] *= -1.0;
+	if (pPLC_IO->ui.notch_pos[ID_GANTRY] < 0) stWorkCraneStat.notch_spd_ref[ID_GANTRY] = stWorkCraneStat.spec.notch_spd_r[ID_GANTRY][iABS(p_notch[ID_GANTRY])];
+	else stWorkCraneStat.notch_spd_ref[ID_GANTRY] = stWorkCraneStat.spec.notch_spd_f[ID_GANTRY][iABS(p_notch[ID_GANTRY])];
+
+
+	if (pPLC_IO->ui.notch_pos[ID_BOOM_H] < 0) stWorkCraneStat.notch_spd_ref[ID_BOOM_H] = stWorkCraneStat.spec.notch_spd_r[ID_BOOM_H][iABS(p_notch[ID_BOOM_H])];
+	else stWorkCraneStat.notch_spd_ref[ID_BOOM_H] = stWorkCraneStat.spec.notch_spd_f[ID_BOOM_H][iABS(p_notch[ID_BOOM_H])];
+
+
+	if (pPLC_IO->ui.notch_pos[ID_SLEW] < 0) stWorkCraneStat.notch_spd_ref[ID_SLEW] = stWorkCraneStat.spec.notch_spd_r[ID_SLEW][iABS(p_notch[ID_SLEW])];
+	else stWorkCraneStat.notch_spd_ref[ID_SLEW] = stWorkCraneStat.spec.notch_spd_f[ID_SLEW][iABS(p_notch[ID_SLEW])];
 
 	return 0;
 
@@ -134,22 +141,22 @@ void CEnvironment::chk_subproc() {
 	//PLC IF
 	if (plc_io_helthy_count_last == pPLC_IO->helthy_cnt) plc_io_helthy_NGcount++;
 	else plc_io_helthy_NGcount = 0;
-	if (plc_io_helthy_NGcount > PLC_IO_HELTHY_NG_COUNT) pCraneStat->subproc_stat.is_plcio_join = false;
-	else pCraneStat->subproc_stat.is_plcio_join = true;
+	if (plc_io_helthy_NGcount > PLC_IO_HELTHY_NG_COUNT) stWorkCraneStat.subproc_stat.is_plcio_join = false;
+	else stWorkCraneStat.subproc_stat.is_plcio_join = true;
 	plc_io_helthy_count_last = pPLC_IO->helthy_cnt;
 
 	//SWAY IF
 	if (sway_helthy_count_last == pSway_IO->helthy_cnt) sway_helthy_NGcount++;
 	else sway_helthy_NGcount = 0;
-	if (sway_helthy_NGcount > SWAY_HELTHY_NG_COUNT) pCraneStat->subproc_stat.is_sway_join = false;
-	else pCraneStat->subproc_stat.is_sway_join = true;
+	if (sway_helthy_NGcount > SWAY_HELTHY_NG_COUNT) stWorkCraneStat.subproc_stat.is_sway_join = false;
+	else stWorkCraneStat.subproc_stat.is_sway_join = true;
 	sway_helthy_count_last = pSway_IO->helthy_cnt;
 
 	//SIM
 	if (sim_helthy_count_last == pSimStat->helthy_cnt) sim_helthy_NGcount++;
 	else sim_helthy_NGcount = 0;
-	if (sim_helthy_NGcount >SIM_HELTHY_NG_COUNT) pCraneStat->subproc_stat.is_sim_join = false;
-	else pCraneStat->subproc_stat.is_sim_join = true;
+	if (sim_helthy_NGcount >SIM_HELTHY_NG_COUNT) stWorkCraneStat.subproc_stat.is_sim_join = false;
+	else stWorkCraneStat.subproc_stat.is_sim_join = true;
 	sim_helthy_count_last = pSimStat->helthy_cnt;
 
 	return;
@@ -161,7 +168,7 @@ void CEnvironment::chk_subproc() {
 void CEnvironment::tweet_update() {
 
 	//PLC
-	if (pCraneStat->subproc_stat.is_plcio_join == true) {
+	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {
 		if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) wostrs << L" #PLC:DBG";
 		else wostrs << L" #PLC:PLC";
 
@@ -174,14 +181,14 @@ void CEnvironment::tweet_update() {
 	else wostrs << L" # PLC:NG";
 
 	//SWAY
-	if (pCraneStat->subproc_stat.is_sway_join == true) {
+	if (stWorkCraneStat.subproc_stat.is_sway_join == true) {
 		if (pSway_IO->proc_mode & SWAY_IF_SIM_DBG_MODE) wostrs << L" #SWY:SIM";
 		else wostrs << L" #SWY:CAM";
 	}
 	else wostrs << L" #SWY:NG";
 
 	//SIM
-	if (pCraneStat->subproc_stat.is_sim_join == true) {
+	if (stWorkCraneStat.subproc_stat.is_sim_join == true) {
 		if (pSimStat->mode & SIM_ACTIVE_MODE) wostrs << L" #SIM:ACT";
 		else wostrs << L" #SIM:STP";
 	}

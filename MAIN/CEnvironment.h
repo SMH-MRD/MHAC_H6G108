@@ -27,6 +27,7 @@ public:
 
 private:
     ST_SPEC spec;       //仕様情報 Environmentが共有メモリにセットする。
+    ST_CRANE_STATUS stWorkCraneStat;
 
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;

@@ -40,6 +40,11 @@ void CMob::set_fex(double fx,double fy,double fz) {
 	return;
 };
 
+void CMob::set_dt(double _dt) {
+	dt = _dt;
+	return;
+};
+
 //速度ベクトル
 Vector3 CMob::V(Vector3& r, Vector3& v) {
 	return v.clone();
@@ -102,7 +107,13 @@ void CMob::timeEvolution() {
 /********************************************************************************/
 /*       Crane Object                                                          */
 /********************************************************************************/
-CCrane::CCrane() { pspec = &def_spec; }
+CCrane::CCrane() { 
+	pspec = &def_spec;
+	accdec_cut_spd_range[ID_HOIST] = 0.01;
+	accdec_cut_spd_range[ID_BOOM_H] = 0.01;
+	accdec_cut_spd_range[ID_SLEW] = 0.001;
+	accdec_cut_spd_range[ID_GANTRY] = 0.01;
+}
 CCrane::~CCrane() {}
 
 void CCrane::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref) {
@@ -126,32 +137,88 @@ Vector3 CCrane::A(Vector3& _r, Vector3& _v) {
 	return a;
 }
 
+
+#define REF_CUT_BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
+
 void CCrane::Ac() {
 
-	//指令に対して一次遅れフィルタを入れる
+	//加速指令計算
+	if(!motion_break[ID_HOIST]) a_ref[ID_HOIST] = 0.0;
+	else if ((v_ref[ID_HOIST] - v0[ID_HOIST])>accdec_cut_spd_range[ID_HOIST]) {
+		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][ACC];//正転加速
+		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][DEC];//逆転減速
+	}
+	else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
+		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][DEC];//正転減速
+		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][ACC];//逆転加速
+	}
+	else{
+		a_ref[ID_HOIST] = 0.0;
+	}
+
+	if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
+	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
+		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][ACC];//正転加速
+		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][DEC];//逆転減速
+	}
+	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
+		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][DEC];//正転減速
+		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][ACC];//逆転加速
+	}
+	else {
+		a_ref[ID_GANTRY] = 0.0;
+	}
+
+	if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
+	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
+		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][ACC];//正転加速
+		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][DEC];//逆転減速
+	}
+	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
+		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][DEC];//正転減速
+		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][ACC];//逆転加速
+	}
+	else {
+		a_ref[ID_BOOM_H] = 0.0;
+	}
+	
+	if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
+	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
+		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][ACC];//正転加速
+		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][DEC];//逆転減速
+	}
+	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
+		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][DEC];//正転減速
+		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//逆転加速
+	}
+	else {
+		a_ref[ID_SLEW] = 0.0;
+	}
+	
+	//加速度計算　当面指令に対して一次遅れフィルタを入れる形で計算（将来的にトルク指令からの導出検討）
 	if (motion_break[ID_HOIST]) {
-		a0[ID_HOIST] = (dt * v_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
+		a0[ID_HOIST] = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
 	}
 	else {
 		a0[ID_HOIST] = 0.0;
 	}
 
 	if (motion_break[ID_BOOM_H]) {
-		a0[ID_BOOM_H] = (dt * v_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * a0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
+		a0[ID_BOOM_H] = (dt * a_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * a0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
 	}
 	else {
 		a0[ID_BOOM_H] = 0.0;
 	}
 
 	if (motion_break[ID_SLEW]) {
-		a0[ID_SLEW] = (dt * v_ref[ID_SLEW] + Tf[ID_SLEW] * a0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
+		a0[ID_SLEW] = (dt * a_ref[ID_SLEW] + Tf[ID_SLEW] * a0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
 	}
 	else {
 		a0[ID_SLEW] = 0.0;
 	}
 
 	if (motion_break[ID_GANTRY]) {
-		a0[ID_GANTRY] = (dt * v_ref[ID_GANTRY] + Tf[ID_GANTRY] * a0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
+		a0[ID_GANTRY] = (dt * a_ref[ID_GANTRY] + Tf[ID_GANTRY] * a0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
 	}
 	else {
 		a0[ID_GANTRY] = 0.0;
@@ -165,10 +232,10 @@ void CCrane::timeEvolution() {
 	//加速度計算
 	Ac();	
 	//速度計算(オイラー法）
-	v0[ID_HOIST]	+= a0[ID_HOIST] * dt;	if (v0[ID_HOIST]	* v0[ID_HOIST]	< 0.00001) v0[ID_HOIST] = 0.0;
-	v0[ID_GANTRY]	+= a0[ID_HOIST] * dt;	if (v0[ID_GANTRY]	* v0[ID_GANTRY] < 0.00001) v0[ID_GANTRY] = 0.0;
-	v0[ID_SLEW]		+= a0[ID_SLEW] * dt;	if (v0[ID_SLEW]		* v0[ID_SLEW]	< 0.00001) v0[ID_SLEW] = 0.0;
-	v0[ID_BOOM_H]	+= a0[ID_BOOM_H] * dt;	if (v0[ID_BOOM_H]	* v0[ID_BOOM_H]	< 0.00001) v0[ID_BOOM_H] = 0.0;
+	v0[ID_HOIST]	+= a0[ID_HOIST] * dt;	if (!motion_break[ID_HOIST]) v0[ID_HOIST] = 0.0;
+	v0[ID_GANTRY]	+= a0[ID_GANTRY] * dt;	if (!motion_break[ID_GANTRY]) v0[ID_GANTRY] = 0.0;
+	v0[ID_SLEW]		+= a0[ID_SLEW] * dt;	if (!motion_break[ID_SLEW]) v0[ID_SLEW] = 0.0;
+	v0[ID_BOOM_H]	+= a0[ID_BOOM_H] * dt;	if (!motion_break[ID_BOOM_H]) v0[ID_BOOM_H] = 0.0;
 
 	//位置計算(オイラー法）
 	r0[ID_HOIST]	+= v0[ID_HOIST] * dt;	
@@ -208,77 +275,72 @@ void CCrane::init_crane(double _dt, Vector3& _r, Vector3& _v, Vector3& r_offset,
 	Tf[ID_GANTRY] = SIM_TF_GANTRY;
 }
 
-// 各モーションの指令出力時間の経過をセット
-void CCrane::update_ref_elapsed() {
+#define BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
 
-	if (v_ref[ID_HOIST] != 0.0) {
-		elaped_time[ID_HOIST] += dt;
-	}
-	else {
-		elaped_time[ID_HOIST] = 0.0;
-	}
-	if (v_ref[ID_BOOM_H] != 0.0) {
-		elaped_time[ID_BOOM_H] += dt;
-	}
-	else {
-		elaped_time[ID_BOOM_H] = 0.0;
-	}
-	if (v_ref[ID_SLEW] != 0.0) {
-		elaped_time[ID_SLEW] += dt;
-	}
-	else {
-		elaped_time[ID_SLEW] = 0.0;
-	}
-	if (v_ref[ID_GANTRY] != 0.0) {
-		elaped_time[ID_GANTRY] += dt;
-	}
-	else {
-		elaped_time[ID_GANTRY] = 0.0;
-	}
-
-	return;
-}
-
-#define BREAK_CLOSE_RETIO	0.1
-
+// 各モーションのブレーキ状態をセット
 void CCrane::update_break_status() {
 
-	if (elaped_time[ID_HOIST] > SIM_TLOSS_HOIST) {
+	if (v_ref[ID_HOIST] != 0.0) {
 		motion_break[ID_HOIST] = true;
 	}
-	else if ((v0[ID_HOIST] > -pspec->notch_spd[ID_HOIST][1] * BREAK_CLOSE_RETIO)
-			&&(v0[ID_HOIST] < pspec->notch_spd[ID_HOIST][1] * BREAK_CLOSE_RETIO)) {
+	else if ((v0[ID_HOIST] > pspec->notch_spd_r[ID_HOIST][1] * BREAK_CLOSE_RETIO)
+		&& (v0[ID_HOIST] < pspec->notch_spd_f[ID_HOIST][1] * BREAK_CLOSE_RETIO)) {
 		motion_break[ID_HOIST] = false;
 	}
 	else;
 
-
-	if (elaped_time[ID_GANTRY] > SIM_TLOSS_HOIST) {
+	if (v_ref[ID_GANTRY] != 0.0) {
 		motion_break[ID_GANTRY] = true;
 	}
-	else if ((v0[ID_GANTRY] > -pspec->notch_spd[ID_GANTRY][1] * BREAK_CLOSE_RETIO)
-		&& (v0[ID_GANTRY] < pspec->notch_spd[ID_GANTRY][1] * BREAK_CLOSE_RETIO)) {
+	else if ((v0[ID_GANTRY] > pspec->notch_spd_r[ID_GANTRY][1] * BREAK_CLOSE_RETIO)
+		&& (v0[ID_GANTRY] < pspec->notch_spd_f[ID_GANTRY][1] * BREAK_CLOSE_RETIO)) {
 		motion_break[ID_GANTRY] = false;
 	}
 	else;
 
-	if (elaped_time[ID_SLEW] > SIM_TLOSS_HOIST) {
+	if (v_ref[ID_SLEW] != 0.0) {
 		motion_break[ID_SLEW] = true;
 	}
-	else if ((v0[ID_SLEW] > -pspec->notch_spd[ID_SLEW][1] * BREAK_CLOSE_RETIO)
-		&& (v0[ID_SLEW] < pspec->notch_spd[ID_SLEW][1] * BREAK_CLOSE_RETIO)) {
+	else if ((v0[ID_SLEW] > pspec->notch_spd_r[ID_SLEW][1] * BREAK_CLOSE_RETIO)
+		&& (v0[ID_SLEW] < pspec->notch_spd_f[ID_SLEW][1] * BREAK_CLOSE_RETIO)) {
 		motion_break[ID_SLEW] = false;
 	}
 	else;
 
-	if (elaped_time[ID_BOOM_H] > SIM_TLOSS_HOIST) {
+	if (v_ref[ID_BOOM_H] != 0.0) {
 		motion_break[ID_BOOM_H] = true;
 	}
-	else if ((v0[ID_BOOM_H] > -pspec->notch_spd[ID_BOOM_H][1] * BREAK_CLOSE_RETIO)
-		&& (v0[ID_BOOM_H] < pspec->notch_spd[ID_BOOM_H][1] * BREAK_CLOSE_RETIO)) {
+	else if ((v0[ID_BOOM_H] > pspec->notch_spd_r[ID_BOOM_H][1] * BREAK_CLOSE_RETIO)
+		&& (v0[ID_BOOM_H] < pspec->notch_spd_f[ID_BOOM_H][1] * BREAK_CLOSE_RETIO)) {
 		motion_break[ID_BOOM_H] = false;
 	}
 	else;
+
+
+	if (motion_break[ID_HOIST]) {
+		brk_elaped_time[ID_HOIST] += dt;
+	}
+	else {
+		brk_elaped_time[ID_HOIST] = 0.0;
+	}
+	if (motion_break[ID_BOOM_H]) {
+		brk_elaped_time[ID_BOOM_H] += dt;
+	}
+	else {
+		brk_elaped_time[ID_BOOM_H] = 0.0;
+	}
+	if (motion_break[ID_SLEW]) {
+		brk_elaped_time[ID_SLEW] += dt;
+	}
+	else {
+		brk_elaped_time[ID_SLEW] = 0.0;
+	}
+	if (motion_break[ID_GANTRY]) {
+		brk_elaped_time[ID_GANTRY] += dt;
+	}
+	else {
+		brk_elaped_time[ID_GANTRY] = 0.0;
+	}
 
 
 	return;
