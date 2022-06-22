@@ -244,6 +244,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
+            case IDC_MON_RADIO_DISP0:
+                pMonWin->stGraphic.disp_item = IDC_MON_RADIO_DISP0;
+                pMonWin->draw_bg();
+                pMonWin->disp_update();
+                break;
+            case IDC_MON_RADIO_DISP1:
+                pMonWin->stGraphic.disp_item = IDC_MON_RADIO_DISP1;
+                pMonWin->draw_bg();
+                pMonWin->disp_update();
+                break;
+            case IDC_MON_RADIO_DISP2:
+                pMonWin->stGraphic.disp_item = IDC_MON_RADIO_DISP2;
+                pMonWin->draw_bg();
+                pMonWin->disp_update();
+                break;
+            case IDC_MON_RADIO_DISP3:
+                pMonWin->stGraphic.disp_item = IDC_MON_RADIO_DISP3;
+                pMonWin->draw_bg();
+                pMonWin->disp_update();
+                break;
+            case IDC_MON_RADIO_DISP4:
+                pMonWin->stGraphic.disp_item = IDC_MON_RADIO_DISP4;
+                pMonWin->draw_bg();
+                pMonWin->disp_update();
+                break;
+            case IDC_MON_RADIO_DISP5:
+                pMonWin->stGraphic.disp_item = IDC_MON_RADIO_DISP5;
+                pMonWin->draw_bg();
+                pMonWin->disp_update();
+                break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }

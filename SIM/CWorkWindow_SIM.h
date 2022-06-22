@@ -21,6 +21,8 @@
 //起動タイマーID
 #define ID_WORK_WND_TIMER					100
 
+#define NUM_OF_CTR_OBJECT					128
+
 class CWorkWindow
 {
 public:
@@ -34,4 +36,9 @@ public:
 	virtual HWND open_WorkWnd(HWND hwnd_parent);
 	static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);
 	int close_WorkWnd();
+
+private:
+	
 };
+
+

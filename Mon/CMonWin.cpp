@@ -29,29 +29,29 @@ int CMonWin::init_main_window() {
 		client_w - 50, client_h - 70, 45, 25, hWnd_parent, (HMENU)IDC_MON_STOP_PB, hInst, NULL);
 
 	stComCtrl.hwnd_map2d_opt1_radio = CreateWindow(
-		L"BUTTON", L"Disp1",
+		L"BUTTON", L"Disp0",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
-		client_w - 300, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP1, hInst, NULL);
+		client_w - 320, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP0, hInst, NULL);
 	stComCtrl.hwnd_map2d_opt2_radio = CreateWindow(
+		L"BUTTON", L"Disp1",
+		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
+		client_w - 270, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP1, hInst, NULL);
+	stComCtrl.hwnd_map2d_opt1_radio = CreateWindow(
 		L"BUTTON", L"Disp2",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
-		client_w - 250, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP2, hInst, NULL);
-	stComCtrl.hwnd_map2d_opt1_radio = CreateWindow(
+		client_w - 220, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP2, hInst, NULL);
+	stComCtrl.hwnd_map2d_opt2_radio = CreateWindow(
 		L"BUTTON", L"Disp3",
-		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
-		client_w - 200, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP3, hInst, NULL);
-	stComCtrl.hwnd_map2d_opt2_radio = CreateWindow(
-		L"BUTTON", L"Disp4",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-		client_w - 150, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP4, hInst, NULL);
+		client_w - 170, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP3, hInst, NULL);
 	stComCtrl.hwnd_map2d_opt1_radio = CreateWindow(
-		L"BUTTON", L"Disp5",
+		L"BUTTON", L"Disp4",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
-		client_w - 100, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP5, hInst, NULL);
+		client_w - 120, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP4, hInst, NULL);
 	stComCtrl.hwnd_map2d_opt2_radio = CreateWindow(
-		L"BUTTON", L"Disp6",
+		L"BUTTON", L"Disp5",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-		client_w - 50, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP6, hInst, NULL);
+		client_w - 70, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP5, hInst, NULL);
 
  
 	//表示フォント設定
@@ -117,10 +117,8 @@ int CMonWin::disp_update() {
 
 VOID CMonWin::draw_bg() {
 
-
-//	PatBlt(stGraphic.hdc_mem0, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
-//	PatBlt(stGraphic.hdc_mem_bg, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, PATCOPY);
-
+	PatBlt(stGraphic.hdc_mem_bg, 0, 0, INF_AREA_W, INF_AREA_H, PATCOPY);
+	
 	//マップ背景ライン描画
 	stGraphic.hpen = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
 	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hpen);
@@ -148,6 +146,56 @@ VOID CMonWin::draw_bg() {
 	MoveToEx(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X, MH_GRAPHIC_Y0, NULL);
 	LineTo(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X + MH_GRAPHIC_AREA_W-1, MH_GRAPHIC_Y0);
 
+	wstring ws;
+	
+	//テキストラベル表示
+	switch (stGraphic.disp_item) {
+	case IDC_MON_RADIO_DISP0:{
+		ws = L"0";
+		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
+		break;
+
+	}
+	case IDC_MON_RADIO_DISP1: {
+		ws = L"1";
+		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
+		break;
+
+	}
+	case IDC_MON_RADIO_DISP2: {
+		ws = L"2";
+		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
+		break;
+
+	}
+	case IDC_MON_RADIO_DISP3: {
+		ws = L"3";
+		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
+		break;
+
+	}
+	case IDC_MON_RADIO_DISP4: {
+		ws = L"4";
+		TextOutW(stGraphic.hdc_mem_bg, 40, 25, ws.c_str(), (int)ws.length());
+		break;
+
+	}
+	case IDC_MON_RADIO_DISP5: {
+		ws = L"5";
+		TextOutW(stGraphic.hdc_mem_bg, 40, 25, ws.c_str(), (int)ws.length());
+		break;
+
+	}
+	default:break;
+	}
+
+
+	ws = L"50m";
+	TextOutW(stGraphic.hdc_mem_bg, 540, 100, ws.c_str(), (int)ws.length());
+	ws = L"20m";
+	TextOutW(stGraphic.hdc_mem_bg, 10, 265, ws.c_str(), (int)ws.length());
+	
+		
 	InvalidateRect(hWnd_parent, NULL, TRUE);
 
 	return;
@@ -158,7 +206,7 @@ int CMonWin::combine_map() {
 	TransparentBlt(stGraphic.hdc_mem0, 0, 0, INF_AREA_W, INF_AREA_H,
 					stGraphic.hdc_mem_bg, 0, 0, INF_AREA_W, INF_AREA_H,
 					RGB(255, 255, 255));
-/*
+
 	//グラフィックを重ね合わせ
 	TransparentBlt(stGraphic.hdc_mem0, GRAPHIC_AREA_X, GRAPHIC_AREA_Y, GRAPHIC_AREA_W, GRAPHIC_AREA_H,
 					stGraphic.hdc_mem_gr, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H,
@@ -167,7 +215,7 @@ int CMonWin::combine_map() {
 	TransparentBlt(stGraphic.hdc_mem0, INF_AREA_X, INF_AREA_Y, INF_AREA_W, INF_AREA_H, 
 					stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H,
 					RGB(255, 255, 255));
-*/
+
 	return 0;
 }
 

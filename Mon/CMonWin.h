@@ -37,7 +37,7 @@
 
 //Monitor画面グラフィック部管理構造体
 typedef struct _stMonGraphic {  
-    DWORD disp_item;                    //表示項目
+    int disp_item = 0;                    //表示項目
     
     int area_x, area_y, area_w, area_h; //メインウィンドウ上の表示エリア
     int bmp_w, bmp_h;                   //グラフィックビットマップサイズ
@@ -63,12 +63,12 @@ typedef struct _stMonGraphic {
 //操作ボタンID
 #define IDC_MON_START_PB				10601
 #define IDC_MON_STOP_PB					10602
-#define IDC_MON_RADIO_DISP1				10605   //表示切替１
-#define IDC_MON_RADIO_DISP2				10606   //表示切替２
-#define IDC_MON_RADIO_DISP3				10607   //表示切替３
-#define IDC_MON_RADIO_DISP4				10608   //表示切替４
-#define IDC_MON_RADIO_DISP5				10609   //表示切替５
-#define IDC_MON_RADIO_DISP6				10610   //表示切替６
+#define IDC_MON_RADIO_DISP0				10605   //表示切替0
+#define IDC_MON_RADIO_DISP1				10606   //表示切替1
+#define IDC_MON_RADIO_DISP2				10607   //表示切替2
+#define IDC_MON_RADIO_DISP3				10608   //表示切替3
+#define IDC_MON_RADIO_DISP4				10609   //表示切替4
+#define IDC_MON_RADIO_DISP5				10610   //表示切替5
 
 //STATIC TEXT ID
 #define IDC_MON_STATIC0					10611		
@@ -107,6 +107,7 @@ public:
         hWnd_parent = hWnd; 
         memset(&stGraphic, 0, sizeof(ST_MON_GRAPHIC));
         memset(&stComCtrl, 0, sizeof(ST_MON_COM_OBJ));
+        stGraphic.disp_item = IDC_MON_RADIO_DISP0;
     }
     ~CMonWin() {}
     int init_main_window();
@@ -117,11 +118,10 @@ public:
     ST_MON_GRAPHIC stGraphic;
     ST_MON_COM_OBJ stComCtrl;
 
+    VOID draw_bg();
+
 private:
     HWND hWnd_parent;
 
-
-    VOID draw_bg();
- 
 };
 
