@@ -108,6 +108,17 @@ int CSIM::output() {
     sim_stat_workbuf.mode = this->mode;                      //モードセット
     sim_stat_workbuf.helthy_cnt = my_helthy_counter++;    //ヘルシーカウンタセット
 
+    sim_stat_workbuf.status.v_fb[ID_HOIST] = pCrane->v0[ID_HOIST];
+    sim_stat_workbuf.status.v_fb[ID_GANTRY] = pCrane->v0[ID_GANTRY];
+    sim_stat_workbuf.status.v_fb[ID_SLEW] = pCrane->v0[ID_SLEW];
+    sim_stat_workbuf.status.v_fb[ID_BOOM_H] = pCrane->v0[ID_BOOM_H];
+
+    sim_stat_workbuf.status.pos[ID_HOIST] = pCrane->r0[ID_HOIST];
+    sim_stat_workbuf.status.pos[ID_GANTRY] = pCrane->r0[ID_GANTRY];
+    sim_stat_workbuf.status.pos[ID_SLEW] = pCrane->r0[ID_SLEW];
+    sim_stat_workbuf.status.pos[ID_BOOM_H] = pCrane->r0[ID_BOOM_H];
+
+
     if (out_size) { //出力処理
         memcpy_s(poutput, out_size, &sim_stat_workbuf, out_size);
     }

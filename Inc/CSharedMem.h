@@ -4,6 +4,7 @@
 #include "common_def.h"
 #include "spec.h"
 #include "PLC_IO_DEF.h"
+#include "CVector3.h"
 
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
 #define SMEM_SWAY_STATUS_NAME			L"SWAY_STATUS"
@@ -173,13 +174,10 @@ typedef struct StSimulationStatus {
 #define N_PC_FAULT_WORDS		16			//制御PC検出フォルトbitセットWORD数
 #define N_PLC_FAULT_WORDS		32			//PLC検出フォルトbitセットWORD数
 
-#define OPERATION_MODE_REMOTE	0x0000001
+#define OPERATION_MODE_REMOTE		0x0000001
+#define OPERATION_MODE_SIMULATOR	0x0100000
+#define OPERATION_MODE_PLC_DBGIO	0x0001000
 
-//デバッグモード設定共用体
-union Udebug_mode {//[0]:デバッグモード内容  [1]-[3]:オプション内容
-	DWORD all;
-	UCHAR item[4];
-};
 
 //振れセンサ状態定義構造体
 typedef struct StSwayStatus {
@@ -204,6 +202,9 @@ typedef struct StCraneStatus {
 	WORD faultPC[N_PC_FAULT_WORDS];//制御PC検出異常
 	WORD faultPLC[N_PLC_FAULT_WORDS];//制御PC検出異常
 	ST_SWAY_STATUS sway_stat;
+	Vector3 rc0;//クレーン基準点のx,y,z相対座標
+	Vector3 rc;	//クレーン吊点のクレーン基準点とのx,y,z相対座標
+	Vector3 rl;	//吊荷のクレーン基準点とのx,y,z相対座標
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
 /****************************************************************************/

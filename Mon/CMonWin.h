@@ -119,6 +119,8 @@ public:
     ST_MON_COM_OBJ stComCtrl;
 
     VOID draw_bg();
+    VOID draw_inf();
+    VOID draw_graphic();
 
 private:
     HWND hWnd_parent;

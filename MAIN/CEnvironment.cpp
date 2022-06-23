@@ -60,6 +60,14 @@ void CEnvironment::routine_work(void* param) {
 //定周期処理手順1　外部信号入力
 void CEnvironment::input(){
 
+	pCraneStat->rc.x = pPLC_IO->status.pos[ID_GANTRY];	//走行位置
+	pCraneStat->rc0.y = 0.0;							//旋回中心点
+	pCraneStat->rc0.z = 0.0;							//走行レール高さ
+
+	pCraneStat->rc.x =  pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
+	pCraneStat->rc.y =  pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
+	pCraneStat->rc.z =	pPLC_IO->status.pos[ID_HOIST];
+
 	return;
 
 };
@@ -86,6 +94,15 @@ void CEnvironment::output() {
 	//リモートモードセット
 	if(pPLC_IO->ui.pb[PLC_UI_CS_REMOTE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
 	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_REMOTE;
+	
+	//シミュレータモードセット
+	if (pSimStat->mode & SIM_ACTIVE_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_SIMULATOR;
+	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_SIMULATOR;
+
+	//PLCデバッグモードセット
+	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_PLC_DBGIO;
+	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO;
+	
 
 	//ノッチ指令状態セット
 	parse_notch_com();
