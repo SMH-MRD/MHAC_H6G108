@@ -51,32 +51,6 @@ Vector3 CMob::V(Vector3& r, Vector3& v) {
 }
 //ÉIÉCÉâÅ[ï˚Ç…ÇÊÇÈéûä‘î≠ìW
 void CMob::timeEvolution() {
-/*
-	Vector3 v1 = V(r, v);
-	Vector3 a1 = A(r, v);
-
-	Vector3 _v1 = Vector3(r.x + v1.x * dt / 2.0, r.y + v1.y * dt / 2.0, r.z + v1.z * dt / 2.0);
-	Vector3 _a1 = Vector3(v.x + a1.x * dt / 2.0, v.y + a1.y * dt / 2.0, v.z + a1.z * dt / 2.0);
-	Vector3 v2 = V(_v1, _a1);
-	Vector3 a2 = A(_v1, _a1);
-
-	Vector3 _v2 = Vector3(r.x + v2.x * dt / 2.0, r.y + v2.y * dt / 2.0, r.z + v2.z * dt / 2.0);
-	Vector3 _a2 = Vector3(v.x + a2.x * dt / 2.0, v.y + a2.y * dt / 2.0, v.z + a2.z * dt / 2.0);
-	Vector3 v3 = V(_v2, _a2);
-	Vector3 a3 = A(_v2, _a2);
-
-	Vector3 _v3 = Vector3(r.x + v3.x * dt, r.y + v3.y * dt, r.z + v3.z * dt);
-	Vector3 _a3 = Vector3(v.x + a3.x * dt, v.y + a3.y * dt, v.z + a3.z * dt);
-	Vector3 v4 = V(_v3, _a3);
-	Vector3 a4 = A(_v3, _a3);
-
-	dr.x = dt / 6.0 * (v1.x + 2.0 * v2.x + 2.0 * v3.x + v4.x);
-	dr.y = dt / 6.0 * (v1.y + 2.0 * v2.y + 2.0 * v3.y + v4.y);
-	dr.z = dt / 6.0 * (v1.z + 2.0 * v2.z + 2.0 * v3.z + v4.z);
-	dv.x = dt / 6.0 * (a1.x + 2.0 * a2.x + 2.0 * a3.x + a4.x);
-	dv.y = dt / 6.0 * (a1.y + 2.0 * a2.y + 2.0 * a3.y + a4.y);
-	dv.z = dt / 6.0 * (a1.z + 2.0 * a2.z + 2.0 * a3.z + a4.z);
-	*/
 
 	Vector3 v1 = V(r, v);
 	Vector3 a1 = A(r, v);
@@ -113,6 +87,15 @@ CCrane::CCrane() {
 	accdec_cut_spd_range[ID_BOOM_H] = 0.01;
 	accdec_cut_spd_range[ID_SLEW] = 0.001;
 	accdec_cut_spd_range[ID_GANTRY] = 0.01;
+	M = 1000.0;
+	for (int i = 0; i < MOTION_ID_MAX;i++) {
+		is_fwd_endstop[i] = false;
+		is_rev_endstop[i] = false;
+	}
+	r0[ID_GANTRY] = pspec->gantry_pos_min;
+	r0[ID_HOIST] = 0.0;
+	r0[ID_BOOM_H] = pspec->boom_pos_min;
+	r0[ID_SLEW] = 0.0;
 }
 CCrane::~CCrane() {}
 
@@ -155,6 +138,10 @@ void CCrane::Ac() {
 	else{
 		a_ref[ID_HOIST] = 0.0;
 	}
+	//ã…å¿í‚é~
+	if((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+	if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+
 
 	if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
 	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
@@ -169,6 +156,12 @@ void CCrane::Ac() {
 		a_ref[ID_GANTRY] = 0.0;
 	}
 
+	//ã…å¿í‚é~
+	if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+	if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+
+
+
 	if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
 	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
 		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][ACC];//ê≥ì]â¡ë¨
@@ -181,6 +174,10 @@ void CCrane::Ac() {
 	else {
 		a_ref[ID_BOOM_H] = 0.0;
 	}
+
+	//ã…å¿í‚é~
+	if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+	if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
 	
 	if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
 	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
@@ -236,6 +233,12 @@ void CCrane::timeEvolution() {
 	v0[ID_GANTRY]	+= a0[ID_GANTRY] * dt;	if (!motion_break[ID_GANTRY]) v0[ID_GANTRY] = 0.0;
 	v0[ID_SLEW]		+= a0[ID_SLEW] * dt;	if (!motion_break[ID_SLEW]) v0[ID_SLEW] = 0.0;
 	v0[ID_BOOM_H]	+= a0[ID_BOOM_H] * dt;	if (!motion_break[ID_BOOM_H]) v0[ID_BOOM_H] = 0.0;
+
+	//ã…å¿í‚é~
+	if (((v0[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) || (v0[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) v0[ID_HOIST] = 0.0;
+	if (((v0[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) || (v0[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) v0[ID_GANTRY] = 0.0;
+	if (((v0[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) || (v0[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) v0[ID_BOOM_H] = 0.0;
+
 
 	//à íuåvéZ(ÉIÉCÉâÅ[ñ@Åj
 	r0[ID_HOIST]	+= v0[ID_HOIST] * dt;	

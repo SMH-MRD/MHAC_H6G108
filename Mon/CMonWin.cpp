@@ -10,6 +10,19 @@ extern LPST_CS_INFO pCSinf;
 extern LPST_POLICY_INFO pPOLICYinf;
 extern LPST_AGENT_INFO pAGENTinf;
 
+CMonWin::CMonWin(HWND hWnd){
+	hWnd_parent = hWnd;
+	memset(&stGraphic, 0, sizeof(ST_MON_GRAPHIC));
+	memset(&stComCtrl, 0, sizeof(ST_MON_COM_OBJ));
+	stGraphic.disp_item = IDC_MON_RADIO_DISP0;
+	for (int i = 0;i < N_CREATE_PEN;i++) stGraphic.hpen[i] = NULL;
+	for (int i = 0;i < N_CREATE_BRUSH;i++) stGraphic.hbrush[i] = NULL;
+}
+CMonWin::~CMonWin() {
+
+}
+
+
 int CMonWin::init_main_window() {
 	
 	RECT rc;
@@ -73,8 +86,14 @@ int CMonWin::init_main_window() {
 	);
 
 	//Pen,Brush設定
-	stGraphic.hpen = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
-	stGraphic.hbrush = CreateSolidBrush(RGB(128, 128, 128));
+	stGraphic.hpen[CMON_RED_PEN] = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
+	stGraphic.hpen[CMON_GREEN_PEN] = CreatePen(PS_SOLID, 1, RGB(0,255, 0));
+	stGraphic.hpen[CMON_BLUE_PEN] = CreatePen(PS_SOLID, 1, RGB(0,0,255));
+	stGraphic.hpen[CMON_GLAY_PEN] = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
+	stGraphic.hbrush[CMON_BG_BRUSH] = CreateSolidBrush(RGB(240, 240, 240));
+	stGraphic.hbrush[CMON_RED_BRUSH] = CreateSolidBrush(RGB(255, 0, 0));
+	stGraphic.hbrush[CMON_GREEN_BRUSH] = CreateSolidBrush(RGB(0, 255, 0));
+	stGraphic.hbrush[CMON_BLUE_BRUSH] = CreateSolidBrush(RGB(0,0,255));
 	
 	//デバイスコンテキスト設定
 	HDC hdc = GetDC(hWnd_parent);
@@ -95,8 +114,7 @@ int CMonWin::init_main_window() {
 	SelectObject(stGraphic.hdc_mem_inf, stGraphic.hBmap_inf);
 
 	PatBlt(stGraphic.hdc_mem0, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
-	stGraphic.hbrush = CreateSolidBrush(RGB(240, 240, 240));
-	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hbrush);//PATCOPY用に塗りつぶしパターンを指定
+	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hbrush[CMON_BG_BRUSH]);//PATCOPY用に塗りつぶしパターンを指定
 	PatBlt(stGraphic.hdc_mem_bg, 0, 0, INF_AREA_W, INF_AREA_H, PATCOPY);
 
 	PatBlt(stGraphic.hdc_mem_gr, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, WHITENESS);
@@ -122,10 +140,10 @@ VOID CMonWin::draw_bg() {
 	PatBlt(stGraphic.hdc_mem_bg, 0, 0, INF_AREA_W, INF_AREA_H, PATCOPY);
 	
 	//マップ背景ライン描画
-	stGraphic.hpen = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
-	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hpen);
+	
+	SelectObject(stGraphic.hdc_mem_bg, stGraphic.hpen[CMON_GLAY_PEN]);
 
-	//座標軸描画
+	//# 座標軸描画
 	//クレーン部
 	MoveToEx(stGraphic.hdc_mem_bg, CRANE_GRAPHIC_CENTER_X - CRANE_GRAPHIC_W/2, CRANE_GRAPHIC_CENTER_Y, NULL);	//横軸
 	LineTo(stGraphic.hdc_mem_bg, CRANE_GRAPHIC_CENTER_X + CRANE_GRAPHIC_W / 2, CRANE_GRAPHIC_CENTER_Y);
@@ -140,10 +158,10 @@ VOID CMonWin::draw_bg() {
 	MoveToEx(stGraphic.hdc_mem_bg, LOAD_GRAPHIC_CENTER_X, LOAD_GRAPHIC_CENTER_Y - LOAD_GRAPHIC_H / 2, NULL);
 	LineTo(stGraphic.hdc_mem_bg, LOAD_GRAPHIC_CENTER_X, LOAD_GRAPHIC_CENTER_Y + LOAD_GRAPHIC_H/2);
 
-	//走行位置表示部
+	//# 走行位置表示部
 	Rectangle(stGraphic.hdc_mem_bg, GNT_GRAPHIC_AREA_X, GNT_GRAPHIC_AREA_Y, GNT_GRAPHIC_AREA_X + GNT_GRAPHIC_AREA_W, GNT_GRAPHIC_AREA_Y + GNT_GRAPHIC_AREA_H);
 
-	//巻位置表示部
+	//# 巻位置表示部
 	Rectangle(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X, MH_GRAPHIC_UPPER_LIM, MH_GRAPHIC_AREA_X + MH_GRAPHIC_AREA_W, MH_GRAPHIC_LOWER_LIM);
 	MoveToEx(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X, MH_GRAPHIC_Y0, NULL);
 	LineTo(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X + MH_GRAPHIC_AREA_W-1, MH_GRAPHIC_Y0);
@@ -200,8 +218,6 @@ VOID CMonWin::draw_bg() {
 	ws = L"Pos";
 	TextOutW(stGraphic.hdc_mem_bg, 865, 55, ws.c_str(), (int)ws.length());
 
-
-	
 		
 	InvalidateRect(hWnd_parent, NULL, TRUE);
 
@@ -216,7 +232,7 @@ VOID CMonWin::draw_inf() {
 	TCHAR tbuf[32];
 
 	wstring ws;
-	//注意 wsprintfは小数点の書式が無い！！
+
 	ws = L"HST";
 	TextOutW(stGraphic.hdc_mem_inf, 670, 50, ws.c_str(), (int)ws.length());
 	ws = L"GNT";
@@ -225,6 +241,9 @@ VOID CMonWin::draw_inf() {
 	TextOutW(stGraphic.hdc_mem_inf, 670, 80, ws.c_str(), (int)ws.length());
 	ws = L"BH ";
 	TextOutW(stGraphic.hdc_mem_inf, 670, 95, ws.c_str(), (int)ws.length());
+
+
+	//注意 wsprintfは小数点の書式が無いので_stprintf_sを使う！！
 	_stprintf_s(tbuf, L":%.4f", pAGENTinf->v_ref[ID_HOIST]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 705, 50, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L":%.4f", pAGENTinf->v_ref[ID_GANTRY]); ws = tbuf;
@@ -258,19 +277,45 @@ VOID CMonWin::draw_inf() {
 VOID CMonWin::draw_graphic() {
 	PatBlt(stGraphic.hdc_mem_gr, 0, 0, GRAPHIC_AREA_W, GRAPHIC_AREA_H, WHITENESS);
 
-	COLORREF color = RGB(255, 0, 0);
-	POINT rc_xy;
 
-	rc_xy.x = 200;
-	rc_xy.y = 200;
+	COLORREF color_pt = RGB(255, 0, 0); //ポイント描画色
 
-	SetPixel(stGraphic.hdc_mem_gr, rc_xy.x, rc_xy.y, color);
+//# ブーム先端描画
+	POINT boom_end_xy;					//ブーム先端位置
+	boom_end_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rc.x * CMON_PIX_PER_M_CRANE);
+	boom_end_xy.y = CRANE_GRAPHIC_CENTER_Y + (int)(pCraneStat->rc.y * CMON_PIX_PER_M_CRANE);
 
-	HBRUSH hOldBrush = (HBRUSH)SelectObject(stGraphic.hdc_mem_gr, GetStockObject(NULL_BRUSH));
-	HPEN _hpen = (HPEN)CreatePen(PS_SOLID, 1, color);
-	SelectObject(stGraphic.hdc_mem_gr, _hpen);
-	Ellipse(stGraphic.hdc_mem_gr, 100,100,110,110);
-	DeleteObject(SelectObject(stGraphic.hdc_mem_gr, _hpen));
+	//ペン、ブラシセット
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_BLUE_BRUSH]);
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_BLUE_PEN]);
+	//ブームライン描画
+	MoveToEx(stGraphic.hdc_mem_gr, CRANE_GRAPHIC_CENTER_X, CRANE_GRAPHIC_CENTER_Y, NULL);
+	LineTo(stGraphic.hdc_mem_gr, boom_end_xy.x, boom_end_xy.y);
+	//ブーム先端描画
+	Ellipse(stGraphic.hdc_mem_gr, 
+		boom_end_xy.x - CMON_PIX_R_BOOM_END, 
+		boom_end_xy.y - CMON_PIX_R_BOOM_END, 
+		boom_end_xy.x + CMON_PIX_R_BOOM_END, 
+		boom_end_xy.y + CMON_PIX_R_BOOM_END);
+
+//# 走行位置描画
+	//走行位置描画
+	int gnt_pix = GNT_GRAPHIC_AREA_X + (int)(pCraneStat->rc0.x * CMON_PIX_PER_M_GNT);
+	RECT rc = { gnt_pix - CMON_PIX_GNT_MARK_W,	GNT_GRAPHIC_AREA_Y,
+				gnt_pix + CMON_PIX_GNT_MARK_W,	GNT_GRAPHIC_AREA_Y + GNT_GRAPHIC_AREA_H };
+
+	FillRect(stGraphic.hdc_mem_gr, &rc, stGraphic.hbrush[CMON_GREEN_BRUSH]);
+
+
+//# 巻位置描画
+	//巻位置描画
+	int hst_pix = MH_GRAPHIC_Y0 - (int)(pCraneStat->rl.z * CMON_PIX_PER_M_HOIST);
+	rc = { MH_GRAPHIC_AREA_X, hst_pix - CMON_PIX_HST_MARK_W,
+				MH_GRAPHIC_AREA_X + MH_GRAPHIC_AREA_W,hst_pix + CMON_PIX_HST_MARK_W };
+
+	FillRect(stGraphic.hdc_mem_gr, &rc, stGraphic.hbrush[CMON_RED_BRUSH]);
+
+	//SetPixel(stGraphic.hdc_mem_gr, rc_xy.x, rc_xy.y, color_pt);
 
 	return;
 }
@@ -297,8 +342,14 @@ int CMonWin::combine_map() {
 
 int CMonWin::close_mon() {
 
-	DeleteObject(stGraphic.hpen);
-	DeleteObject(stGraphic.hbrush);
+	//描画用ペン、ブラシ解放
+	for (int i = 0;i < N_CREATE_PEN;i++) {
+		if (stGraphic.hpen[i] != NULL) DeleteObject(stGraphic.hpen[i]);
+	}
+
+	for (int i = 0;i < N_CREATE_BRUSH;i++) {
+		if (stGraphic.hbrush[i] != NULL)DeleteObject(stGraphic.hbrush[i]);
+	}
 
 	//描画用デバイスコンテキスト解放
 

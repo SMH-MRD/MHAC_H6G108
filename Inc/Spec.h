@@ -122,10 +122,6 @@ typedef struct StSpec {
 	{{ 0.0,	0.0},			{0.0,	0.0 }},						//[ID_MOTION1];
 	};
 
-	double d[DEMENSION_MAX] = {								//# 各種寸法
-		25.0												// ID_BOOM_HIGHT m
-	};
-
 	double pos_limit[MOTION_ID_MAX][DIRECTION_MAX][POS_LIMIT_TYPE_MAX] = {//# 極限寸法								//# 各種寸法
 	{{ 14.5,0.0,0.0,0.0},	{ -11.0,0.0,0.0,0.0}},				//[ID_HOIST]
 	{{ 80.0,0.0,0.0,0.0},	{ 0.0,0.0,0.0,0.0}},				//[ID_GANTRY]
@@ -170,7 +166,7 @@ typedef struct StSpec {
 	//構造寸法
 	double boom_high = 25.0, wheel_span = 20.0, leg_span = 15.0;// ブーム高さ,ホイルスパン,脚間スパン
 	//極限
-	double hoist_min = -10.0, hoist_max = 20.0, boom_min = 5.0, boom_max = 20.0, gantry_min = 0.0, gantry_max = 80.0;
+	double hoist_pos_min = -10.0, hoist_pos_max = 20.0, boom_pos_min = 5.0, boom_pos_max = 20.0, gantry_pos_min = 0.0, gantry_pos_max = 300.0;
 
 }ST_SPEC, * LPST_SPEC;
 

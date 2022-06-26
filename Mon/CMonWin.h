@@ -7,12 +7,18 @@
 #define INF_AREA_W		        1020    //テキスト部幅
 #define INF_AREA_H		        450		//テキスト部高さ
 
-#define GRAPHIC_AREA_X		    10		//グラフィック部左上表示位置X
-#define GRAPHIC_AREA_Y		    30		//グラフィック部左上表示位置Y
+#define GRAPHIC_AREA_X		    0		//グラフィック部左上表示位置X
+#define GRAPHIC_AREA_Y		    0		//グラフィック部左上表示位置Y
 #define GRAPHIC_AREA_W		    620	    //グラフィック部幅
 #define GRAPHIC_AREA_H		    350		//グラフィック部高さ
 
-#define COF_DIM_REAL_TO_PIX     5       //1m→5PIX　30m→150PIX
+#define CMON_PIX_PER_M_CRANE    5      //   1m 5pixel クレーン部
+#define CMON_PIX_PER_M_HOIST    5      //   1m 5pixel 巻位置部
+#define CMON_PIX_R_BOOM_END     2       //  ブーム端点表示円半径
+#define CMON_PIX_PER_RAD_LOAD   1000    //  1rad 1000pixel 吊荷部
+#define CMON_PIX_PER_M_GNT      2       //  1m 2pixel   走行位置
+#define CMON_PIX_GNT_MARK_W     2       //  走行位置表示マーク幅
+#define CMON_PIX_HST_MARK_W     2       //  巻位置表示マーク幅
 
 #define CRANE_GRAPHIC_CENTER_X  160	    //クレーングラフィック中心位置X
 #define CRANE_GRAPHIC_CENTER_Y	230		//クレーングラフィック中心位置Y
@@ -35,6 +41,19 @@
 #define MH_GRAPHIC_LOWER_LIM	340		//巻上限位置表示Y0位置から11m分(110PIX)下
 
 
+#define N_CREATE_PEN            8
+#define N_CREATE_BRUSH          8
+#define CMON_RED_PEN            0
+#define CMON_BLUE_PEN           1
+#define CMON_GREEN_PEN          2
+#define CMON_GLAY_PEN           3
+#define CMON_RED_BRUSH          0
+#define CMON_BLUE_BRUSH         1
+#define CMON_GREEN_BRUSH        2
+#define CMON_BG_BRUSH           3
+
+
+
 //Monitor画面グラフィック部管理構造体
 typedef struct _stMonGraphic {  
     int disp_item = 0;                    //表示項目
@@ -54,8 +73,8 @@ typedef struct _stMonGraphic {
     HFONT hfont_inftext;				//テキスト用フォント
     BLENDFUNCTION bf;					//半透過設定構造体
 
-    HPEN hpen;
-    HBRUSH hbrush;
+    HPEN hpen[N_CREATE_PEN];
+    HBRUSH hbrush[N_CREATE_BRUSH];
 
 }ST_MON_GRAPHIC, *LPST_MON_GRAPHIC;
 
@@ -103,13 +122,8 @@ typedef struct _stMonComObj {
 class CMonWin
 {
 public:
-    CMonWin(HWND hWnd) {
-        hWnd_parent = hWnd; 
-        memset(&stGraphic, 0, sizeof(ST_MON_GRAPHIC));
-        memset(&stComCtrl, 0, sizeof(ST_MON_COM_OBJ));
-        stGraphic.disp_item = IDC_MON_RADIO_DISP0;
-    }
-    ~CMonWin() {}
+    CMonWin(HWND hWnd);
+    ~CMonWin();
     int init_main_window();
     int disp_update();
     int close_mon();

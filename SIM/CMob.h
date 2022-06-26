@@ -61,6 +61,9 @@ public:
 
     double v_ref[MOTION_ID_MAX];     //速度・角速度指令
     double a_ref[MOTION_ID_MAX];     //加速度・角加速度指令
+
+    bool is_fwd_endstop[MOTION_ID_MAX];       //正転極限判定
+    bool is_rev_endstop[MOTION_ID_MAX];       //逆転極限判定
  
     double trq_fb[MOTION_ID_MAX];    //モータートルクFB
     bool motion_break[MOTION_ID_MAX];//ブレーキ開閉状態

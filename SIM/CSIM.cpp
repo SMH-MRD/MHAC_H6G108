@@ -86,6 +86,12 @@ int CSIM::input() {
     //スキャンタイムセット
     pCrane->set_dt(dt);
 
+    //移動極限状態
+    for (int i = 0; i < MOTION_ID_MAX;i++) {
+        pCrane->is_fwd_endstop[i] = pCraneStat->is_fwd_endstop[i];
+        pCrane->is_rev_endstop[i] = pCraneStat->is_rev_endstop[i];
+    }
+
 
     return 0;
 }

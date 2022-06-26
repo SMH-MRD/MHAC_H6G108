@@ -59,14 +59,7 @@ void CEnvironment::routine_work(void* param) {
 
 //定周期処理手順1　外部信号入力
 void CEnvironment::input(){
-
-	pCraneStat->rc.x = pPLC_IO->status.pos[ID_GANTRY];	//走行位置
-	pCraneStat->rc0.y = 0.0;							//旋回中心点
-	pCraneStat->rc0.z = 0.0;							//走行レール高さ
-
-	pCraneStat->rc.x =  pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
-	pCraneStat->rc.y =  pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
-	pCraneStat->rc.z =	pPLC_IO->status.pos[ID_HOIST];
+	
 
 	return;
 
@@ -78,6 +71,41 @@ void CEnvironment::main_proc() {
 
 	//メインウィンドウのTweetメッセージ更新
 	tweet_update();
+
+
+	//ノッチ指令状態セット
+	parse_notch_com();
+
+	//クレーン基準点のx,y,z相対座標
+	stWorkCraneStat.rc0.x = pPLC_IO->status.pos[ID_GANTRY];	//走行位置
+	stWorkCraneStat.rc0.y = 0.0;							//旋回中心点
+	stWorkCraneStat.rc0.z = 0.0;							//走行レール高さ
+
+	//クレーン吊点のクレーン基準点とのx,y,z相対座標
+	stWorkCraneStat.rc.x = pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
+	stWorkCraneStat.rc.y = pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
+	stWorkCraneStat.rc.z = spec.boom_high;
+
+	//吊荷のクレーン基準点とのx, y, z相対座標
+	stWorkCraneStat.rl.x = pCraneStat->rc.x;
+	stWorkCraneStat.rl.y = pCraneStat->rc.y;
+	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];
+
+	//極限判定
+	if (stWorkCraneStat.rc0.x < spec.gantry_pos_min) stWorkCraneStat.is_rev_endstop[ID_GANTRY] = true;
+	else stWorkCraneStat.is_rev_endstop[ID_GANTRY] = false;
+	if (stWorkCraneStat.rc0.x > spec.gantry_pos_max) stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = true;
+	else stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = false;
+
+	if (stWorkCraneStat.rl.z < spec.hoist_pos_min) stWorkCraneStat.is_rev_endstop[ID_HOIST] = true;
+	else stWorkCraneStat.is_rev_endstop[ID_HOIST] = false;
+	if (stWorkCraneStat.rl.z > spec.hoist_pos_max) stWorkCraneStat.is_fwd_endstop[ID_HOIST] = true;
+	else stWorkCraneStat.is_fwd_endstop[ID_HOIST] = false;
+
+	if (pPLC_IO->status.pos[ID_BOOM_H] < spec.boom_pos_min) stWorkCraneStat.is_rev_endstop[ID_BOOM_H] = true;
+	else stWorkCraneStat.is_rev_endstop[ID_BOOM_H] = false;
+	if (pPLC_IO->status.pos[ID_BOOM_H] > spec.boom_pos_max) stWorkCraneStat.is_fwd_endstop[ID_BOOM_H] = true;
+	else stWorkCraneStat.is_fwd_endstop[ID_BOOM_H] = false;
 
 	return;
 }
@@ -104,8 +132,11 @@ void CEnvironment::output() {
 	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO;
 	
 
-	//ノッチ指令状態セット
-	parse_notch_com();
+
+
+
+
+
 
 	//共有メモリ出力
 	memcpy_s(pCraneStat, sizeof(ST_CRANE_STATUS), &stWorkCraneStat, sizeof(ST_CRANE_STATUS));

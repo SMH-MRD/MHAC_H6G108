@@ -194,17 +194,20 @@ typedef struct stEnvSubproc {
 
 
 typedef struct StCraneStatus {
-	DWORD env_act_count;			//ヘルシー信号
-	ST_ENV_SUBPROC subproc_stat;	//サブプロセスの状態
+	DWORD env_act_count;						//ヘルシー信号
+	ST_ENV_SUBPROC subproc_stat;				//サブプロセスの状態
 	ST_SPEC spec;
 	DWORD operation_mode;
 	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
-	WORD faultPC[N_PC_FAULT_WORDS];//制御PC検出異常
-	WORD faultPLC[N_PLC_FAULT_WORDS];//制御PC検出異常
+	WORD faultPC[N_PC_FAULT_WORDS];				//制御PC検出異常
+	WORD faultPLC[N_PLC_FAULT_WORDS];			//制御PC検出異常
 	ST_SWAY_STATUS sway_stat;
-	Vector3 rc0;//クレーン基準点のx,y,z相対座標
-	Vector3 rc;	//クレーン吊点のクレーン基準点とのx,y,z相対座標
-	Vector3 rl;	//吊荷のクレーン基準点とのx,y,z相対座標
+	Vector3 rc0;								//クレーン基準点のx,y,z相対座標
+	Vector3 rc;									//クレーン吊点のクレーン基準点とのx,y,z相対座標
+	Vector3 rl;									//吊荷のクレーン基準点とのx,y,z相対座標
+	bool is_fwd_endstop[MOTION_ID_MAX];			//正転極限判定
+	bool is_rev_endstop[MOTION_ID_MAX];			//逆転極限判定
+
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
 /****************************************************************************/
