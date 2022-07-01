@@ -72,40 +72,25 @@ void CEnvironment::main_proc() {
 	//メインウィンドウのTweetメッセージ更新
 	tweet_update();
 
+	//ヘルシーカウンタセット
+	stWorkCraneStat.env_act_count = inf.total_act;
+
+	//サブプロセスチェック
+	chk_subproc();
+
+	//モードセット
+	mode_set();
+
 
 	//ノッチ指令状態セット
 	parse_notch_com();
 
-	//クレーン基準点のx,y,z相対座標
-	stWorkCraneStat.rc0.x = pPLC_IO->status.pos[ID_GANTRY];	//走行位置
-	stWorkCraneStat.rc0.y = 0.0;							//旋回中心点
-	stWorkCraneStat.rc0.z = 0.0;							//走行レール高さ
+	//位置情報セット
+	pos_set();
+	
+	//振れ情報セット
+	parse_sway_stat();
 
-	//クレーン吊点のクレーン基準点とのx,y,z相対座標
-	stWorkCraneStat.rc.x = pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
-	stWorkCraneStat.rc.y = pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
-	stWorkCraneStat.rc.z = spec.boom_high;
-
-	//吊荷のクレーン基準点とのx, y, z相対座標
-	stWorkCraneStat.rl.x = pCraneStat->rc.x;
-	stWorkCraneStat.rl.y = pCraneStat->rc.y;
-	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];
-
-	//極限判定
-	if (stWorkCraneStat.rc0.x < spec.gantry_pos_min) stWorkCraneStat.is_rev_endstop[ID_GANTRY] = true;
-	else stWorkCraneStat.is_rev_endstop[ID_GANTRY] = false;
-	if (stWorkCraneStat.rc0.x > spec.gantry_pos_max) stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = true;
-	else stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = false;
-
-	if (stWorkCraneStat.rl.z < spec.hoist_pos_min) stWorkCraneStat.is_rev_endstop[ID_HOIST] = true;
-	else stWorkCraneStat.is_rev_endstop[ID_HOIST] = false;
-	if (stWorkCraneStat.rl.z > spec.hoist_pos_max) stWorkCraneStat.is_fwd_endstop[ID_HOIST] = true;
-	else stWorkCraneStat.is_fwd_endstop[ID_HOIST] = false;
-
-	if (pPLC_IO->status.pos[ID_BOOM_H] < spec.boom_pos_min) stWorkCraneStat.is_rev_endstop[ID_BOOM_H] = true;
-	else stWorkCraneStat.is_rev_endstop[ID_BOOM_H] = false;
-	if (pPLC_IO->status.pos[ID_BOOM_H] > spec.boom_pos_max) stWorkCraneStat.is_fwd_endstop[ID_BOOM_H] = true;
-	else stWorkCraneStat.is_fwd_endstop[ID_BOOM_H] = false;
 
 	return;
 }
@@ -113,30 +98,8 @@ void CEnvironment::main_proc() {
 //定周期処理手順3　信号出力処理
 
 void CEnvironment::output() {
-	//ヘルシーカウンタセット
-	stWorkCraneStat.env_act_count = inf.total_act;
+
 	
-	//サブプロセスチェック
-	chk_subproc();
-
-	//リモートモードセット
-	if(pPLC_IO->ui.pb[PLC_UI_CS_REMOTE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
-	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_REMOTE;
-	
-	//シミュレータモードセット
-	if (pSimStat->mode & SIM_ACTIVE_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_SIMULATOR;
-	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_SIMULATOR;
-
-	//PLCデバッグモードセット
-	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_PLC_DBGIO;
-	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO;
-	
-
-
-
-
-
-
 
 	//共有メモリ出力
 	memcpy_s(pCraneStat, sizeof(ST_CRANE_STATUS), &stWorkCraneStat, sizeof(ST_CRANE_STATUS));
@@ -173,7 +136,151 @@ int CEnvironment::parse_notch_com() {
 	return 0;
 
 };
+/****************************************************************************/
+/*　 制御用振れ状態計算											            */
+/****************************************************************************/
+int CEnvironment::parse_sway_stat() {
 
+	double D0, H0, l0, ph0, th, dth, L, dph, ddph, dthw;
+
+	stWorkCraneStat.mh_l = L = pCraneStat->rc.z - pCraneStat->rl.z;//ロープ長
+	
+	//角周波数
+	if (stWorkCraneStat.mh_l>1.0) {	//ロープ長下限
+		stWorkCraneStat.sway_stat.w = sqrt(GA / stWorkCraneStat.mh_l);
+	}
+	else {
+		stWorkCraneStat.sway_stat.w = 3.13;//1mロープ長時の角周波数
+	}
+
+	//周期
+	stWorkCraneStat.sway_stat.T = PI360 / stWorkCraneStat.sway_stat.w;
+	
+	//振角　振角速度　振幅　位相　
+
+	D0 = spec.Csw[SID_CAM1][SID_X][SID_D0];
+	H0 = spec.Csw[SID_CAM1][SID_X][SID_H0];
+	l0 = spec.Csw[SID_CAM1][SID_X][SID_l0];
+	ph0 = spec.Csw[SID_CAM1][SID_X][SID_ph0];
+	
+	th = pSway_IO->rad[SID_TG1][SID_T] + ph0;
+	dph = asin((D0 * cos(th) - (H0 + l0) * sin(th)) / L);
+	
+	stWorkCraneStat.sway_stat.th[SID_T] = th + dph;
+
+	dth = pSway_IO->w[SID_TG1][SID_T]  + ph0;
+	ddph = -1.0 * dth / L * (D0 * sin(th) + H0 * cos(th)) / cos(dph);
+	
+	stWorkCraneStat.sway_stat.dth[SID_T] = dth + ddph;
+
+	dthw = stWorkCraneStat.sway_stat.dth[SID_T] / stWorkCraneStat.sway_stat.w;
+
+	stWorkCraneStat.sway_stat.amp2[SID_T] = stWorkCraneStat.sway_stat.th[SID_T] * stWorkCraneStat.sway_stat.th[SID_T]
+											+ dthw * dthw;
+
+	if (abs(stWorkCraneStat.sway_stat.th[SID_T]) < 0.000001) {
+		if(dthw < 0.0)	stWorkCraneStat.sway_stat.ph[SID_T] = -PI90;
+		else 	stWorkCraneStat.sway_stat.ph[SID_T] = PI90;
+	}
+	else {
+		stWorkCraneStat.sway_stat.ph[SID_T] = dthw / stWorkCraneStat.sway_stat.th[SID_T];
+	}
+	if (stWorkCraneStat.sway_stat.th[SID_T] < 0.0) {// atanは、-π/2～π/2の表現　→　-π～πで表現する 
+		if (dthw < 0.0) stWorkCraneStat.sway_stat.ph[SID_T] -= PI180;
+		else stWorkCraneStat.sway_stat.ph[SID_T] += PI180;
+	}
+		
+	D0 = spec.Csw[SID_CAM1][SID_Y][SID_D0];
+	H0 = spec.Csw[SID_CAM1][SID_Y][SID_H0];
+	l0 = spec.Csw[SID_CAM1][SID_Y][SID_l0];
+	ph0 = spec.Csw[SID_CAM1][SID_Y][SID_ph0];
+
+	th = pSway_IO->rad[SID_TG1][SID_R] + ph0;
+	dph = asin((D0 * cos(th) - (H0 + l0) * sin(th)) / L);
+
+	stWorkCraneStat.sway_stat.th[SID_R] = th + dph;
+
+	dth = pSway_IO->w[SID_TG1][SID_R] + ph0;
+	ddph = -1.0 * dth / L * (D0 * sin(th) + H0 * cos(th)) / cos(dph);
+
+	stWorkCraneStat.sway_stat.dth[SID_R] = dth + ddph;
+
+	dthw = stWorkCraneStat.sway_stat.dth[SID_R] / stWorkCraneStat.sway_stat.w;
+
+	stWorkCraneStat.sway_stat.amp2[SID_R] = stWorkCraneStat.sway_stat.th[SID_R] * stWorkCraneStat.sway_stat.th[SID_R]
+											+ dthw * dthw;
+
+	if (abs(stWorkCraneStat.sway_stat.th[SID_R]) < 0.000001) {
+		if (dthw < 0.0)	stWorkCraneStat.sway_stat.ph[SID_R] = -PI90;
+		else 	stWorkCraneStat.sway_stat.ph[SID_R] = PI90;
+	}
+	else {
+		stWorkCraneStat.sway_stat.ph[SID_R] = dthw / stWorkCraneStat.sway_stat.th[SID_R];
+	}
+	if (stWorkCraneStat.sway_stat.th[SID_R] < 0.0) {// atanは、-π/2～π/2の表現　→　-π～πで表現する 
+		if (dthw < 0.0) stWorkCraneStat.sway_stat.ph[SID_R] -= PI180;
+		else stWorkCraneStat.sway_stat.ph[SID_R] += PI180;
+	}
+
+	return 0;
+}
+/****************************************************************************/
+/*　 制御用振れ状態計算											            */
+/****************************************************************************/
+int CEnvironment::mode_set() {
+	//リモートモードセット
+	if (pPLC_IO->ui.pb[PLC_UI_CS_REMOTE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
+	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_REMOTE;
+
+	//シミュレータモードセット
+	if (pSimStat->mode & SIM_ACTIVE_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_SIMULATOR;
+	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_SIMULATOR;
+
+	//PLCデバッグモードセット
+	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_PLC_DBGIO;
+	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO;
+
+	return 0;
+
+}
+/****************************************************************************/
+/*　 位置情報セット											            */
+/****************************************************************************/
+int CEnvironment::pos_set() {
+	//クレーン基準点のx,y,z相対座標
+	stWorkCraneStat.rc0.x = pPLC_IO->status.pos[ID_GANTRY];	//走行位置
+	stWorkCraneStat.rc0.y = 0.0;							//旋回中心点
+	stWorkCraneStat.rc0.z = 0.0;							//走行レール高さ
+
+	//クレーン吊点のクレーン基準点とのx,y,z相対座標
+	stWorkCraneStat.rc.x = pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
+	stWorkCraneStat.rc.y = pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
+	stWorkCraneStat.rc.z = spec.boom_high;
+
+	//吊荷のクレーン基準点とのx, y, z相対座標
+	stWorkCraneStat.rl.x = pCraneStat->rc.x;
+	stWorkCraneStat.rl.y = pCraneStat->rc.y;
+	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];
+
+	//極限判定
+	if (stWorkCraneStat.rc0.x < spec.gantry_pos_min) stWorkCraneStat.is_rev_endstop[ID_GANTRY] = true;
+	else stWorkCraneStat.is_rev_endstop[ID_GANTRY] = false;
+	if (stWorkCraneStat.rc0.x > spec.gantry_pos_max) stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = true;
+	else stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = false;
+
+	if (stWorkCraneStat.rl.z < spec.hoist_pos_min) stWorkCraneStat.is_rev_endstop[ID_HOIST] = true;
+	else stWorkCraneStat.is_rev_endstop[ID_HOIST] = false;
+	if (stWorkCraneStat.rl.z > spec.hoist_pos_max) stWorkCraneStat.is_fwd_endstop[ID_HOIST] = true;
+	else stWorkCraneStat.is_fwd_endstop[ID_HOIST] = false;
+
+	if (pPLC_IO->status.pos[ID_BOOM_H] < spec.boom_pos_min) stWorkCraneStat.is_rev_endstop[ID_BOOM_H] = true;
+	else stWorkCraneStat.is_rev_endstop[ID_BOOM_H] = false;
+	if (pPLC_IO->status.pos[ID_BOOM_H] > spec.boom_pos_max) stWorkCraneStat.is_fwd_endstop[ID_BOOM_H] = true;
+	else stWorkCraneStat.is_fwd_endstop[ID_BOOM_H] = false;
+
+	return 0;
+
+}
 /****************************************************************************/
 /*　　サブプロセスの状態確認			            */
 /****************************************************************************/
@@ -210,6 +317,7 @@ void CEnvironment::chk_subproc() {
 	return;
 
 };
+
 /****************************************************************************/
 /*　　メインウィンドウのTweetメッセージ更新          			            */
 /****************************************************************************/

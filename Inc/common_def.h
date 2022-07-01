@@ -67,15 +67,18 @@
 #define ID_COMMON       7   //共通        ID
 
 /*** 配列参照用　方向インデックス ***/
-#define ID_UP         0   //左側
-#define ID_DOWN       1   //右側
-#define ID_FWD        0   //前進
-#define ID_REV        1   //後進
-#define ID_LEFT       0   //左側
-#define ID_RIGHT      1   //右側
-#define ID_ACC        0   //加速
-#define ID_DEC        1   //減速
-
+#define ID_UP           0   //左側
+#define ID_DOWN         1   //右側
+#define ID_FWD          0   //前進
+#define ID_REV          1   //後進
+#define ID_LEFT         0   //左側
+#define ID_RIGHT        1   //右側
+#define ID_ACC          0   //加速
+#define ID_DEC          1   //減速
+#define SID_X           0   // X方向
+#define SID_Y           1   // Y方向
+#define SID_R			2   // 半径方向
+#define SID_T           3   // 接線方向
 
 /*** MODE ***/
 //シミュレーション
@@ -93,7 +96,7 @@
 #define AS_PTN_3TR          4   //3台形動作
 #define AS_PTN_TRTR         5   //台形＋台形動作(2段加減速）
 
-class CBasicControl
+class CBasicControl //基本制御クラス
 {
 public:
     LPVOID poutput = NULL;      //結果出力メモリ

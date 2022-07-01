@@ -221,6 +221,17 @@ void CCrane::Ac() {
 		a0[ID_GANTRY] = 0.0;
 	}
 
+
+	//吊点加速度ベクトル
+	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//引込方向加速度　引込加速度＋旋回分
+	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//旋回方向加速度
+	double a_z = 0.0;
+
+
+	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
+	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
+	a.z = a_z;
+
 	return;
 }
 
@@ -247,7 +258,7 @@ void CCrane::timeEvolution() {
 	r0[ID_SLEW] += v0[ID_SLEW] * dt; if (r0[ID_SLEW] >= PI360)r0[ID_SLEW] -= PI360; if (r0[ID_SLEW] <= -PI360)r0[ID_SLEW] += PI360;
 
 	vc.x = v0[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;
-	rc.x = v0[ID_GANTRY]; vc.y = R0.y; vc.z = R0.z;
+	rc.x = r0[ID_GANTRY]; rc.y = R0.y; rc.z = R0.z;
 
 	//吊点部
 	double r_bm = r0[ID_BOOM_H];//旋回半径
@@ -258,6 +269,7 @@ void CCrane::timeEvolution() {
 	r.x = r_bm * cos(r0[ID_SLEW]) + r0[ID_GANTRY];
 	r.y = r_bm * sin(r0[ID_SLEW]);
 	r.z = pspec->boom_high;
+	l_mh = pspec->boom_high - r0[ID_HOIST];	//ロープ長
 	return;
 }
 
@@ -349,3 +361,50 @@ void CCrane::update_break_status() {
 	return;
 }
 
+/********************************************************************************/
+/*      Load Object(吊荷）                                                      */
+/********************************************************************************/
+
+void CLoad ::init_mob(double _dt, Vector3& _r, Vector3& _v) {
+	dt = _dt;
+	r.copy(_r);
+	v.copy(_v);
+	m = 10000.0;//10 ton
+	//m = 40000.0;//40 ton
+	return;
+}
+
+Vector3 CLoad::A(double t, Vector3& r, Vector3& v) {
+	Vector3 a;
+	Vector3 L_;
+
+	L_ = L_.subVectors(r, pCrane->r);
+
+	double Sdivm = S() / m;
+
+	a = L_.clone().multiplyScalor(Sdivm);
+	a.z -= GA;
+
+	//計算誤差によるロープ長ずれ補正
+	Vector3 hatL = L_.clone().normalize();
+	// 補正ばね弾性力
+	Vector3 ak = hatL.clone().multiplyScalor(-compensationK * (pCrane->l_mh - L_.length()));
+	Vector3 v_ = v_.subVectors(v, pCrane->v);
+	// 補正粘性抵抗力
+	Vector3 agamma = hatL.clone().multiplyScalor(-compensationGamma * v_.dot(hatL));
+	// 張力にひもの長さの補正力を加える
+
+	a.add(ak).add(agamma);
+
+	return a;
+} //Model of acceleration
+
+double  CLoad::S() { //Aの計算部の関係でS/Lとなっている。巻きの加速度分が追加されている。
+	Vector3 v_ = v.clone().sub(pCrane->v);
+	double v_abs2 = v_.lengthSq();
+	Vector3 vectmp;
+	Vector3 vecL = vectmp.subVectors(r, pCrane->r);
+
+	return -m * (v_abs2 - pCrane->a.dot(vecL) - GA * vecL.z - (pCrane->a0[ID_HOIST] * pCrane->l_mh + pCrane->v0[ID_HOIST] * pCrane->v0[ID_HOIST])) / (pCrane->l_mh * pCrane->l_mh);
+
+}

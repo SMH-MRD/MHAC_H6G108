@@ -14,6 +14,7 @@ public:
     ~CMob();
 
     double dt;      //計算時間間隔
+    Vector3 a;      //加速度ベクトル
     Vector3 r;      //位置ベクトル
     Vector3 v;      //速度ベクトル
     Vector3 fex;    //外力
@@ -51,6 +52,7 @@ public:
     ~CCrane();
     
     double M;                       //クレーン全体質量　Kg
+    double l_mh;                    //巻ロープ長 m
     Vector3 rc;                     //クレーン中心点の位置ベクトル
     Vector3 vc;                     //クレーン中心点の速度ベクトル
 
@@ -98,7 +100,11 @@ public:
     CLoad() {};
     ~CLoad() {};
 
-    double M;                   //吊荷質量　Kg
+    void init_mob(double t, Vector3& r, Vector3& v);
+    Vector3 A(double t, Vector3& r, Vector3& v); //Model of acceleration
+    double S();	//Rope tension
+    CCrane * pCrane;
+    double m;                   //吊荷質量　Kg
 
 private:
 

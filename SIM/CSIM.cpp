@@ -103,7 +103,19 @@ int CSIM::parse() {
      pCrane->update_break_status();  //ブレーキ状態更新
      pCrane->timeEvolution();
 
+     //振れセンサ信号
 
+     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_X] = 1.0;
+     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_Y] = 1.0;
+     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_R] = 1.0;
+     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_T] = 1.0;
+
+     sim_stat_workbuf.sway_io.w[SID_TG1][SID_X] = 1.0;
+     sim_stat_workbuf.sway_io.w[SID_TG1][SID_Y] = 1.0;
+     sim_stat_workbuf.sway_io.w[SID_TG1][SID_R] = 1.0;
+     sim_stat_workbuf.sway_io.w[SID_TG1][SID_T] = 1.0;
+
+  
     return 0;
 }
 //*********************************************************************************************

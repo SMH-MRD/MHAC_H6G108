@@ -99,17 +99,13 @@ int CSwayIF::set_sim_status(LPST_SWAY_IO pworkbuf) {
     pworkbuf->rad[SID_TG1][SID_X] = pSim->sway_io.rad[SID_TG1][SID_X];
     pworkbuf->rad[SID_TG1][SID_Y] = pSim->sway_io.rad[SID_TG1][SID_Y];
     pworkbuf->rad[SID_TG1][SID_R] = pSim->sway_io.rad[SID_TG1][SID_R];
-    pworkbuf->rad[SID_TG1][SID_TH] = pSim->sway_io.rad[SID_TG1][SID_TH];
+    pworkbuf->rad[SID_TG1][SID_T] = pSim->sway_io.rad[SID_TG1][SID_T];
 
     pworkbuf->w[SID_TG1][SID_X] = pSim->sway_io.w[SID_TG1][SID_X];
     pworkbuf->w[SID_TG1][SID_Y] = pSim->sway_io.w[SID_TG1][SID_Y];
     pworkbuf->w[SID_TG1][SID_R] = pSim->sway_io.w[SID_TG1][SID_R];
-    pworkbuf->w[SID_TG1][SID_TH] = pSim->sway_io.w[SID_TG1][SID_TH];
-
-    pworkbuf->ph[SID_TG1][SID_X] = pSim->sway_io.ph[SID_TG1][SID_X];
-    pworkbuf->ph[SID_TG1][SID_Y] = pSim->sway_io.ph[SID_TG1][SID_Y];
-    pworkbuf->ph[SID_TG1][SID_R] = pSim->sway_io.ph[SID_TG1][SID_R];
-    pworkbuf->ph[SID_TG1][SID_TH] = pSim->sway_io.ph[SID_TG1][SID_TH];
+    pworkbuf->w[SID_TG1][SID_T] = pSim->sway_io.w[SID_TG1][SID_T];
+     
 
     return 0;
 }

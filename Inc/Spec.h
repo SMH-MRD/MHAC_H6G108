@@ -46,12 +46,6 @@
 #define NUM_OF_SWAY_LEVEL		3	//完了,トリガ,制限
 #define NUM_OF_POSITION_LEVEL	3	//完了,トリガ,制限
 
-#define ID_AS_GNT				0	//走行振れ
-#define ID_AS_TRY				1	//横行振れ
-#define ID_AS_TH				2	//周振れ
-#define ID_AS_R					3	//動径振れ
-#define ID_AS_SKW				4	//スキュー振れ
-
 #define ID_LV_COMPLE			0	//完了
 #define ID_LV_TRIGGER			1	//トリガ
 #define ID_LV_LIMIT				2	//制限
@@ -63,7 +57,13 @@
 #define ID_DELAY_CNT_ACC		3	//定速からの加速時
 #define ID_DELAY_CNT_DEC		4	//定速からの減速時
 
+#define SID_CAM1				0	//No.1カメラ
+#define SID_CAM2				1	//No.2カメラ
 
+#define SID_D0					0	//カメラ取付位置水平方向オフセット
+#define SID_H0					1	//カメラ取付位置高さ方向オフセット
+#define SID_l0					2	//カメラ中心とハウジング支点間距離
+#define	SID_ph0					3	//カメラのハウジングへの取り付け角度
 
 typedef struct StSpec {
 	//[ID_HOIST],[ID_GANTRY],[ID_TROLLY],[ID_BOOM_H],[ID_SLEW],[ID_OP_ROOM],[ID_H_ASSY],[ID_MOTION1]
@@ -167,7 +167,11 @@ typedef struct StSpec {
 	double boom_high = 25.0, wheel_span = 20.0, leg_span = 15.0;// ブーム高さ,ホイルスパン,脚間スパン
 	//極限
 	double hoist_pos_min = -10.0, hoist_pos_max = 20.0, boom_pos_min = 5.0, boom_pos_max = 20.0, gantry_pos_min = 0.0, gantry_pos_max = 300.0;
-
+	//振れセンサ
+	double Csw[2][2][4] = {	//振れセンサ　パラメータ
+		{{1.0,1.0,0.2,0.01},{1.0,1.0,0.2,0.01}},	//No.1 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
+		{{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0}}		//No.2 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
+	};
 }ST_SPEC, * LPST_SPEC;
 
 
