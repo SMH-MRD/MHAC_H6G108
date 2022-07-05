@@ -43,6 +43,18 @@ void CEnvironment::init_task(void* pobj) {
 	//クレーン仕様セット
 	stWorkCraneStat.spec = this->spec;
 
+	//振れセンサカメラ仕様セット
+	//  旋回方向
+	pCraneStat->sw_stat.cam[ID_SLEW].D0 = spec.Csw[SID_CAM1][SID_X][SID_D0];
+	pCraneStat->sw_stat.cam[ID_SLEW].H0 = spec.Csw[SID_CAM1][SID_X][SID_H0];
+	pCraneStat->sw_stat.cam[ID_SLEW].l0 = spec.Csw[SID_CAM1][SID_X][SID_l0];
+	pCraneStat->sw_stat.cam[ID_SLEW].ph0 = spec.Csw[SID_CAM1][SID_X][SID_ph0];
+
+	pCraneStat->sw_stat.cam[ID_BOOM_H].D0 = spec.Csw[SID_CAM1][SID_Y][SID_D0];
+	pCraneStat->sw_stat.cam[ID_BOOM_H].H0 = spec.Csw[SID_CAM1][SID_Y][SID_H0];
+	pCraneStat->sw_stat.cam[ID_BOOM_H].l0 = spec.Csw[SID_CAM1][SID_Y][SID_l0];
+	pCraneStat->sw_stat.cam[ID_BOOM_H].ph0 = spec.Csw[SID_CAM1][SID_Y][SID_ph0];
+
 	set_panel_tip_txt();
 	return;
 };
@@ -89,8 +101,8 @@ void CEnvironment::main_proc() {
 	pos_set();
 	
 	//振れ情報セット
-	parse_sway_stat();
-
+	parse_sway_stat(ID_SLEW);
+	parse_sway_stat(ID_BOOM_H);
 
 	return;
 }
@@ -139,89 +151,63 @@ int CEnvironment::parse_notch_com() {
 /****************************************************************************/
 /*　 制御用振れ状態計算											            */
 /****************************************************************************/
-int CEnvironment::parse_sway_stat() {
+int CEnvironment::parse_sway_stat(int ID) {
 
-	double D0, H0, l0, ph0, th, dth, L, dph, ddph, dthw;
+	double th, dth, L, dph, ddph, dthw;
 
+	double D0 = stWorkCraneStat.sw_stat.cam[ID].D0;
+	double  H0 = stWorkCraneStat.sw_stat.cam[ID].H0;
+	double  l0 = stWorkCraneStat.sw_stat.cam[ID].l0;
+	double  ph0 = stWorkCraneStat.sw_stat.cam[ID].ph0;
+	
 	stWorkCraneStat.mh_l = L = pCraneStat->rc.z - pCraneStat->rl.z;//ロープ長
 	
 	//角周波数
 	if (stWorkCraneStat.mh_l>1.0) {	//ロープ長下限
-		stWorkCraneStat.sway_stat.w = sqrt(GA / stWorkCraneStat.mh_l);
+		stWorkCraneStat.sw_stat.sw[ID].w = sqrt(GA / stWorkCraneStat.mh_l);
 	}
 	else {
-		stWorkCraneStat.sway_stat.w = 3.13;//1mロープ長時の角周波数
+		stWorkCraneStat.sw_stat.sw[ID].w = 3.13;//1mロープ長時の角周波数
 	}
 
 	//周期
-	stWorkCraneStat.sway_stat.T = PI360 / stWorkCraneStat.sway_stat.w;
+	stWorkCraneStat.sw_stat.sw[ID].T = PI360 / stWorkCraneStat.sw_stat.sw[ID].w;
 	
 	//振角　振角速度　振幅　位相　
-
-	D0 = spec.Csw[SID_CAM1][SID_X][SID_D0];
-	H0 = spec.Csw[SID_CAM1][SID_X][SID_H0];
-	l0 = spec.Csw[SID_CAM1][SID_X][SID_l0];
-	ph0 = spec.Csw[SID_CAM1][SID_X][SID_ph0];
-	
-	th = pSway_IO->rad[SID_TG1][SID_T] + ph0;
+	//    カメラ位置からの振れ角＝カメラ検出角＋取付オフセット  
+	th = pSway_IO->rad[ID] + ph0;
+	//    カメラ位置と吊点からの振れ角差 	
 	dph = asin((D0 * cos(th) - (H0 + l0) * sin(th)) / L);
-	
-	stWorkCraneStat.sway_stat.th[SID_T] = th + dph;
+	//    吊点からの振れ角 	
+	stWorkCraneStat.sw_stat.sw[ID].th = th + dph;
 
-	dth = pSway_IO->w[SID_TG1][SID_T]  + ph0;
+	//    カメラ位置からの振れ角速度 	
+	dth = pSway_IO->w[ID]  + ph0;
+	//    カメラ位置と吊点からの振れ角速度差
 	ddph = -1.0 * dth / L * (D0 * sin(th) + H0 * cos(th)) / cos(dph);
-	
-	stWorkCraneStat.sway_stat.dth[SID_T] = dth + ddph;
+	//    吊点からの振れ角速度 	
+	stWorkCraneStat.sw_stat.sw[ID].dth = dth + ddph;
 
-	dthw = stWorkCraneStat.sway_stat.dth[SID_T] / stWorkCraneStat.sway_stat.w;
+	//    吊点からの振れ角速度/ω　位相平面Y軸値 
+	dthw = stWorkCraneStat.sw_stat.sw[ID].dth / stWorkCraneStat.sw_stat.sw[ID].w;
 
-	stWorkCraneStat.sway_stat.amp2[SID_T] = stWorkCraneStat.sway_stat.th[SID_T] * stWorkCraneStat.sway_stat.th[SID_T]
+	//    吊点からの振れ角振幅
+	stWorkCraneStat.sw_stat.sw[ID].amp2 = stWorkCraneStat.sw_stat.sw[ID].th * stWorkCraneStat.sw_stat.sw[ID].th
 											+ dthw * dthw;
-
-	if (abs(stWorkCraneStat.sway_stat.th[SID_T]) < 0.000001) {
-		if(dthw < 0.0)	stWorkCraneStat.sway_stat.ph[SID_T] = -PI90;
-		else 	stWorkCraneStat.sway_stat.ph[SID_T] = PI90;
+	//    位相平面上の位相　0割回避
+	if (abs(stWorkCraneStat.sw_stat.sw[ID].th) < 0.000001) {
+		if(dthw < 0.0)	stWorkCraneStat.sw_stat.sw[ID].ph = -PI90;
+		else 	stWorkCraneStat.sw_stat.sw[ID].ph = PI90;
 	}
 	else {
-		stWorkCraneStat.sway_stat.ph[SID_T] = dthw / stWorkCraneStat.sway_stat.th[SID_T];
+		stWorkCraneStat.sw_stat.sw[ID].ph = dthw / stWorkCraneStat.sw_stat.sw[ID].th;
 	}
-	if (stWorkCraneStat.sway_stat.th[SID_T] < 0.0) {// atanは、-π/2～π/2の表現　→　-π～πで表現する 
-		if (dthw < 0.0) stWorkCraneStat.sway_stat.ph[SID_T] -= PI180;
-		else stWorkCraneStat.sway_stat.ph[SID_T] += PI180;
+	// atanは、-π/2～π/2の表現　→　-π～πで表現する 
+	if (stWorkCraneStat.sw_stat.sw[ID].th < 0.0) {
+		if (dthw < 0.0) stWorkCraneStat.sw_stat.sw[ID].ph -= PI180;
+		else stWorkCraneStat.sw_stat.sw[ID].ph += PI180;
 	}
 		
-	D0 = spec.Csw[SID_CAM1][SID_Y][SID_D0];
-	H0 = spec.Csw[SID_CAM1][SID_Y][SID_H0];
-	l0 = spec.Csw[SID_CAM1][SID_Y][SID_l0];
-	ph0 = spec.Csw[SID_CAM1][SID_Y][SID_ph0];
-
-	th = pSway_IO->rad[SID_TG1][SID_R] + ph0;
-	dph = asin((D0 * cos(th) - (H0 + l0) * sin(th)) / L);
-
-	stWorkCraneStat.sway_stat.th[SID_R] = th + dph;
-
-	dth = pSway_IO->w[SID_TG1][SID_R] + ph0;
-	ddph = -1.0 * dth / L * (D0 * sin(th) + H0 * cos(th)) / cos(dph);
-
-	stWorkCraneStat.sway_stat.dth[SID_R] = dth + ddph;
-
-	dthw = stWorkCraneStat.sway_stat.dth[SID_R] / stWorkCraneStat.sway_stat.w;
-
-	stWorkCraneStat.sway_stat.amp2[SID_R] = stWorkCraneStat.sway_stat.th[SID_R] * stWorkCraneStat.sway_stat.th[SID_R]
-											+ dthw * dthw;
-
-	if (abs(stWorkCraneStat.sway_stat.th[SID_R]) < 0.000001) {
-		if (dthw < 0.0)	stWorkCraneStat.sway_stat.ph[SID_R] = -PI90;
-		else 	stWorkCraneStat.sway_stat.ph[SID_R] = PI90;
-	}
-	else {
-		stWorkCraneStat.sway_stat.ph[SID_R] = dthw / stWorkCraneStat.sway_stat.th[SID_R];
-	}
-	if (stWorkCraneStat.sway_stat.th[SID_R] < 0.0) {// atanは、-π/2～π/2の表現　→　-π～πで表現する 
-		if (dthw < 0.0) stWorkCraneStat.sway_stat.ph[SID_R] -= PI180;
-		else stWorkCraneStat.sway_stat.ph[SID_R] += PI180;
-	}
-
 	return 0;
 }
 /****************************************************************************/

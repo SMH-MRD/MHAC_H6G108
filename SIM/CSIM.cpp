@@ -104,18 +104,12 @@ int CSIM::parse() {
      pCrane->timeEvolution();
 
      //振れセンサ信号
+     sim_stat_workbuf.sway_io.rad[ID_SLEW] = 1.0;
+     sim_stat_workbuf.sway_io.rad[ID_BOOM_H] = 1.0;
 
-     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_X] = 1.0;
-     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_Y] = 1.0;
-     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_R] = 1.0;
-     sim_stat_workbuf.sway_io.rad[SID_TG1][SID_T] = 1.0;
+     sim_stat_workbuf.sway_io.w[ID_SLEW] = 1.0;
+     sim_stat_workbuf.sway_io.w[ID_BOOM_H] = 1.0;
 
-     sim_stat_workbuf.sway_io.w[SID_TG1][SID_X] = 1.0;
-     sim_stat_workbuf.sway_io.w[SID_TG1][SID_Y] = 1.0;
-     sim_stat_workbuf.sway_io.w[SID_TG1][SID_R] = 1.0;
-     sim_stat_workbuf.sway_io.w[SID_TG1][SID_T] = 1.0;
-
-  
     return 0;
 }
 //*********************************************************************************************
@@ -123,8 +117,8 @@ int CSIM::parse() {
 //*********************************************************************************************
 int CSIM::output() {
 
-    sim_stat_workbuf.mode = this->mode;                      //モードセット
-    sim_stat_workbuf.helthy_cnt = my_helthy_counter++;    //ヘルシーカウンタセット
+    sim_stat_workbuf.mode = this->mode;                         //モードセット
+    sim_stat_workbuf.helthy_cnt = my_helthy_counter++;          //ヘルシーカウンタセット
 
     sim_stat_workbuf.status.v_fb[ID_HOIST] = pCrane->v0[ID_HOIST];
     sim_stat_workbuf.status.v_fb[ID_GANTRY] = pCrane->v0[ID_GANTRY];

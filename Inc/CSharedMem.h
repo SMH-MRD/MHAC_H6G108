@@ -126,13 +126,11 @@ typedef struct StSwayIO {
 	WORD mode[SENSOR_TARGET_MAX];							//ターゲットサ検出モード
 	WORD status[SENSOR_TARGET_MAX];							//ターゲットサ検出状態
 	DWORD fault[SWAY_FAULT_ITEM_MAX];						//センサ異常状態
-	double rad[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];			//振れ角
-	double w[SENSOR_TARGET_MAX][DETECT_AXIS_MAX];			//振れ角速度
 	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];	//ターゲット検出PIXEL数（面積）
-	double skew_rad[SENSOR_TARGET_MAX];						//スキュー角
-	double skew_w[SENSOR_TARGET_MAX];						//スキュー角速度
 	double tilt_rad[DETECT_AXIS_MAX];						//傾斜角
 
+	double rad[MOTION_ID_MAX];								//振れ角
+	double w[MOTION_ID_MAX];								//振れ角速度
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
 /****************************************************************************/
@@ -178,14 +176,25 @@ typedef struct StSimulationStatus {
 
 
 //振れセンサ状態定義構造体
-typedef struct StSwayStatus {
-	double T;					//振れ周期
-	double w;					//角周波数
-	double th[N_SWAY_DIR];		//振角	rad
-	double dth[N_SWAY_DIR];		//振角速度	rad
-	double ph[N_SWAY_DIR];		//位相	rad
-	double amp2[N_SWAY_DIR];	//振幅の2乗 rad2
+typedef struct StSwaySet {
+	double T;		//振周期		/s
+	double w;		//振角周波数	/s
+	double th;		//振角			rad
+	double dth;		//振角速度		rad/s
+	double dthw;	//振角速度/ω　	rad
+	double ph;		//位相平面位相	rad
+	double amp2;	//振幅の2乗		rad2
+}ST_SWAY_SET, * LPST_SWAY__SET;
+typedef struct StSwCamSet {
+	double D0;		//吊点-カメラハウジング軸位置間水平距離	m
+	double H0;		//吊点-カメラハウジング軸位置間高さ距離	m
+	double l0;		//カメラハウジング軸-カメラ位置間距離	m
+	double ph0;		//カメラハウジング軸-カメラ位置間角度	rad
+}ST_SWCAM_SET, * LPST_SWCAM__SET;
 
+typedef struct StSwayStatus {
+	ST_SWAY_SET sw[N_SWAY_DIR];
+	ST_SWCAM_SET cam[N_SWAY_DIR];
 }ST_SWAY_STATUS, * LPST_SWAY_STATUS;
 
 typedef struct stEnvSubproc {
@@ -203,9 +212,9 @@ typedef struct StCraneStatus {
 	ST_SPEC spec;
 	DWORD operation_mode;
 	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
-	WORD faultPC[N_PC_FAULT_WORDS];				//制御PC検出異常
+	WORD faultPC[N_PC_FAULT_WORDS];				//PLC検出異常
 	WORD faultPLC[N_PLC_FAULT_WORDS];			//制御PC検出異常
-	ST_SWAY_STATUS sway_stat;
+	ST_SWAY_STATUS sw_stat;						//振れ状態解析結果
 	Vector3 rc0;								//クレーン基準点のx,y,z座標（x:走行位置 y:旋回中心 z:走行レール高さ）
 	Vector3 rc;									//クレーン吊点のクレーン基準点とのx,y,z相対座標
 	Vector3 rl;									//吊荷のクレーン吊点とのx,y,z相対座標
@@ -240,15 +249,6 @@ typedef struct stMotionElement {	//運動要素
 /* 　単軸の目標状態に移行する動作パターンを運動要素の組み合わせで実現します */
 /****************************************************************************/
 #define M_ELEMENT_MAX	32
-#define M_AXIS			8	//動作軸数
-#define MH_AXIS			0	//主巻軸コード
-#define TT_AXIS			1	//横行軸コード
-#define GT_AXIS			2	//走行軸コード
-#define BH_AXIS			3	//起伏軸コード
-#define SLW_AXIS		4	//旋回軸コード
-#define SKW_AXIS		5	//スキュー軸コード
-#define LFT_AXIS		6	//吊具操作軸コード
-#define NO_AXIS			7	//状態変更コード
 
 #define REQ_STANDBY			1
 #define REQ_ACTIVE			2
@@ -292,8 +292,8 @@ typedef struct stCommandRecipe {				//運転要素
 	int type;									//コマンド種別
 	DWORD jobID;								//紐付けられているJOB　ID
 	DWORD comID;								//ID No.
-	bool is_motion_there[M_AXIS];				//動作対象軸
-	ST_MOTION_RECIPE motions[M_AXIS];
+	bool is_motion_there[MOTION_ID_MAX];				//動作対象軸
+	ST_MOTION_RECIPE motions[MOTION_ID_MAX];
 }ST_COMMAND_RECIPE, * LPST_COMMAND_RECIPE;
 
 /****************************************************************************/
@@ -305,7 +305,7 @@ typedef struct stCommandStat {				//運転要素
 	int status;								//コマンド実行状況
 	int elapsed;							//経過時間
 	int error_code;							//エラーコード　異常完了時
-	ST_MOTION_STAT p_motion_stat[M_AXIS];	//各軸実行ステータス構造体のアドレス
+	ST_MOTION_STAT p_motion_stat[MOTION_ID_MAX];	//各軸実行ステータス構造体のアドレス
 }ST_COMMAND_STAT, * LPST_COMMAND_STAT;
 
 /***********************************************************************************/

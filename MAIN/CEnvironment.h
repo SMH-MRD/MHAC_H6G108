@@ -35,15 +35,15 @@ private:
     LPST_REMOTE_IO pRemoteIO;
     LPST_SIMULATION_STATUS pSimStat;
  
-    void input();               //外部データ取り込み
-    void main_proc();           //処理内容
-    void output();              //出力データ更新
+    void input();                   //外部データ取り込み
+    void main_proc();               //処理内容
+    void output();                  //出力データ更新
 
-    int parse_notch_com();      //ノッチ信号を速度指令に変換セット
-    int mode_set();             //モード状態セット
-    int parse_sway_stat();      //振れ状態計算
-    int pos_set();              //位置情報セット
-    void chk_subproc();         //サブプロセス状態チェック
+    int parse_notch_com();          //ノッチ信号を速度指令に変換セット
+    int mode_set();                 //モード状態セット
+    int parse_sway_stat(int ID);    //振れ状態計算
+    int pos_set();                  //位置情報セット
+    void chk_subproc();             //サブプロセス状態チェック
 
     //メインパネルのTweetテキストを設定
     void tweet_update();
