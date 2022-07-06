@@ -45,7 +45,7 @@ public:
     int input();            //入力処理
     int parse();            //メイン処理
     int output();           //出力処理
-    void set_dt(double _dt) { dt = _dt; return; }
+    void set_dt(double _dt) { dt = _dt; return; }   //起動間隔セット（MM Timerの関数で呼び出し時にセット）
 
     //追加メソッド
  
@@ -55,6 +55,10 @@ public:
     }
 
     int is_act_mode() { return(mode & SIM_ACTIVE_MODE); }
+
+private:
+    int set_cran_motion();
+    int set_sway_io();
 
 };
 

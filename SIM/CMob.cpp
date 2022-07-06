@@ -91,11 +91,23 @@ CCrane::CCrane() {
 	for (int i = 0; i < MOTION_ID_MAX;i++) {
 		is_fwd_endstop[i] = false;
 		is_rev_endstop[i] = false;
+		Tf[i] = 1.0;
+		brk_elaped_time[i] = 0.0;
+		a0[i] = 0.0;
+		v0[i] = 0.0;
+		a_ref[i] = 0.0;
+		v_ref[i] = 0.0;
+		is_fwd_endstop[i] = false;
+		is_rev_endstop[i] = false;
+		trq_fb[i]=0.0;    //ƒ‚[ƒ^[ƒgƒ‹ƒNFB
+		motion_break[i] = false;
 	}
 	r0[ID_GANTRY] = pspec->gantry_pos_min;
 	r0[ID_HOIST] = 0.0;
 	r0[ID_BOOM_H] = pspec->boom_pos_min;
 	r0[ID_SLEW] = 0.0;
+	l_mh = 1.0;
+	
 }
 CCrane::~CCrane() {}
 
@@ -273,22 +285,30 @@ void CCrane::timeEvolution() {
 	return;
 }
 
-void CCrane::init_crane(double _dt, Vector3& _r, Vector3& _v, Vector3& r_offset, Vector3& v_offset) {
+void CCrane::init_crane() {
 
-	rc = _r + r_offset;
-	vc = _v + v_offset;
-	init_mob(_dt, _r, _v);
-
-	set_v_ref(0.0, 0.0, 0.0, 0.0);
-	set_fex(0.0, 0.0, 0.0);
-
+	rc.x = SIM_INIT_X; rc.y = 0.0; rc.z = 0.0;
+	vc.x = 0.0; vc.y = 0.0; vc.z = 0.0;
 	
+	Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), pspec->boom_high- SIM_INIT_L);
+
+	init_mob(SIM_INIT_SCAN, _r, vc);
+
+	set_v_ref(0.0, 0.0, 0.0, 0.0);	//‰Šú‘¬“xŽw—ß’lƒZƒbƒg
+	set_fex(0.0, 0.0, 0.0);			//‰ŠúŠO—ÍƒZƒbƒg
+
+	r0[ID_HOIST] = r.z;
+	r0[ID_GANTRY] = rc.x;
+	r0[ID_SLEW] = SIM_INIT_TH;
+	r0[ID_BOOM_H] = SIM_INIT_R;
+		
 	//‰Á‘¬“xˆêŽŸ’x‚êƒtƒBƒ‹ƒ^Žž’è”
 	Tf[ID_HOIST] = SIM_TF_HOIST;
 	Tf[ID_BOOM_H] = SIM_TF_BOOM_H;
 	Tf[ID_SLEW] = SIM_TF_SLEW;
 	Tf[ID_GANTRY] = SIM_TF_GANTRY;
 }
+
 
 #define BREAK_CLOSE_RETIO 0.5	//ƒuƒŒ[ƒL‚ð•Â‚¶‚é”»’èŒW”@‚Pƒmƒbƒ`‘¬“x‚Æ‚Ì”ä—¦
 
@@ -369,12 +389,10 @@ void CLoad ::init_mob(double _dt, Vector3& _r, Vector3& _v) {
 	dt = _dt;
 	r.copy(_r);
 	v.copy(_v);
-	m = 10000.0;//10 ton
-	//m = 40000.0;//40 ton
 	return;
 }
 
-Vector3 CLoad::A(double t, Vector3& r, Vector3& v) {
+Vector3 CLoad::A(Vector3& r, Vector3& v) {
 	Vector3 a;
 	Vector3 L_;
 
@@ -407,4 +425,10 @@ double  CLoad::S() { //A‚ÌŒvŽZ•”‚ÌŠÖŒW‚ÅS/L‚Æ‚È‚Á‚Ä‚¢‚éBŠª‚«‚Ì‰Á‘¬“x•ª‚ª’Ç‰Á‚³‚
 
 	return -m * (v_abs2 - pCrane->a.dot(vecL) - GA * vecL.z - (pCrane->a0[ID_HOIST] * pCrane->l_mh + pCrane->v0[ID_HOIST] * pCrane->v0[ID_HOIST])) / (pCrane->l_mh * pCrane->l_mh);
 
+}
+
+void CLoad::update_relative_vec() {
+	
+	r0.subVectors(r,pCrane->r);
+	v0.subVectors(r,pCrane->r);
 }

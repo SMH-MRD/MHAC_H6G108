@@ -58,23 +58,23 @@
 typedef struct _stMonGraphic {  
     int disp_item = 0;                    //表示項目
     
-    int area_x, area_y, area_w, area_h; //メインウィンドウ上の表示エリア
-    int bmp_w, bmp_h;                   //グラフィックビットマップサイズ
+    int area_x = 0, area_y = 0, area_w = 0, area_h = 0; //メインウィンドウ上の表示エリア
+    int bmp_w=0, bmp_h = 0;                   //グラフィックビットマップサイズ
 
-    HBITMAP hBmap_mem0;
-    HBITMAP hBmap_bg;
-    HBITMAP hBmap_gr;
-    HBITMAP hBmap_inf;
-    HDC hdc_mem0;						//合成画面メモリデバイスコンテキスト
-    HDC hdc_mem_bg;					    //グラフィック背景画面メモリデバイスコンテキスト
-    HDC hdc_mem_gr;					    //グラフィック部メモリデバイスコンテキスト
-    HDC hdc_mem_inf;					//文字画面メモリデバイスコンテキスト
+    HBITMAP hBmap_mem0=NULL;
+    HBITMAP hBmap_bg = NULL;
+    HBITMAP hBmap_gr = NULL;
+    HBITMAP hBmap_inf = NULL;
+    HDC hdc_mem0=NULL;						//合成画面メモリデバイスコンテキスト
+    HDC hdc_mem_bg = NULL;					    //グラフィック背景画面メモリデバイスコンテキスト
+    HDC hdc_mem_gr = NULL;					    //グラフィック部メモリデバイスコンテキスト
+    HDC hdc_mem_inf = NULL;					//文字画面メモリデバイスコンテキスト
 
-    HFONT hfont_inftext;				//テキスト用フォント
+    HFONT hfont_inftext=NULL;				//テキスト用フォント
     BLENDFUNCTION bf;					//半透過設定構造体
 
-    HPEN hpen[N_CREATE_PEN];
-    HBRUSH hbrush[N_CREATE_BRUSH];
+    HPEN hpen[N_CREATE_PEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+    HBRUSH hbrush[N_CREATE_BRUSH] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 }ST_MON_GRAPHIC, *LPST_MON_GRAPHIC;
 

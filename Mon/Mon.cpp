@@ -24,6 +24,7 @@ CSharedMem* pRemoteIO_Obj = NULL;
 CSharedMem* pCSInfObj = NULL;
 CSharedMem* pPolicyInfObj = NULL;
 CSharedMem* pAgentInfObj = NULL;
+CSharedMem* pSimulationStatusObj=NULL;
 
 LPST_CRANE_STATUS pCraneStat = NULL;
 LPST_PLC_IO pPLC_IO = NULL;
@@ -32,6 +33,7 @@ LPST_REMOTE_IO pRemoteIO = NULL;
 LPST_CS_INFO pCSinf = NULL;
 LPST_POLICY_INFO pPOLICYinf = NULL;
 LPST_AGENT_INFO pAGENTinf = NULL;
+LPST_SIMULATION_STATUS pSimStat = NULL;
 
 CMonWin* pMonWin;
 
@@ -69,7 +71,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     pCSInfObj = new CSharedMem;
     pPolicyInfObj = new CSharedMem;
     pAgentInfObj = new CSharedMem;
-    
+    pSimulationStatusObj = new CSharedMem;
 
     // アプリケーション初期化の実行:
     if (!InitInstance (hInstance, nCmdShow))
@@ -163,8 +165,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    if (OK_SHMEM != pPolicyInfObj->create_smem(SMEM_POLICY_INFO_NAME, sizeof(ST_POLICY_INFO), MUTEX_POLICY_INFO_NAME)) return(FALSE);
    else if ((pPOLICYinf = (LPST_POLICY_INFO)pPolicyInfObj->get_pMap()) == NULL) return(FALSE);
 
-   if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) return(FALSE);
+   if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO),  MUTEX_AGENT_INFO_NAME)) return(FALSE);
    else if ((pAGENTinf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap()) == NULL) return(FALSE);
+
+   if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
+   else if ((pSimStat = (LPST_SIMULATION_STATUS)pAgentInfObj->get_pMap()) == NULL) return(FALSE);
 
    
    //メインウィンドウクリエイト

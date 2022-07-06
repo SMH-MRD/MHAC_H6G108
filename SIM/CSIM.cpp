@@ -11,8 +11,9 @@ CSIM::CSIM() {
     pCraneStatusObj = new CSharedMem;
     pAgentInfObj = new CSharedMem;
 
+    // MOB オブジェクトのインスタンス化
     pCrane = new CCrane(); //クレーンのモデル
-    CLoad* pLoad;   //吊荷のモデル
+    pLoad = new CLoad();   //吊荷のモデル
 
     out_size = 0;
  
@@ -24,6 +25,9 @@ CSIM::~CSIM() {
     delete pCraneStatusObj;
     delete pSimulationStatusObj;
     delete pAgentInfObj;
+
+    delete pCrane;
+    delete pLoad;
  
 };
 
@@ -62,7 +66,18 @@ int CSIM::init_proc() {
     pPLC = (LPST_PLC_IO)pPLCioObj->get_pMap();
     pAgent = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
-    pCrane->set_spec(&def_spec);
+    //クレーン仕様のセット
+    pCrane->set_spec(&def_spec);   
+    
+    //クレーン,吊荷の初期状態セット 
+     pCrane->init_crane();
+    
+     //吊荷ｵﾌﾞｼﾞｪｸﾄにｸﾚｰﾝｵﾌﾞｼﾞｪｸﾄを紐付け
+     pLoad->set_crane(pCrane);
+    Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), def_spec.boom_high- SIM_INIT_L);  //吊点位置
+    Vector3 _v(0.0, 0.0, 0.0);                          //吊点位速度
+    pLoad->init_mob(SIM_INIT_SCAN, _r, _v);
+    pLoad->set_m(SIM_INIT_M);
 
     return int(mode & 0xff00);
 }
@@ -100,15 +115,12 @@ int CSIM::input() {
 //*********************************************************************************************
 int CSIM::parse() {
 
-     pCrane->update_break_status();  //ブレーキ状態更新
-     pCrane->timeEvolution();
-
-     //振れセンサ信号
-     sim_stat_workbuf.sway_io.rad[ID_SLEW] = 1.0;
-     sim_stat_workbuf.sway_io.rad[ID_BOOM_H] = 1.0;
-
-     sim_stat_workbuf.sway_io.w[ID_SLEW] = 1.0;
-     sim_stat_workbuf.sway_io.w[ID_BOOM_H] = 1.0;
+     pCrane->update_break_status(); //ブレーキ状態更新
+     pCrane->timeEvolution();       //クレーンの位置,速度計算
+     pLoad->timeEvolution();        //吊荷の位置,速度計算
+     pLoad->r.add(pLoad->dr);       //吊荷位置更新
+     pLoad->v.add(pLoad->dv);       //吊荷速度更新
+     pLoad->update_relative_vec();  //吊荷吊点相対ベクトル更新
 
     return 0;
 }
@@ -120,6 +132,20 @@ int CSIM::output() {
     sim_stat_workbuf.mode = this->mode;                         //モードセット
     sim_stat_workbuf.helthy_cnt = my_helthy_counter++;          //ヘルシーカウンタセット
 
+    set_cran_motion();  //クレーンの位置、速度情報セット
+    set_sway_io();      //振れセンサIO情報セット
+    
+    
+    if (out_size) { //出力処理
+        memcpy_s(poutput, out_size, &sim_stat_workbuf, out_size);
+    }
+
+    return 0;
+}
+//*********************************************************************************************
+// set_cran_motion() クレーン位置、速度情報セット
+//*********************************************************************************************
+int CSIM::set_cran_motion() {
     sim_stat_workbuf.status.v_fb[ID_HOIST] = pCrane->v0[ID_HOIST];
     sim_stat_workbuf.status.v_fb[ID_GANTRY] = pCrane->v0[ID_GANTRY];
     sim_stat_workbuf.status.v_fb[ID_SLEW] = pCrane->v0[ID_SLEW];
@@ -130,10 +156,22 @@ int CSIM::output() {
     sim_stat_workbuf.status.pos[ID_SLEW] = pCrane->r0[ID_SLEW];
     sim_stat_workbuf.status.pos[ID_BOOM_H] = pCrane->r0[ID_BOOM_H];
 
+    sim_stat_workbuf.r0 = pLoad->r0;
+    sim_stat_workbuf.v0 = pLoad->v0;
 
-    if (out_size) { //出力処理
-        memcpy_s(poutput, out_size, &sim_stat_workbuf, out_size);
-    }
+    return 0;
+}
+//*********************************************************************************************
+// output() 振れセンサIO信号セット
+//*********************************************************************************************
+int CSIM::set_sway_io() {
+
+    //振れセンサ信号
+    sim_stat_workbuf.sway_io.rad[ID_SLEW] = 1.0;
+    sim_stat_workbuf.sway_io.rad[ID_BOOM_H] = 1.0;
+
+    sim_stat_workbuf.sway_io.w[ID_SLEW] = 1.0;
+    sim_stat_workbuf.sway_io.w[ID_BOOM_H] = 1.0;
 
     return 0;
 }

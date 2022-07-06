@@ -154,6 +154,7 @@ typedef struct StSimulationStatus {
 	DWORD helthy_cnt;
 	ST_PLC_STATUS status;
 	ST_SWAY_IO sway_io;
+	Vector3 r0, v0;
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 
 /****************************************************************************/
@@ -193,8 +194,8 @@ typedef struct StSwCamSet {
 }ST_SWCAM_SET, * LPST_SWCAM__SET;
 
 typedef struct StSwayStatus {
-	ST_SWAY_SET sw[N_SWAY_DIR];
-	ST_SWCAM_SET cam[N_SWAY_DIR];
+	ST_SWAY_SET sw[MOTION_ID_MAX];
+	ST_SWCAM_SET cam[MOTION_ID_MAX];
 }ST_SWAY_STATUS, * LPST_SWAY_STATUS;
 
 typedef struct stEnvSubproc {
@@ -207,7 +208,7 @@ typedef struct stEnvSubproc {
 
 
 typedef struct StCraneStatus {
-	DWORD env_act_count;						//ヘルシー信号
+	DWORD env_act_count=0;						//ヘルシー信号
 	ST_ENV_SUBPROC subproc_stat;				//サブプロセスの状態
 	ST_SPEC spec;
 	DWORD operation_mode;
