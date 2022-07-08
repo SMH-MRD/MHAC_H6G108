@@ -293,9 +293,7 @@ int CPLC_IF::set_notch_ref() {
         melnet.plc_w_buf_B.pc_com_buf[2] &= ~0x007E;
     }
   
- 
-
-    //ˆø
+     //ˆø
     //ù‰ñ
     //‘–s
 
