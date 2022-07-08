@@ -45,15 +45,15 @@ void CEnvironment::init_task(void* pobj) {
 
 	//振れセンサカメラ仕様セット
 	//  旋回方向
-	pCraneStat->sw_stat.cam[ID_SLEW].D0 = spec.Csw[SID_CAM1][SID_X][SID_D0];
-	pCraneStat->sw_stat.cam[ID_SLEW].H0 = spec.Csw[SID_CAM1][SID_X][SID_H0];
-	pCraneStat->sw_stat.cam[ID_SLEW].l0 = spec.Csw[SID_CAM1][SID_X][SID_l0];
-	pCraneStat->sw_stat.cam[ID_SLEW].ph0 = spec.Csw[SID_CAM1][SID_X][SID_ph0];
+	stWorkCraneStat.sw_stat.cam[ID_SLEW].D0 = spec.Csw[SID_CAM1][SID_X][SID_D0];
+	stWorkCraneStat.sw_stat.cam[ID_SLEW].H0 = spec.Csw[SID_CAM1][SID_X][SID_H0];
+	stWorkCraneStat.sw_stat.cam[ID_SLEW].l0 = spec.Csw[SID_CAM1][SID_X][SID_l0];
+	stWorkCraneStat.sw_stat.cam[ID_SLEW].ph0 = spec.Csw[SID_CAM1][SID_X][SID_ph0];
 
-	pCraneStat->sw_stat.cam[ID_BOOM_H].D0 = spec.Csw[SID_CAM1][SID_Y][SID_D0];
-	pCraneStat->sw_stat.cam[ID_BOOM_H].H0 = spec.Csw[SID_CAM1][SID_Y][SID_H0];
-	pCraneStat->sw_stat.cam[ID_BOOM_H].l0 = spec.Csw[SID_CAM1][SID_Y][SID_l0];
-	pCraneStat->sw_stat.cam[ID_BOOM_H].ph0 = spec.Csw[SID_CAM1][SID_Y][SID_ph0];
+	stWorkCraneStat.sw_stat.cam[ID_BOOM_H].D0 = spec.Csw[SID_CAM1][SID_Y][SID_D0];
+	stWorkCraneStat.sw_stat.cam[ID_BOOM_H].H0 = spec.Csw[SID_CAM1][SID_Y][SID_H0];
+	stWorkCraneStat.sw_stat.cam[ID_BOOM_H].l0 = spec.Csw[SID_CAM1][SID_Y][SID_l0];
+	stWorkCraneStat.sw_stat.cam[ID_BOOM_H].ph0 = spec.Csw[SID_CAM1][SID_Y][SID_ph0];
 
 	set_panel_tip_txt();
 	return;
@@ -155,9 +155,9 @@ int CEnvironment::parse_sway_stat(int ID) {
 
 	double th, dth, L, dph, ddph, dthw;
 
-	double D0 = stWorkCraneStat.sw_stat.cam[ID].D0;
-	double  H0 = stWorkCraneStat.sw_stat.cam[ID].H0;
+	double D = stWorkCraneStat.sw_stat.cam[ID].D0;
 	double  l0 = stWorkCraneStat.sw_stat.cam[ID].l0;
+	double  H = stWorkCraneStat.sw_stat.cam[ID].H0 + l0;
 	double  ph0 = stWorkCraneStat.sw_stat.cam[ID].ph0;
 	
 	stWorkCraneStat.mh_l = L = pCraneStat->rc.z - pCraneStat->rl.z;//ロープ長
@@ -177,16 +177,16 @@ int CEnvironment::parse_sway_stat(int ID) {
 	//    カメラ位置からの振れ角＝カメラ検出角＋取付オフセット  
 	th = pSway_IO->rad[ID] + ph0;
 	//    カメラ位置と吊点からの振れ角差 	
-	dph = asin((D0 * cos(th) - (H0 + l0) * sin(th)) / L);
+	dph = asin((D * cos(th) - H * sin(th)) / L);
 	//    吊点からの振れ角 	
 	stWorkCraneStat.sw_stat.sw[ID].th = th + dph;
 
 	//    カメラ位置からの振れ角速度 	
-	dth = pSway_IO->w[ID]  + ph0;
+	dth = pSway_IO->w[ID] ;
 	//    カメラ位置と吊点からの振れ角速度差
-	ddph = -1.0 * dth / L * (D0 * sin(th) + H0 * cos(th)) / cos(dph);
+	ddph = 1.0 - (D * sin(th) + H * cos(th)) / (L * cos(dph));
 	//    吊点からの振れ角速度 	
-	stWorkCraneStat.sw_stat.sw[ID].dth = dth + ddph;
+	stWorkCraneStat.sw_stat.sw[ID].dth = dth * ddph;
 
 	//    吊点からの振れ角速度/ω　位相平面Y軸値 
 	dthw = stWorkCraneStat.sw_stat.sw[ID].dth / stWorkCraneStat.sw_stat.sw[ID].w;

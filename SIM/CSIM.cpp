@@ -1,6 +1,7 @@
 #include "CSIM.h"
 #include "CWorkWindow_SIM.h"
 #include "Spec.h"
+#include "CVector3.h"
 
 extern ST_SPEC def_spec;
 
@@ -156,22 +157,48 @@ int CSIM::set_cran_motion() {
     sim_stat_workbuf.status.pos[ID_SLEW] = pCrane->r0[ID_SLEW];
     sim_stat_workbuf.status.pos[ID_BOOM_H] = pCrane->r0[ID_BOOM_H];
 
-    sim_stat_workbuf.r0 = pLoad->r0;
-    sim_stat_workbuf.v0 = pLoad->v0;
+    sim_stat_workbuf.L = pLoad->L;
+    sim_stat_workbuf.vL = pLoad->vL;
 
     return 0;
 }
 //*********************************************************************************************
 // output() 振れセンサIO信号セット
 //*********************************************************************************************
+
+static double radsl_last, radbh_last;
 int CSIM::set_sway_io() {
 
     //振れセンサ信号
-    sim_stat_workbuf.sway_io.rad[ID_SLEW] = 1.0;
-    sim_stat_workbuf.sway_io.rad[ID_BOOM_H] = 1.0;
+    double th = pCrane->r0[ID_SLEW];//旋回角度
+    // クレーン座標の振れ角をカメラ座標に変換(旋回角度分回転）
+    double phx = ((pLoad->L.x) * cos(th) + (pLoad->L.y) * sin(th))/pCrane->l_mh;
+    double phy = (-(pLoad->L.x) * sin(th) + (pLoad->L.y) * cos(th)) / pCrane->l_mh;
+    sim_stat_workbuf.rad_cam_x = phx;
+    sim_stat_workbuf.rad_cam_y = phy;
 
-    sim_stat_workbuf.sway_io.w[ID_SLEW] = 1.0;
-    sim_stat_workbuf.sway_io.w[ID_BOOM_H] = 1.0;
+    //　カメラ設置パラメータ読み込み
+    double Dx = def_spec.Csw[SID_CAM1][SID_X][SID_D0];
+    double Dy = def_spec.Csw[SID_CAM1][SID_Y][SID_D0];
+
+    double Hx = def_spec.Csw[SID_CAM1][SID_X][SID_H0]+ def_spec.Csw[SID_CAM1][SID_X][SID_l0];
+    double Hy = def_spec.Csw[SID_CAM1][SID_Y][SID_H0]+ def_spec.Csw[SID_CAM1][SID_Y][SID_l0];
+
+    double ph0x = def_spec.Csw[SID_CAM1][SID_X][SID_ph0];
+    double ph0y = def_spec.Csw[SID_CAM1][SID_Y][SID_ph0];
+
+    //　カメラ検出角度
+    sim_stat_workbuf.sway_io.rad[ID_SLEW] = atan((pCrane->l_mh * sin(phx) - Dx)/(pCrane->l_mh * cos(phx) - Hx)) - ph0x;
+    sim_stat_workbuf.sway_io.rad[ID_BOOM_H] = atan((pCrane->l_mh * sin(phy) - Dy) / (pCrane->l_mh * cos(phy) - Hy)) - ph0y;
+    //　カメラ検出角速度
+    sim_stat_workbuf.sway_io.w[ID_SLEW] = (sim_stat_workbuf.sway_io.rad[ID_SLEW]-radsl_last)/pCrane->dt;
+    sim_stat_workbuf.sway_io.w[ID_BOOM_H] = (sim_stat_workbuf.sway_io.rad[ID_BOOM_H]-radbh_last) / pCrane->dt;
+
+    sim_stat_workbuf.w_cam_x = sim_stat_workbuf.sway_io.w[ID_SLEW];
+    sim_stat_workbuf.w_cam_y = sim_stat_workbuf.sway_io.w[ID_BOOM_H];
+
+    radsl_last = sim_stat_workbuf.sway_io.rad[ID_SLEW];
+    radbh_last = sim_stat_workbuf.sway_io.rad[ID_BOOM_H];
 
     return 0;
 }

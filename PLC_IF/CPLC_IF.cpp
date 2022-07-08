@@ -4,6 +4,8 @@
 #include <windows.h>
 #include "Mdfunc.h"
 
+extern ST_SPEC def_spec;
+
 CPLC_IF::CPLC_IF() {
     // 共有メモリオブジェクトのインスタンス化
     pPLCioObj = new CSharedMem;
@@ -68,6 +70,8 @@ int CPLC_IF::init_proc() {
         mode |= PLC_IF_AGENT_MEM_NG;
     }
 
+    pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
+
     return int(mode & 0xff00);
 }
 //*********************************************************************************************
@@ -77,13 +81,13 @@ int CPLC_IF::input() {
     
     plc_io_workbuf.helthy_cnt++;
 
-    //PLC 入力処理
-    //MELSECNET回線確認
-    if ((!melnet.status)&&(!(plc_io_workbuf.helthy_cnt% melnet.retry_cnt))) {
+        //PLC 入力処理
+        //MELSECNET回線確認
+    if ((!melnet.status) && (!(plc_io_workbuf.helthy_cnt % melnet.retry_cnt))) {
         if (!(melnet.err = mdOpen(melnet.chan, melnet.chan, &melnet.path)))
             melnet.status = MELSEC_NET_OK;
     }
-    //PLC Read
+        //PLC Read
     if (melnet.status == MELSEC_NET_OK) {
         //LB読み込み　無し
 
@@ -94,7 +98,7 @@ int CPLC_IF::input() {
             MELSEC_NET_CODE_LB,                 //デバイスタイプ
             MELSEC_NET_B_READ_START,            //先頭デバイス
             &melnet.read_size_w,                //読み込みバイトサイズ
-            melnet.plc_r_buf_B.dummy_buf);     //読み込みバッファ
+            melnet.plc_r_buf_B.spare);          //読み込みバッファ
 
          //W読み込み
         melnet.err = mdReceiveEx(melnet.path,    //チャネルのパス
@@ -107,8 +111,7 @@ int CPLC_IF::input() {
 
         if (melnet.err != 0)melnet.status = MELSEC_NET_RECEIVE_ERR;
     }
-       
-     
+      
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pCrane->env_act_count;
 
@@ -120,7 +123,7 @@ int CPLC_IF::input() {
 int CPLC_IF::parse() { 
 
     //PLCからの入力をオウム返しで出力（試験対応処理）
-    memcpy_s(melnet.plc_w_buf_B.pc_com_buf, 16, melnet.plc_r_buf_B.dummy_buf, 16);     //Bレジスタ
+    memcpy_s(melnet.plc_w_buf_B.pc_com_buf, 16, melnet.plc_r_buf_B.spare, 16);     //Bレジスタ
     memcpy_s(melnet.plc_w_buf_W.pc_com_buf, 16, melnet.plc_r_buf_W.main_x_buf, 16); //Wレジスタ
 
     //PLCリンク入力を解析
@@ -151,6 +154,7 @@ int CPLC_IF::output() {
     if(out_size) { 
         memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
     }
+ 
     //PLC出力処理
     if (melnet.status == MELSEC_NET_OK) {
         //LB書き込み
@@ -169,7 +173,7 @@ int CPLC_IF::output() {
             MELSEC_NET_W_WRITE_START,       //先頭デバイス
             &melnet.write_size_w,           //書き込みバイトサイズ
             melnet.plc_w_buf_W.pc_com_buf); //ソースバッファ
-       
+
         if (melnet.err < 0)melnet.status = MELSEC_NET_SEND_ERR;
     }
 
@@ -236,5 +240,65 @@ int CPLC_IF::closeIF() {
    return 0;
 }
 
+//*********************************************************************************************
+// set_notch_ref()
+// AGENTタスクのノッチ位置指令に応じてIO出力を設定
+//*********************************************************************************************
+int CPLC_IF::set_notch_ref() {
+
+    //巻
+    if ((pAgentInf->v_ref[ID_HOIST] > (def_spec.notch_spd_r[ID_HOIST][1]+0.01))
+        || (pAgentInf->v_ref[ID_HOIST] > (def_spec.notch_spd_f[ID_HOIST][1] - 0.01))) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x0001;
+    }
+    else {
+        melnet.plc_w_buf_B.pc_com_buf[2] &= ~0x0001;
+    }
+
+    melnet.plc_w_buf_B.pc_com_buf[2] &= ~0x007E;
+    if (melnet.plc_w_buf_B.pc_com_buf[2] & 0x0001) {
+        ;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][5]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x007C;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][4]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x003C;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][3]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x001C;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][2]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x000C;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][1]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x0004;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][5]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x007A;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][4]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x003A;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][3]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x001A;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][2]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x000A;
+    }
+    else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][1]) {
+        melnet.plc_w_buf_B.pc_com_buf[2] |= 0x0002;
+    }
+    else {
+        melnet.plc_w_buf_B.pc_com_buf[2] &= ~0x007E;
+    }
+  
+ 
+
+    //引込
+    //旋回
+    //走行
 
 
+    return 0;
+}

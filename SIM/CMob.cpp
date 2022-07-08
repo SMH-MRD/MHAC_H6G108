@@ -428,7 +428,8 @@ double  CLoad::S() { //A‚ÌŒvZ•”‚ÌŠÖŒW‚ÅS/L‚Æ‚È‚Á‚Ä‚¢‚éBŠª‚«‚Ì‰Á‘¬“x•ª‚ª’Ç‰Á‚³‚
 }
 
 void CLoad::update_relative_vec() {
-	
-	r0.subVectors(r,pCrane->r);
-	v0.subVectors(r,pCrane->r);
+	Vector3 vectmp;
+	L = vectmp.subVectors(r,pCrane->r);
+	vL = vectmp.subVectors(v,pCrane->v);
+	return;
 }

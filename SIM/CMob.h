@@ -17,8 +17,8 @@ public:
     Vector3 a;      //加速度ベクトル
     Vector3 r;      //位置ベクトル
     Vector3 v;      //速度ベクトル
-    Vector3 r0;     //吊点基準位置ベクトル
-    Vector3 v0;     //吊点基準速度ベクトル
+    Vector3 L;      //ロープベクトル
+    Vector3 vL;     //ロープ速度ベクトル
     Vector3 fex;    //外力
     Vector3 dr;     //位置ベクトルの変化分
     Vector3 dv;     //速度ベクトルの変化分

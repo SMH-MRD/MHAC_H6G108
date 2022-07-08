@@ -1,6 +1,7 @@
 #pragma once
 #include "COMMON_DEF.H"
 #include "CSharedMem.h"	    //# 共有メモリクラス
+#include "CPushButton.h"
 
 #define PLC_IF_PLC_IO_MEM_NG        0x8000
 #define PLC_IF_CRANE_MEM_NG         0x4000
@@ -20,13 +21,17 @@
 #define PLC_IF_CC_Y_BUFSIZE         12
 #define PLC_IF_CC_W_BUFSIZE         43
 #define PLC_IF_ABS_DW_BUFSIZE       8   //WORD数　DWORDx2
-#define PLC_IF_SENS_W_BUFSIZE       5
+#define PLC_IF_SENS_W_BUFSIZE       12
 
-#define PLC_IF_READ_B_BUFSIZE       32
+#define PLC_IF_SPARE_B_BUFSIZE      4
+#define PLC_IF_PB_B_BUFSIZE         2
+#define PLC_IF_NA_B_BUFSIZE         10
 
 
 typedef struct st_PLCreadB_tag {                //今回未使用
-    short dummy_buf[PLC_IF_READ_B_BUFSIZE];     
+    INT16 spare[4]; 
+    INT16 PB[2];
+    INT16 NA[10];
 }ST_PLC_READ_B, * LPST_PLC_READ_B;
 
 typedef struct st_PLCreadW_tag{
@@ -44,10 +49,10 @@ typedef struct st_PLCreadW_tag{
     short sensor_buf[PLC_IF_SENS_W_BUFSIZE];    //その他アナログ信号
 }ST_PLC_READ_W, * LPST_PLC_READ_W;
 
-#define PLC_IF_PC_B_WRITE_COMSIZE         16    //PCコマンド出力部サイズ
-#define PLC_IF_PC_B_WRITE_SIMSIZE         4     //PCシミュレーション出力部サイズ
-#define PLC_IF_PC_W_WRITE_COMSIZE         16    //PCコマンド出力部サイズ
-#define PLC_IF_PC_W_WRITE_SIMSIZE         PLC_IF_CC_W_BUFSIZE + PLC_IF_ABS_DW_BUFSIZE + PLC_IF_SENS_W_BUFSIZE //PCシミュレーション出力部サイズ
+#define PLC_IF_PC_B_WRITE_COMSIZE         14    //PCコマンド出力部サイズ
+#define PLC_IF_PC_B_WRITE_SIMSIZE         2     //PCシミュレーション出力部サイズ
+#define PLC_IF_PC_W_WRITE_COMSIZE         32    //PCコマンド出力部サイズ
+#define PLC_IF_PC_W_WRITE_SIMSIZE         48    //PCシミュレーション出力部サイズ
 
 typedef struct st_PLCwriteB_tag {
     short pc_com_buf[PLC_IF_PC_B_WRITE_COMSIZE];
@@ -64,10 +69,10 @@ typedef struct st_PLCwriteW_tag {
 #define MELSEC_NET_MY_NW_NO         0       //MELSECNET/Hボード  自NW指定 0（ボード設定値とは異なる）
 #define MELSEC_NET_MY_STATION       255     //MELSECNET/Hボード」自局番 255（ボード設定値とは異なる）
 #define MELSEC_NET_SOURCE_STATION   1       //PLC局番
-#define MELSEC_NET_B_WRITE_START    0x0A00  //書き込み開始アドレス（PCボードはLBのアドレス指定）
-#define MELSEC_NET_W_WRITE_START    0x0A00  //書き込み開始アドレス（PCボードはLWのアドレス指定）
-#define MELSEC_NET_B_READ_START     0x0000  //読み込み開始アドレス（PLC MAPしたBのアドレス指定）
-#define MELSEC_NET_W_READ_START     0x0000  //読み込み開始アドレス（PLC MAPしたWのアドレス指定）
+#define MELSEC_NET_B_WRITE_START    0x0700  //書き込み開始アドレス（PCボードはLBのアドレス指定）
+#define MELSEC_NET_W_WRITE_START    0x0700  //書き込み開始アドレス（PCボードはLWのアドレス指定）
+#define MELSEC_NET_B_READ_START     0x0900  //読み込み開始アドレス（PLC MAPしたBのアドレス指定）
+#define MELSEC_NET_W_READ_START     0x0900  //読み込み開始アドレス（PLC MAPしたWのアドレス指定）
 
 #define MELSEC_NET_OK               1
 #define MELSEC_NET_SEND_ERR         -1
@@ -106,22 +111,6 @@ typedef struct st_MelsecNet_tag {
 
 class CPLC_IF :    public CBasicControl
 {
-
-private:
-
-    //# 出力用共有メモリオブジェクトポインタ:
-    CSharedMem* pPLCioObj;
-    //# 入力用共有メモリオブジェクトポインタ:
-    CSharedMem* pCraneStatusObj;
-    CSharedMem* pSimulationStatusObj;
-    CSharedMem* pAgentInfObj;
-
-    ST_MELSEC_NET   melnet;
-    ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ
-
-    LPST_SIMULATION_STATUS pSim;    //シミュレータステータス
-    LPST_CRANE_STATUS pCrane;
-
 public:
     CPLC_IF();
     ~CPLC_IF();
@@ -146,4 +135,23 @@ public:
     }
 
     int is_debug_mode() { return(mode & PLC_IF_PC_DBG_MODE); }
+
+private:
+    //# 出力用共有メモリオブジェクトポインタ:
+    CSharedMem* pPLCioObj;
+    //# 入力用共有メモリオブジェクトポインタ:
+    CSharedMem* pCraneStatusObj;
+    CSharedMem* pSimulationStatusObj;
+    CSharedMem* pAgentInfObj;
+
+    ST_MELSEC_NET   melnet;
+    ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ
+
+    LPST_SIMULATION_STATUS pSim;    //シミュレータステータス
+    LPST_CRANE_STATUS pCrane;
+    LPST_AGENT_INFO pAgentInf;
+
+    int set_notch_ref();
+    int parse_notch_com();
+
 };

@@ -148,13 +148,13 @@ typedef struct StRemoteIO {
 /* 　SIM PROCがセットする共有メモリ上の情報　　　　　　　          　    　 */
 /****************************************************************************/
 #define SIM_ACTIVE_MODE  0x00000100	//シミュレーション実行モード
-
 typedef struct StSimulationStatus {
 	DWORD mode;
 	DWORD helthy_cnt;
 	ST_PLC_STATUS status;
 	ST_SWAY_IO sway_io;
-	Vector3 r0, v0;
+	Vector3 L, vL;//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
+	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 
 /****************************************************************************/

@@ -12,13 +12,13 @@
 #define GRAPHIC_AREA_W		    620	    //グラフィック部幅
 #define GRAPHIC_AREA_H		    350		//グラフィック部高さ
 
-#define CMON_PIX_PER_M_CRANE    5      //   1m 5pixel クレーン部
-#define CMON_PIX_PER_M_HOIST    5      //   1m 5pixel 巻位置部
-#define CMON_PIX_R_BOOM_END     2       //  ブーム端点表示円半径
-#define CMON_PIX_PER_RAD_LOAD   1000    //  1rad 1000pixel 吊荷部
-#define CMON_PIX_PER_M_GNT      2       //  1m 2pixel   走行位置
-#define CMON_PIX_GNT_MARK_W     2       //  走行位置表示マーク幅
-#define CMON_PIX_HST_MARK_W     2       //  巻位置表示マーク幅
+#define CMON_PIX_PER_M_CRANE    5       //1m 5pixel クレーン部
+#define CMON_PIX_PER_M_HOIST    5       //1m 5pixel 巻位置部
+#define CMON_PIX_R_BOOM_END     2       //ブーム端点表示円半径
+#define CMON_PIX_PER_RAD_LOAD   1000    //1rad 1000pixel 吊荷部
+#define CMON_PIX_PER_M_GNT      2       //1m 2pixel   走行位置
+#define CMON_PIX_GNT_MARK_W     2       //走行位置表示マーク幅
+#define CMON_PIX_HST_MARK_W     2       //巻位置表示マーク幅
 
 #define CRANE_GRAPHIC_CENTER_X  160	    //クレーングラフィック中心位置X
 #define CRANE_GRAPHIC_CENTER_Y	230		//クレーングラフィック中心位置Y

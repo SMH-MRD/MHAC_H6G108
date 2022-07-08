@@ -231,20 +231,23 @@ VOID CMonWin::draw_bg() {
 	TextOutW(stGraphic.hdc_mem_bg, 670, 125, ws.c_str(), (int)ws.length());
 
 
-	ws = L"X";
-	TextOutW(stGraphic.hdc_mem_bg, 725, 150, ws.c_str(), (int)ws.length());
+	ws = L"TH_RAD";
+	TextOutW(stGraphic.hdc_mem_bg, 740, 150, ws.c_str(), (int)ws.length());
 
-	ws = L"Y";
-	TextOutW(stGraphic.hdc_mem_bg, 800, 150, ws.c_str(), (int)ws.length());
+	ws = L"R_RAD";
+	TextOutW(stGraphic.hdc_mem_bg, 810, 150, ws.c_str(), (int)ws.length());
 
-	ws = L"VX";
-	TextOutW(stGraphic.hdc_mem_bg, 870, 150, ws.c_str(), (int)ws.length());
+	ws = L"TH_W";
+	TextOutW(stGraphic.hdc_mem_bg, 875, 150, ws.c_str(), (int)ws.length());
 
-	ws = L"VY";
+	ws = L"R_W";
 	TextOutW(stGraphic.hdc_mem_bg, 940, 150, ws.c_str(), (int)ws.length());
 
-	ws = L"SWAY ";
+	ws = L"SIM_SW";
 	TextOutW(stGraphic.hdc_mem_bg, 670, 170, ws.c_str(), (int)ws.length());
+	
+	ws = L"CTR_SW";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 185, ws.c_str(), (int)ws.length());
 		
 	InvalidateRect(hWnd_parent, NULL, TRUE);
 
@@ -288,14 +291,23 @@ VOID CMonWin::draw_inf() {
 	TextOutW(stGraphic.hdc_mem_inf, 860, 95, ws.c_str(), (int)ws.length());
 
 	//振れ
-	_stprintf_s(tbuf, L":%.4f", pSimStat->r0.x); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 710, 140, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pSimStat->r0.y); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 140, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pSimStat->v0.x); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 860, 140, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pSimStat->v0.y); ws = tbuf;
+	_stprintf_s(tbuf, L":%.4f", pSimStat->rad_cam_x); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 140, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%.4f", pSimStat->rad_cam_y); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 800, 140, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%.4f", pSimStat->w_cam_x); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 865, 140, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%.4f", pSimStat->w_cam_y); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 140, ws.c_str(), (int)ws.length());
+
+	_stprintf_s(tbuf, L":%.4f", pCraneStat->sw_stat.sw[ID_SLEW].th); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 155, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%.4f", pCraneStat->sw_stat.sw[ID_BOOM_H].th); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 800, 155, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%.4f", pCraneStat->sw_stat.sw[ID_SLEW].dth); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 865, 155, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%.4f", pCraneStat->sw_stat.sw[ID_BOOM_H].dth); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 930, 155, ws.c_str(), (int)ws.length());
 
 	return;
 }
@@ -343,6 +355,23 @@ VOID CMonWin::draw_graphic() {
 
 	//SetPixel(stGraphic.hdc_mem_gr, rc_xy.x, rc_xy.y, color_pt);
 
+
+//# 吊荷振れ描画
+
+	LONG r=6;
+	POINT pt;
+
+	SelectObject(stGraphic.hdc_mem_gr, GetStockObject(NULL_PEN));
+	pt.x = LONG(pSimStat->rad_cam_x * 573.0)+ LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
+	pt.y = LONG(pSimStat->rad_cam_y * 573.0)+ LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
+	Ellipse(stGraphic.hdc_mem_gr, pt.x-r, pt.y-r, pt.x+r, pt.y+r);
+
+	r = 4;
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_PEN]);
+	pt.x = LONG(pCraneStat->sw_stat.sw[ID_SLEW].th * 573.0) + LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
+	pt.y = LONG(pCraneStat->sw_stat.sw[ID_BOOM_H].th * 573.0) + LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
+	Ellipse(stGraphic.hdc_mem_gr, pt.x - r, pt.y - r, pt.x + r, pt.y + r);
+
 	return;
 }
 
@@ -382,7 +411,7 @@ int CMonWin::close_mon() {
 	DeleteObject(stGraphic.hBmap_mem0);	//ベース画面
 	DeleteDC(stGraphic.hdc_mem0);
 
-	DeleteObject(stGraphic.hBmap_bg);		//背景画面
+	DeleteObject(stGraphic.hBmap_bg);	//背景画面
 	DeleteDC(stGraphic.hdc_mem_bg);
 
 	DeleteObject(stGraphic.hBmap_gr);	//プロット画面

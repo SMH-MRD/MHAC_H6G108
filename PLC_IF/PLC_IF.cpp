@@ -26,6 +26,8 @@ DWORD* psource_proc_counter=NULL;               //メインプロセスのヘル
 CPLC_IF* pProcObj;          //メイン処理オブジェクト:
 CWorkWindow_PLC* pWorkWnd;  //作業ウィンドウオブジェクト:
 
+ST_SPEC def_spec;
+
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);

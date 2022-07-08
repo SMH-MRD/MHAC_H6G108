@@ -169,9 +169,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    else if ((pAGENTinf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap()) == NULL) return(FALSE);
 
    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
-   else if ((pSimStat = (LPST_SIMULATION_STATUS)pAgentInfObj->get_pMap()) == NULL) return(FALSE);
-
-   
+   else if ((pSimStat = (LPST_SIMULATION_STATUS)pSimulationStatusObj->get_pMap()) == NULL) return(FALSE);
+    
    //メインウィンドウクリエイト
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
        MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,

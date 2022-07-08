@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CPLC_IF.h" />
+    <ClInclude Include="CPushButton.h" />
     <ClInclude Include="CWorkWindow_PLC.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="PLC_IF.h" />
@@ -165,6 +166,7 @@
   <ItemGroup>
     <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="CPLC_IF.cpp" />
+    <ClCompile Include="CPushButton.cpp" />
     <ClCompile Include="CWorkWindow_PLC.cpp" />
     <ClCompile Include="PLC_IF.cpp" />
   </ItemGroup>
