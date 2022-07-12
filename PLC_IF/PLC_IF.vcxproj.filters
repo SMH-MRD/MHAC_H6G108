@@ -36,6 +36,9 @@
     <ClInclude Include="CPushButton.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="PLC_IO_DEF.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PLC_IF.cpp">

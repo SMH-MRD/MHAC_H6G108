@@ -3,10 +3,6 @@
 #include "resource.h"
 ///# ベース設定
 
-//-タスク設定
-#define TARGET_RESOLUTION			1		//マルチメディアタイマー分解能 msec
-#define SYSTEM_TICK_ms				10		//メインスレッド周期 msec
-
 //-Main Windowの配置設定
 #define MAIN_WND_INIT_SIZE_W		380		//-Main Windowの初期サイズ　W
 #define MAIN_WND_INIT_SIZE_H		192		//-Main Windowの初期サイズ　H
@@ -29,7 +25,7 @@ typedef struct stMainWndTag {
 
 //マルチメディアタイマー管理構造体
 #define TARGET_RESOLUTION			1		//マルチメディアタイマー分解能 msec
-#define SYSTEM_TICK_ms				25		//メインスレッド周期 msec
+#define SYSTEM_TICK_ms				10		//メインスレッド周期 msec
 #define INITIAL_TASK_STACK_SIZE		16384	//タスクオブジェクトスレッド用スタックサイズ
 
 typedef struct stKnlManageSetTag {

@@ -3,7 +3,6 @@
 #include <string>
 #include "common_def.h"
 #include "spec.h"
-#include "PLC_IO_DEF.h"
 #include "CVector3.h"
 
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
@@ -57,22 +56,42 @@ using namespace std;
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 /****************************************************************************/
-#define PLC_PB_MAX              64 //運転操作ボタン登録最大数
-#define PLC_LAMP_MAX            64 //運転操作ボタン登録最大数
-#define PLC_CTRL_MAX            64 //運転操作ボタン登録最大数
+#define N_PLC_PBS				64 //運転操作PB数
+#define N_PLC_BITS				64 //BIT STATUS数
+#define N_PLC_CTRL_WORDS        16 //制御センサ信号WORD数
 #define N_PLC_FAULTS			400	//PLCフォルトの割り当てサイズ
+
+#define ID_PB_ESTOP				0
+#define ID_PB_ANTISWAY_ON		1
+#define ID_PB_ANTISWAY_OFF		2
+#define ID_PB_AUTO_START		3
+#define ID_PB_AUTO_TG_FROM1		4
+#define ID_PB_AUTO_TG_FROM2		5
+#define ID_PB_AUTO_TG_FROM3		6
+#define ID_PB_AUTO_TG_FROM4		7
+#define ID_PB_AUTO_TG_TO1		8
+#define ID_PB_AUTO_TG_TO2		9
+#define ID_PB_AUTO_TG_TO3		10
+#define ID_PB_AUTO_TG_TO4		11
+#define ID_PB_CRANE_MODE		12
+#define ID_PB_REMOTE_MODE		13
+
+#define ID_BIT_CTRL_SOURCE_ON	0
+
+#define ID_WORD_CTRL_SOURCE_ON	0
+#define ID_WORD_CTRL_REMOTE		1
 
 // PLC_User IF信号構造体（機上運転室IO)
 // IO割付内容は、PLC_IO_DEF.hに定義
 typedef struct StPLCUI {
 	int notch_pos[MOTION_ID_MAX];
-	BOOL pb[PLC_PB_MAX];
-	BOOL lamp[PLC_LAMP_MAX];
+	bool PBs[N_PLC_PBS];
+	bool BITs[N_PLC_BITS];
 }ST_PLC_UI, * LPST_PLC_UI;
 
 // PLC_状態信号構造体（機上センサ信号)
 typedef struct StPLCStatus {
-	BOOL ctrl[PLC_CTRL_MAX];		//制御用信号　LS,MC状態等
+	UINT16 ctrl[N_PLC_CTRL_WORDS];		//制御用信号　LS,MC状態等
 	double v_fb[MOTION_ID_MAX];
 	double v_ref[MOTION_ID_MAX];
 	double trq_fb_01per[MOTION_ID_MAX];
@@ -399,12 +418,15 @@ typedef struct stPolicyInfo {
 /*   Agent	情報定義構造体                                   　   　		*/
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
+#define AGENT_PLC_PB_COM_N		10;
+
+
 typedef struct stAgentInfo {
 	//for POLICY
 	ST_COMMAND_STAT com_stat[COM_STEP_MAX];	
 	
 	//for CRANE
-	double v_ref[MOTION_ID_MAX];				
+	double v_ref[MOTION_ID_MAX];
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

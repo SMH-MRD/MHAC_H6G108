@@ -70,10 +70,10 @@ void CClientService::main_proc() {
 	CPolicy *pPolicy = (CPolicy * )VectpCTaskObj[g_itask.policy];
 
 	//振れ止めモード要求
-	if ((pPLC_IO->ui.pb[PLC_UI_PB_ANTISWAY] == TRUE) && (asPB_last_input == FALSE)) {
+	if ((pPLC_IO->ui.PBs[ID_PB_ANTISWAY_ON] == TRUE) && (asPB_last_input == FALSE)) {
 		pPolicy->update_control(POLICY_REQ_ANTISWAY, NULL);
 	}
-	asPB_last_input = pPLC_IO->ui.pb[PLC_UI_PB_ANTISWAY];
+	asPB_last_input = pPLC_IO->ui.PBs[ID_PB_ANTISWAY_ON];
 
 	//デバッグモード要求
 	if ((pPLC_IO->mode & PLC_IF_PC_DBG_MODE) != PLC_Dbg_last_input) {

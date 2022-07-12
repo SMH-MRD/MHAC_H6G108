@@ -160,6 +160,7 @@
     <ClInclude Include="CWorkWindow_PLC.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="PLC_IF.h" />
+    <ClInclude Include="PLC_IO_DEF.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>

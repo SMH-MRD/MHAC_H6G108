@@ -2,36 +2,17 @@
 #include "COMMON_DEF.H"
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include "CPushButton.h"
+#include "PLC_IO_DEF.h"
 
 #define PLC_IF_PLC_IO_MEM_NG        0x8000
 #define PLC_IF_CRANE_MEM_NG         0x4000
 #define PLC_IF_SIM_MEM_NG           0x2000
 #define PLC_IF_AGENT_MEM_NG          0x1000
 
-
-//PLC IOインターフェースのデータサイズ
-//PLC LINKデバイスの割付マップサイズ
-#define PLC_IF_MAIN_X_BUFSIZE       14
-#define PLC_IF_MAIN_Y_BUFSIZE       6
-#define PLC_IF_GNT_X_BUFSIZE        8
-#define PLC_IF_GNT_Y_BUFSIZE        2
-#define PLC_IF_OPE_X_BUFSIZE        10
-#define PLC_IF_OPE_Y_BUFSIZE        3
-#define PLC_IF_CC_X_BUFSIZE         12
-#define PLC_IF_CC_Y_BUFSIZE         12
-#define PLC_IF_CC_W_BUFSIZE         43
-#define PLC_IF_ABS_DW_BUFSIZE       8   //WORD数　DWORDx2
-#define PLC_IF_SENS_W_BUFSIZE       12
-
-#define PLC_IF_SPARE_B_BUFSIZE      4
-#define PLC_IF_PB_B_BUFSIZE         2
-#define PLC_IF_NA_B_BUFSIZE         10
-
-
 typedef struct st_PLCreadB_tag {                //今回未使用
-    INT16 spare[4]; 
-    INT16 PB[2];
-    INT16 NA[10];
+    INT16 spare[PLC_IF_SPARE_B_BUFSIZE];
+    INT16 PB[PLC_IF_PB_B_BUFSIZE];
+    INT16 NA[PLC_IF_NA_B_BUFSIZE];
 }ST_PLC_READ_B, * LPST_PLC_READ_B;
 
 typedef struct st_PLCreadW_tag{
@@ -49,19 +30,14 @@ typedef struct st_PLCreadW_tag{
     short sensor_buf[PLC_IF_SENS_W_BUFSIZE];    //その他アナログ信号
 }ST_PLC_READ_W, * LPST_PLC_READ_W;
 
-#define PLC_IF_PC_B_WRITE_COMSIZE         14    //PCコマンド出力部サイズ
-#define PLC_IF_PC_B_WRITE_SIMSIZE         2     //PCシミュレーション出力部サイズ
-#define PLC_IF_PC_W_WRITE_COMSIZE         32    //PCコマンド出力部サイズ
-#define PLC_IF_PC_W_WRITE_SIMSIZE         48    //PCシミュレーション出力部サイズ
-
 typedef struct st_PLCwriteB_tag {
-    short pc_com_buf[PLC_IF_PC_B_WRITE_COMSIZE];
-    short pc_sim_buf[PLC_IF_PC_B_WRITE_SIMSIZE];
+    INT16 pc_com_buf[PLC_IF_PC_B_WRITE_COMSIZE];
+    INT16 pc_sim_buf[PLC_IF_PC_B_WRITE_SIMSIZE];
 }ST_PLC_WRITE_B, * LPST_PLC_WRITE_B;
 
 typedef struct st_PLCwriteW_tag {
-    short pc_com_buf[PLC_IF_PC_W_WRITE_COMSIZE];
-    short pc_sim_buf[PLC_IF_PC_W_WRITE_SIMSIZE];
+    INT16 pc_com_buf[PLC_IF_PC_W_WRITE_COMSIZE];
+    INT16 pc_sim_buf[PLC_IF_PC_W_WRITE_SIMSIZE];
 }ST_PLC_WRITE_W, * LPST_PLC_WRITE_W;
 
 #define MELSEC_NET_CH               51      //MELSECNET/HボードのチャネルNo.
@@ -88,26 +64,35 @@ typedef struct st_PLCwriteW_tag {
 #define MELSEC_NET_CODE_SD          14  //デバイスコード
 #define MELSEC_NET_CODE_SW          14  //デバイスコード
 
-typedef struct st_MelsecNet_tag {
-    short chan;                 //通信回線のチャネルNo.
-    short mode;                 //ダミー
-    long  path;                 //オープンされた回線のパス　回線クローズ時に必要
-    long err;                  //エラーコード
-    short status;               //回線の状態　0:回線未確立　0より上：正常　0より下：異常
-    short retry_cnt;            //回線オープンリトライカウント マルチメディアタイマ周期の倍数が時間間隔
-    
-    long write_size_w;          //LW書き込みサイズ
-    long write_size_b;          //LB書き込みサイズ
-    ST_PLC_WRITE_B plc_w_buf_B; //PLC出力元バッファ
-    ST_PLC_WRITE_W plc_w_buf_W; //PLC出力元バッファ
+#define N_PLC_W_OUT_WORD        128   //PLC LINK PLC出力WORD数
+#define N_PLC_B_OUT_WORD        16    //PLC LINK PLC出力WORD数
+#define N_PC_W_OUT_WORD         80   //PLC LINK PLC出力WORD数
+#define N_PC_B_OUT_WORD         16    //PLC LINK PLC出力WORD数
 
-    long read_size_w;           //LW読み込みサイズ
-    long read_size_b;           //LB読み込みサイズ
-    ST_PLC_READ_B  plc_r_buf_B; //PLC入力バッファ
-    ST_PLC_READ_W  plc_r_buf_W; //PLC入力バッファ
+typedef struct st_MelsecNet_tag {
+    short chan;                         //通信回線のチャネルNo.
+    short mode;                         //ダミー
+    long  path;                         //オープンされた回線のパス　回線クローズ時に必要
+    long err;                           //エラーコード
+    short status;                       //回線の状態　0:回線未確立　0より上：正常　0より下：異常
+    short retry_cnt;                    //回線オープンリトライカウント マルチメディアタイマ周期の倍数が時間間隔
+
+    long write_size_w;                  //PC LW書き込みサイズ
+    long write_size_b;                  //PC LB書き込みサイズ
+    INT16 pc_w_out[N_PC_W_OUT_WORD];    //PC書込バッファW
+    INT16 pc_b_out[N_PC_B_OUT_WORD];    //PC書込バッファB
+
+    long read_size_w;                   //PLC LW書き込みサイズ
+    long read_size_b;                   //PLC LB書き込みサイズ
+    INT16 plc_w_out[N_PLC_W_OUT_WORD];  //PC書込バッファW
+    INT16 plc_b_out[N_PLC_B_OUT_WORD];  //PC書込バッファB
+  
+    ST_PLC_OUT_BMAP plc_b_map;          //PLC LB書き込みバッファMAP情報
+    ST_PLC_OUT_WMAP plc_w_map;          //PLC LW書き込みバッファMAP情報
+    ST_PC_OUT_BMAP  pc_b_map;           //PC LB書き込みバッファMAP情報
+    ST_PC_OUT_WMAP  pc_w_map;           //PC LW書き込みバッファMAP情報
 
 }ST_MELSEC_NET, * LPST_MELSEC_NET;
-
 
 class CPLC_IF :    public CBasicControl
 {
@@ -153,5 +138,4 @@ private:
 
     int set_notch_ref();
     int parse_notch_com();
-
-};
+ };
