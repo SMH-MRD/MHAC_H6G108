@@ -126,26 +126,29 @@ int CPLC_IF::parse() {
  //   memcpy_s(melnet.plc_w_buf_B.pc_com_buf, 16, melnet.plc_r_buf_B.spare, 16);     //Bレジスタ
  //   memcpy_s(melnet.plc_w_buf_W.pc_com_buf, 16, melnet.plc_r_buf_W.main_x_buf, 16); //Wレジスタ
 
-    //PLCリンク入力を解析
+    //### PLCリンク入力を解析
     parse_notch_com();
     
+
+    //運転室操作内容 
+    parse_ope_com();
     //デバッグモード時は、操作パネルウィンドウの内容を上書き 
-    if (is_debug_mode()) set_debug_status(&plc_io_workbuf);
+    if (is_debug_mode()) set_debug_status();
 
- 
-    //### シミュレーションの状態を入力信号バッファにセット
+    //### センサ検出内容取込
+    parse_sensor_fb();
+    //シミュレーションモード時シミュレーションの結果で上書き
 #ifdef _DVELOPMENT_MODE
-
     if (pSim->mode & SIM_ACTIVE_MODE) {
-        set_sim_status(&plc_io_workbuf);
+        set_sim_status();
     }
-
 #endif
 
     //### PLCへの出力信号バッファセット
 
     //ノッチ出力信号セット
     set_notch_ref();
+    set_bit_coms();
 
     return 0; 
 }
@@ -188,60 +191,46 @@ int CPLC_IF::output() {
 }
 //*********************************************************************************************
 // set_debug_status()
+// デバッグモード（デバッグ用操作ウィンド）入力内容セット
 //*********************************************************************************************
-int CPLC_IF::set_debug_status(LPST_PLC_IO pworkbuf) {
+int CPLC_IF::set_debug_status() {
     
     CWorkWindow_PLC* pWorkWindow;
 
-    pworkbuf->ui.notch_pos[ID_HOIST]       = pWorkWindow->stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH;
-    pworkbuf->ui.notch_pos[ID_GANTRY]      = pWorkWindow->stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH;
-    pworkbuf->ui.notch_pos[ID_BOOM_H]      = pWorkWindow->stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH;
-    pworkbuf->ui.notch_pos[ID_SLEW]        = pWorkWindow->stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_HOIST]       = pWorkWindow->stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_GANTRY]      = pWorkWindow->stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_BOOM_H]      = pWorkWindow->stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_SLEW]        = pWorkWindow->stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH;
 
-    if(pWorkWindow->stOpePaneStat.check_estop) pworkbuf->ui.PBs[ID_PB_ESTOP] |=true; else pworkbuf->ui.PBs[ID_PB_ESTOP] = false;
+    plc_io_workbuf.ui.PBs[ID_PB_ESTOP] = pWorkWindow->stOpePaneStat.check_estop;
+
     if (pWorkWindow->stOpePaneStat.check_antisway) {
-        pworkbuf->ui.PBs[ID_PB_ANTISWAY_ON] |= true;pworkbuf->ui.PBs[ID_PB_ANTISWAY_OFF] = false;
-        
-    }
+        plc_io_workbuf.ui.PBs[ID_PB_ANTISWAY_ON] |= true;plc_io_workbuf.ui.PBs[ID_PB_ANTISWAY_OFF] = false;
+     }
     else {
-        pworkbuf->ui.PBs[ID_PB_ANTISWAY_ON] = false;pworkbuf->ui.PBs[ID_PB_ANTISWAY_OFF] |= true;
+        plc_io_workbuf.ui.PBs[ID_PB_ANTISWAY_ON] = false;plc_io_workbuf.ui.PBs[ID_PB_ANTISWAY_OFF] |= true;
     }
-
-    if (pWorkWindow->stOpePaneStat.button_remote)pworkbuf->ui.PBs[3] |=true; else pworkbuf->ui.PBs[3] = false;
-    if (pWorkWindow->stOpePaneStat.button_auto_start)pworkbuf->ui.PBs[ID_PB_AUTO_START] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_START] = false;
-    if (pWorkWindow->stOpePaneStat.button_auto_reset)pworkbuf->ui.PBs[3] |=true; else pworkbuf->ui.PBs[3] = false;
-    if (pWorkWindow->stOpePaneStat.button_from1)pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM1] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM1] = false;
-    if (pWorkWindow->stOpePaneStat.button_from2) pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM2] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM2] = false;
-    if (pWorkWindow->stOpePaneStat.button_from3)pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM3] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM3] = false;
-    if (pWorkWindow->stOpePaneStat.button_from4)pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM4] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_FROM4] = false;
-    if (pWorkWindow->stOpePaneStat.button_to1)pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO1] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO1] = false;
-    if (pWorkWindow->stOpePaneStat.button_to2) pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO2] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO2] = false;
-    if (pWorkWindow->stOpePaneStat.button_to3)pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO3] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO3] = false;
-    if (pWorkWindow->stOpePaneStat.button_to4)pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO4] |=true; else pworkbuf->ui.PBs[ID_PB_AUTO_TG_TO4] = false;
+    plc_io_workbuf.ui.PBs[ID_PB_REMOTE_MODE] = pWorkWindow->stOpePaneStat.button_remote;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_START] = pWorkWindow->stOpePaneStat.button_auto_start;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_RESET] = pWorkWindow->stOpePaneStat.button_auto_reset;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM1] = pWorkWindow->stOpePaneStat.button_from1;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM2] = pWorkWindow->stOpePaneStat.button_from2;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM3] = pWorkWindow->stOpePaneStat.button_from3;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM4] = pWorkWindow->stOpePaneStat.button_from4;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO1] = pWorkWindow->stOpePaneStat.button_to1;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO2] = pWorkWindow->stOpePaneStat.button_to2;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO3] = pWorkWindow->stOpePaneStat.button_to3;
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO4] = pWorkWindow->stOpePaneStat.button_to4;
     
-    if(pWorkWindow->stOpePaneStat.button_source1_on)   pworkbuf->ui.PBs[3] |= true; else pworkbuf->ui.PBs[3] = false;
-    if(pWorkWindow->stOpePaneStat.button_source1_off)  pworkbuf->ui.PBs[3] |= true; else pworkbuf->ui.PBs[3] = false;
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE_ON] = pWorkWindow->stOpePaneStat.button_source1_on;
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE_OFF] = pWorkWindow->stOpePaneStat.button_source1_off;
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE_ON] = pWorkWindow->stOpePaneStat.button_source1_on;
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE_OFF] = pWorkWindow->stOpePaneStat.button_source1_off;
   
     return 0;
 }
 
-//*********************************************************************************************
-// set_sim_status()
-//*********************************************************************************************
-int CPLC_IF::set_sim_status(LPST_PLC_IO pworkbuf) {
 
-    pworkbuf->status.v_fb[ID_HOIST]     = pSim->status.v_fb[ID_HOIST];
-    pworkbuf->status.v_fb[ID_GANTRY]    = pSim->status.v_fb[ID_GANTRY];
-    pworkbuf->status.v_fb[ID_BOOM_H]    = pSim->status.v_fb[ID_BOOM_H];
-    pworkbuf->status.v_fb[ID_SLEW]      = pSim->status.v_fb[ID_SLEW];
-
-    pworkbuf->status.pos[ID_HOIST]      = pSim->status.pos[ID_HOIST];
-    pworkbuf->status.pos[ID_GANTRY]     = pSim->status.pos[ID_GANTRY];
-    pworkbuf->status.pos[ID_BOOM_H]     = pSim->status.pos[ID_BOOM_H];
-    pworkbuf->status.pos[ID_SLEW]       = pSim->status.pos[ID_SLEW];
-
-    return 0;
-}
 //*********************************************************************************************
 // closeIF()
 //*********************************************************************************************
@@ -456,8 +445,31 @@ int CPLC_IF::set_notch_ref() {
 }
 
 //*********************************************************************************************
+// set_notch_ref()
+// AGENTタスクのノッチ位置指令に応じてIO出力を設定
+//*********************************************************************************************
+int CPLC_IF::set_bit_coms() {
+
+    //巻ノッチ
+    //ノッチクリア
+    
+    
+    //非常停止PB
+    if (pAgentInf->pb_coms[PB_COM_ESTOP]) melnet.pc_b_out[melnet.pc_b_map.com_estop[ID_WPOS]] |= melnet.pc_b_map.com_estop[ID_BPOS];
+    else melnet.pc_b_out[melnet.pc_b_map.com_estop[ID_WPOS]] &= ~melnet.pc_b_map.com_estop[ID_BPOS];
+    
+    //ランプ類
+    if (pAgentInf->pb_coms[LAMP_AS_OFF]) melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] |= melnet.pc_b_map.lamp_as_off[ID_BPOS];
+    else melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] &= ~melnet.pc_b_map.lamp_as_off[ID_BPOS];
+    if (pAgentInf->pb_coms[LAMP_AS_ON]) melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] |= melnet.pc_b_map.lamp_as_off[ID_BPOS];
+    else melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] &= ~melnet.pc_b_map.lamp_as_off[ID_BPOS];
+
+    return 0;
+}
+
+//*********************************************************************************************
 // parse_notch_com()
-// UIノッチ指令セット
+// UIノッチ指令読み込み
 //*********************************************************************************************
 int CPLC_IF::parse_notch_com() {
     
@@ -545,4 +557,71 @@ int CPLC_IF::parse_notch_com() {
     
     return 0;
 
+}
+
+//*********************************************************************************************
+// parse_ope_com()
+// 運転室操作信号取り込み
+//*********************************************************************************************
+int CPLC_IF::parse_ope_com() {
+
+    plc_io_workbuf.ui.PBs[ID_PB_ESTOP] = melnet.plc_w_out[melnet.plc_w_map.com_estop[ID_WPOS]] & melnet.plc_w_map.com_estop[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE_ON] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source_on[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source_on[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE_OFF] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source_off[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source_off[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE2_ON] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source2_on[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source2_on[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_CTRT_SOURCE2_OFF] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source2_off[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source2_off[ID_BPOS];
+
+    plc_io_workbuf.ui.PBs[ID_PB_ANTISWAY_ON] = melnet.plc_w_out[melnet.plc_b_map.PB_as_on[ID_WPOS]] & melnet.plc_b_map.PB_as_on[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_ANTISWAY_OFF] = melnet.plc_w_out[melnet.plc_b_map.PB_as_off[ID_WPOS]] & melnet.plc_b_map.PB_as_off[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_START] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_start[ID_WPOS]] & melnet.plc_b_map.PB_auto_start[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM1];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM2];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM3];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_FROM4];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO1] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO2] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO3] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_AUTO_TG_TO4] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
+    plc_io_workbuf.ui.PBs[ID_PB_CRANE_MODE];
+    plc_io_workbuf.ui.PBs[ID_PB_REMOTE_MODE];
+
+    return 0;
+}
+
+//*********************************************************************************************
+// set_sim_status()
+//*********************************************************************************************
+int CPLC_IF::set_sim_status() {
+
+    plc_io_workbuf.status.v_fb[ID_HOIST] = pSim->status.v_fb[ID_HOIST];
+    plc_io_workbuf.status.v_fb[ID_GANTRY] = pSim->status.v_fb[ID_GANTRY];
+    plc_io_workbuf.status.v_fb[ID_BOOM_H] = pSim->status.v_fb[ID_BOOM_H];
+    plc_io_workbuf.status.v_fb[ID_SLEW] = pSim->status.v_fb[ID_SLEW];
+
+    plc_io_workbuf.status.pos[ID_HOIST] = pSim->status.pos[ID_HOIST];
+    plc_io_workbuf.status.pos[ID_GANTRY] = pSim->status.pos[ID_GANTRY];
+    plc_io_workbuf.status.pos[ID_BOOM_H] = pSim->status.pos[ID_BOOM_H];
+    plc_io_workbuf.status.pos[ID_SLEW] = pSim->status.pos[ID_SLEW];
+
+    return 0;
+}
+
+//*********************************************************************************************
+// parse_sensor_fb()
+// センサ信号取り込み
+//*********************************************************************************************
+int CPLC_IF::parse_sensor_fb() {
+
+    plc_io_workbuf.status.v_fb[ID_HOIST] = def_spec.notch_spd_f[ID_HOIST][5] * (double)melnet.plc_w_out[melnet.plc_w_map.spd_hst_fb[ID_WPOS]] / 1000.0;
+    plc_io_workbuf.status.v_fb[ID_GANTRY] = def_spec.notch_spd_f[ID_GANTRY][5] * (double)melnet.plc_w_out[melnet.plc_w_map.spd_gnt_fb[ID_WPOS]] / 1000.0;
+    plc_io_workbuf.status.v_fb[ID_BOOM_H] = def_spec.notch_spd_f[ID_BOOM_H][5] * (double)melnet.plc_w_out[melnet.plc_w_map.spd_bh_fb[ID_WPOS]] / 1000.0;
+    plc_io_workbuf.status.v_fb[ID_SLEW] = def_spec.notch_spd_f[ID_SLEW][5] * (double)melnet.plc_w_out[melnet.plc_w_map.spd_slw_fb[ID_WPOS]] / 1000.0;
+
+    plc_io_workbuf.status.weight = (double)melnet.plc_w_out[melnet.plc_w_map.load_fb[ID_WPOS]] * 100.0; //Kg
+    
+    plc_io_workbuf.status.pos[ID_HOIST] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_hst_fb[ID_WPOS]] / 10.0;   //m
+    plc_io_workbuf.status.pos[ID_GANTRY] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_gnt_fb[ID_WPOS]] / 10.0;  //m
+    plc_io_workbuf.status.pos[ID_BOOM_H] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_bh_fb[ID_WPOS]] / 10.0;   //m
+    plc_io_workbuf.status.pos[ID_SLEW] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_slw_fb[ID_WPOS]] * PI1DEG;  //rad
+    return 0;
 }

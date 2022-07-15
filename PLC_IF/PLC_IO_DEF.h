@@ -194,6 +194,20 @@ typedef struct StPLCOutWMap {
     UINT16 com_temp_hold_off[2] = { 37, BIT4 };
     UINT16 com_lift_bypass_on[2] = { 37, BIT6 };
     UINT16 com_lift_bypass_off[2] = { 37, BIT7 };
+
+    UINT16 spd_hst_fb[2] = {77,ALL_BITS };
+    UINT16 spd_gnt_fb[2] = {75 ,ALL_BITS };
+    UINT16 spd_bh_fb[2] = { 83,ALL_BITS };
+    UINT16 spd_slw_fb[2] = { 69,ALL_BITS };
+
+    UINT16 load_fb[2] = { 120,ALL_BITS };
+
+    UINT16 pos_hst_fb[2] = { 121,ALL_BITS };
+    UINT16 pos_gnt_fb[2] = { 124 ,ALL_BITS };
+    UINT16 pos_bh_fb[2] = { 123,ALL_BITS };
+    UINT16 pos_slw_fb[2] = { 122,ALL_BITS };
+
+
 }ST_PLC_OUT_WMAP, * LPST_PLC_OUT_WMAP;
 
 //PC出力　Bレジスタ割付マップ

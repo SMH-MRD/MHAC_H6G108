@@ -75,6 +75,14 @@ using namespace std;
 #define ID_PB_AUTO_TG_TO4		11
 #define ID_PB_CRANE_MODE		12
 #define ID_PB_REMOTE_MODE		13
+#define ID_PB_CTRT_SOURCE_ON	14
+#define ID_PB_CTRT_SOURCE_OFF	15
+#define ID_PB_CTRT_SOURCE2_ON	16
+#define ID_PB_CTRT_SOURCE2_OFF	17
+#define ID_PB_AUTO_RESET		18
+
+
+
 
 #define ID_BIT_CTRL_SOURCE_ON	0
 
@@ -418,7 +426,16 @@ typedef struct stPolicyInfo {
 /*   Agent	情報定義構造体                                   　   　		*/
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
-#define AGENT_PLC_PB_COM_N		10;
+#define N_AGENT_PLC_PB_COM		10
+#define N_AGENT_PLC_LAMP_COM	10
+
+
+#define PB_COM_ESTOP			0
+
+
+#define LAMP_AS_OFF				0
+#define LAMP_AS_ON				1
+
 
 
 typedef struct stAgentInfo {
@@ -427,6 +444,8 @@ typedef struct stAgentInfo {
 	
 	//for CRANE
 	double v_ref[MOTION_ID_MAX];
+	bool pb_coms[N_AGENT_PLC_PB_COM];
+	bool lamp_coms[N_AGENT_PLC_LAMP_COM];
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

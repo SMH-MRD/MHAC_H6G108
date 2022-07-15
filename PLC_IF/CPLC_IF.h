@@ -45,10 +45,10 @@ typedef struct st_PLCwriteW_tag {
 #define MELSEC_NET_MY_NW_NO         0       //MELSECNET/Hボード  自NW指定 0（ボード設定値とは異なる）
 #define MELSEC_NET_MY_STATION       255     //MELSECNET/Hボード」自局番 255（ボード設定値とは異なる）
 #define MELSEC_NET_SOURCE_STATION   1       //PLC局番
-#define MELSEC_NET_B_WRITE_START    0x0700  //書き込み開始アドレス（PCボードはLBのアドレス指定）
-#define MELSEC_NET_W_WRITE_START    0x0700  //書き込み開始アドレス（PCボードはLWのアドレス指定）
+#define MELSEC_NET_B_WRITE_START    0x0600  //書き込み開始アドレス（PCボードはLBのアドレス指定）
+#define MELSEC_NET_W_WRITE_START    0x0600  //書き込み開始アドレス（PCボードはLWのアドレス指定）
 #define MELSEC_NET_B_READ_START     0x0900  //読み込み開始アドレス（PLC MAPしたBのアドレス指定）
-#define MELSEC_NET_W_READ_START     0x0900  //読み込み開始アドレス（PLC MAPしたWのアドレス指定）
+#define MELSEC_NET_W_READ_START     0x089C  //読み込み開始アドレス（PLC MAPしたWのアドレス指定）
 
 #define MELSEC_NET_OK               1
 #define MELSEC_NET_SEND_ERR         -1
@@ -70,8 +70,8 @@ typedef struct st_PLCwriteW_tag {
 #define N_PC_B_OUT_WORD         16    //PLC LINK PLC出力WORD数
 
 typedef struct st_MelsecNet_tag {
-    short chan;                         //通信回線のチャネルNo.
-    short mode;                         //ダミー
+    short chan=0;                         //通信回線のチャネルNo.
+    short mode=0;                         //ダミー
     long  path;                         //オープンされた回線のパス　回線クローズ時に必要
     long err;                           //エラーコード
     short status;                       //回線の状態　0:回線未確立　0より上：正常　0より下：異常
@@ -110,8 +110,8 @@ public:
     int output();           //出力処理
 
     //追加メソッド
-    int set_debug_status(LPST_PLC_IO pworkbuf); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
-    int set_sim_status(LPST_PLC_IO pworkbuf);   //デバッグモード時にSimulatorからの入力で出力内容を上書き
+    int set_debug_status(); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
+    int set_sim_status();   //デバッグモード時にSimulatorからの入力で出力内容を上書き
     int closeIF();
     
     void set_debug_mode(int id) {
@@ -136,6 +136,9 @@ private:
     LPST_CRANE_STATUS pCrane;
     LPST_AGENT_INFO pAgentInf;
 
-    int set_notch_ref();
     int parse_notch_com();
+    int parse_ope_com();
+    int parse_sensor_fb();
+    int set_notch_ref();
+    int set_bit_coms();
  };

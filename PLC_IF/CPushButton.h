@@ -22,7 +22,7 @@ public:
     bool is_pb_on() { return(triggered); }
 
 private:
-    bool triggered;
+    bool triggered = true;
     int hold_time_count = 0;
     int off_delay_time = 4;
 
