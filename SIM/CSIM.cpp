@@ -2,6 +2,7 @@
 #include "CWorkWindow_SIM.h"
 #include "Spec.h"
 #include "CVector3.h"
+#include "SIM.h"
 
 extern ST_SPEC def_spec;
 
@@ -70,15 +71,19 @@ int CSIM::init_proc() {
     //クレーン仕様のセット
     pCrane->set_spec(&def_spec);   
     
-    //クレーン,吊荷の初期状態セット 
-     pCrane->init_crane();
-    
+    //クレーンの初期状態セット 
+     pCrane->init_crane(SYSTEM_TICK_ms/1000.0);
+ 
+
      //吊荷ｵﾌﾞｼﾞｪｸﾄにｸﾚｰﾝｵﾌﾞｼﾞｪｸﾄを紐付け
      pLoad->set_crane(pCrane);
+  
+     //吊荷の初期状態セット 
     Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), def_spec.boom_high- SIM_INIT_L);  //吊点位置
     Vector3 _v(0.0, 0.0, 0.0);                          //吊点位速度
-    pLoad->init_mob(SIM_INIT_SCAN, _r, _v);
+    pLoad->init_mob(SYSTEM_TICK_ms / 1000.0, _r, _v);
     pLoad->set_m(SIM_INIT_M);
+ 
 
     return int(mode & 0xff00);
 }
@@ -99,8 +104,9 @@ int CSIM::input() {
         pAgent->v_ref[ID_BOOM_H]
     );
 
-    //スキャンタイムセット
+    //スキャンタイムセット dtはマルチメディアタイマ　コールバックでセット
     pCrane->set_dt(dt);
+    pLoad->set_dt(dt);
 
     //移動極限状態
     for (int i = 0; i < MOTION_ID_MAX;i++) {

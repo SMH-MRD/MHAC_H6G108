@@ -25,7 +25,7 @@ typedef struct stMainWndTag {
 
 //マルチメディアタイマー管理構造体
 #define TARGET_RESOLUTION			1		//マルチメディアタイマー分解能 msec
-#define SYSTEM_TICK_ms				10		//メインスレッド周期 msec
+#define SYSTEM_TICK_ms				10	//メインスレッド周期 msec
 #define INITIAL_TASK_STACK_SIZE		16384	//タスクオブジェクトスレッド用スタックサイズ
 
 typedef struct stKnlManageSetTag {

@@ -167,6 +167,8 @@ typedef struct StSpec {
 	double boom_high = 25.0, wheel_span = 20.0, leg_span = 15.0;// ブーム高さ,ホイルスパン,脚間スパン
 	//極限
 	double hoist_pos_min = -10.0, hoist_pos_max = 20.0, boom_pos_min = 5.0, boom_pos_max = 20.0, gantry_pos_min = 0.0, gantry_pos_max = 300.0;
+	//吊具荷重
+	double m_loard0 = 1000;	//吊具質量kg
 	//振れセンサ
 	double Csw[2][2][4] = {	//振れセンサ　パラメータ
 		{{1.0,1.0,0.2,0.01},{1.0,1.0,0.2,0.01}},	//No.1 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad

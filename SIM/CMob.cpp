@@ -87,7 +87,7 @@ CCrane::CCrane() {
 	accdec_cut_spd_range[ID_BOOM_H] = 0.01;
 	accdec_cut_spd_range[ID_SLEW] = 0.001;
 	accdec_cut_spd_range[ID_GANTRY] = 0.01;
-	M = 1000.0;
+	M = pspec->m_loard0;//初期荷重
 	for (int i = 0; i < MOTION_ID_MAX;i++) {
 		is_fwd_endstop[i] = false;
 		is_rev_endstop[i] = false;
@@ -103,10 +103,10 @@ CCrane::CCrane() {
 		motion_break[i] = false;
 	}
 	r0[ID_GANTRY] = pspec->gantry_pos_min;
-	r0[ID_HOIST] = 0.0;
+	r0[ID_HOIST] = pspec->boom_high - 9.8;	//初期値　周期　2πとなる巻き位置
 	r0[ID_BOOM_H] = pspec->boom_pos_min;
 	r0[ID_SLEW] = 0.0;
-	l_mh = 1.0;
+	l_mh = 9.8;//初期値　周期　2π
 	
 }
 CCrane::~CCrane() {}
@@ -285,19 +285,20 @@ void CCrane::timeEvolution() {
 	return;
 }
 
-void CCrane::init_crane() {
+void CCrane::init_crane(double _dt) {
 
 	rc.x = SIM_INIT_X; rc.y = 0.0; rc.z = 0.0;
 	vc.x = 0.0; vc.y = 0.0; vc.z = 0.0;
 	
-	Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), pspec->boom_high- SIM_INIT_L);
+	Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), pspec->boom_high);
 
-	init_mob(SIM_INIT_SCAN, _r, vc);
+	init_mob(_dt, _r, vc);
 
 	set_v_ref(0.0, 0.0, 0.0, 0.0);	//初期速度指令値セット
 	set_fex(0.0, 0.0, 0.0);			//初期外力セット
 
-	r0[ID_HOIST] = r.z;
+	//r0は、各軸アブソコーダの値,　rは、吊点のxyz座標の値
+	r0[ID_HOIST] = r.z - SIM_INIT_L;
 	r0[ID_GANTRY] = rc.x;
 	r0[ID_SLEW] = SIM_INIT_TH;
 	r0[ID_BOOM_H] = SIM_INIT_R;
@@ -402,6 +403,8 @@ Vector3 CLoad::A(Vector3& r, Vector3& v) {
 
 	a = L_.clone().multiplyScalor(Sdivm);
 	a.z -= GA;
+
+	double temp_d = L_.length();
 
 	//計算誤差によるロープ長ずれ補正
 	Vector3 hatL = L_.clone().normalize();
