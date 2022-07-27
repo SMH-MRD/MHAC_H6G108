@@ -127,7 +127,7 @@ int CSIM::parse() {
      pLoad->timeEvolution();        //吊荷の位置,速度計算
      pLoad->r.add(pLoad->dr);       //吊荷位置更新
      pLoad->v.add(pLoad->dv);       //吊荷速度更新
-     pLoad->update_relative_vec();  //吊荷吊点相対ベクトル更新
+     pLoad->update_relative_vec();  //吊荷吊点相対ベクトル更新(ロープベクトル　L,vL)
 
     return 0;
 }
@@ -176,7 +176,7 @@ static double radsl_last, radbh_last;
 int CSIM::set_sway_io() {
 
     //振れセンサ信号
-    double th = pCrane->r0[ID_SLEW];//旋回角度
+    double th = pCrane->r0[ID_SLEW]+PI90;//旋回角度
     // クレーン座標の振れ角をカメラ座標に変換(旋回角度分回転）
     double phx = ((pLoad->L.x) * cos(th) + (pLoad->L.y) * sin(th))/pCrane->l_mh;
     double phy = (-(pLoad->L.x) * sin(th) + (pLoad->L.y) * cos(th)) / pCrane->l_mh;
