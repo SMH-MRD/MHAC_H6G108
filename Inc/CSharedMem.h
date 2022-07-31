@@ -237,8 +237,8 @@ typedef struct stEnvSubproc {
 typedef struct StCraneStatus {
 	DWORD env_act_count=0;						//ヘルシー信号
 	ST_ENV_SUBPROC subproc_stat;				//サブプロセスの状態
-	ST_SPEC spec;
-	DWORD operation_mode;
+	ST_SPEC spec;								//クレーン仕様
+	DWORD operation_mode;						//運転モード　機上,リモート
 	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
 	WORD faultPC[N_PC_FAULT_WORDS];				//PLC検出異常
 	WORD faultPLC[N_PLC_FAULT_WORDS];			//制御PC検出異常
@@ -251,6 +251,42 @@ typedef struct StCraneStatus {
 	double mh_l;								//ロープ長
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
+
+/************************************************************************************/
+/*   作業内容（JOB)定義構造体                                 　     　　　　　　	*/
+/* 　ClientService タスクがセットする共有メモリ上の情報								*/
+/* 　JOB	:From-Toの搬送コマンド													*/
+/*   COMMAND:1つのJOBを、複数のコマンドで構成	PICK GRAND PARK						*/
+/* 　JOB	:From-Toの搬送作業													*/
+/************************************************************************************/
+#define COM_STEP_MAX		10					//　JOBを構成するコマンド最大数
+#define COM_TARGET_MAX		MOTION_ID_MAX		//　コマンド毎の目標最大数
+#define JOB_TYPE_HANDLING	0x00000001
+
+//Recipe
+typedef struct _stJobRecipe {
+	WORD job_id;								//JOB No
+	WORD client_type;							//依頼主
+	WORD job_type;								//JOB種別（搬送、移動、操作)
+	WORD step_n;								//ステップ数
+	double target[COM_STEP_MAX][COM_TARGET_MAX];//各STEP毎　各軸目標位置,目標搬送量
+	DWORD option[COM_STEP_MAX][COM_TARGET_MAX];	//各軸STEP毎　オプション条件
+}ST_JOB_RECIPE, * LPST_JOB_RECIPE;
+
+//Status
+typedef struct stJobStat {						//JOB実行状態
+	LPST_JOB_RECIPE pjob;						//対象JOB
+	int job_step_now;							//実行中ステップ
+	int step_status[COM_STEP_MAX];				//step実行状況
+	double step_elapsed[COM_STEP_MAX];			//step経過時間
+	int job_status;								//完了コード　異常完了時エラーコード
+}ST_JOB_STAT, * LPST_JOB_STAT;
+
+//Set
+typedef struct stJobSet {
+	ST_JOB_RECIPE	recipe;
+	ST_JOB_STAT		status;
+}ST_JOB_SET, * LPST_JOB_LIST;
 
 /****************************************************************************/
 /*   運動要素定義構造体                                                     */
@@ -285,21 +321,18 @@ typedef struct stMotionElement {	//運動要素
 #define REQ_IMPOSSIBLE		-1
 #define REQ_COMP_ABNORMAL   -2
 
+//Recipe
 typedef struct stMotionRecipe {					//移動パターン
-	DWORD id;									//ID No. LOWORD:No. HIWORD:軸コード
-	int motion_type;							//動作種別　移動、
+	DWORD motion_type;							//動作種別、
 	int n_step;									//動作構成要素数
 	DWORD opt_dw;								//オプション条件
 	int time_limit;								//タイムオーバー判定値
 	ST_MOTION_ELEMENT motion[M_ELEMENT_MAX];	//動作定義要素配列
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
-/****************************************************************************/
-/*   動作実行管理構造体                                                     */
-/* 　動作（MOTION)実行状態管理用構造体									　  */
-/****************************************************************************/
+//Status
 typedef struct stMotionStat {
-	DWORD id;									//ID No. LOWORD:コマンドID No. HIWORD:軸コード
+	DWORD id;									//ID No. HIWORD:軸コード LOWORD:シリアルNo 
 	int status;									//動作実行状況
 	int iAct;									//実行中要素配列index -1で完了
 	int act_count;								//実行中要素の実行カウント数
@@ -307,69 +340,45 @@ typedef struct stMotionStat {
 	int error_code;								//エラーコード　異常完了時
 }ST_MOTION_STAT, * LPST_MOTION_STAT;
 
+//Set
+typedef struct stMotionSet {
+	ST_MOTION_RECIPE recipe;					//動作内容定義
+	ST_MOTION_STAT status;						//動作実行状態 
+}ST_MOTION_SET, * LPST_MOTION_SET;
+
+
 /********************************************************************************/
-/*   軸連動運転内容定義構造体                                      　　　　　　 */
+/*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
 #define STOP_COMMAND		0//　停止運転
 #define PICK_COMMAND		1//　荷掴み運転
 #define GRND_COMMAND		2//　荷卸し運転
 #define PARK_COMMAND		3//　移動運転
-
+//Recipe
 typedef struct stCommandRecipe {				//運転要素
-	int type;									//コマンド種別
-	DWORD jobID;								//紐付けられているJOB　ID
-	DWORD comID;								//ID No.
-	bool is_motion_there[MOTION_ID_MAX];				//動作対象軸
+	LPST_JOB_RECIPE pjob;						//紐付けられているJOB
+	WORD job_step;								//紐付けられているJOBの担当ステップ
+	bool is_required_motion[MOTION_ID_MAX];		//動作対象軸
 	ST_MOTION_RECIPE motions[MOTION_ID_MAX];
 }ST_COMMAND_RECIPE, * LPST_COMMAND_RECIPE;
 
-/****************************************************************************/
-/*   運転実行管理構造体                                           　　      */
-/****************************************************************************/
+//Status
 typedef struct stCommandStat {				//運転要素
 	int type;								//コマンド種別
 	DWORD comID;							//ID No.
 	int status;								//コマンド実行状況
 	int elapsed;							//経過時間
 	int error_code;							//エラーコード　異常完了時
-	ST_MOTION_STAT p_motion_stat[MOTION_ID_MAX];	//各軸実行ステータス構造体のアドレス
 }ST_COMMAND_STAT, * LPST_COMMAND_STAT;
 
-/***********************************************************************************/
-/*   作業内容（JOB)定義構造体                                 　     　　　　　　  */
-/* 　ClientService タスクがセットする共有メモリ上の情報							   */
-/*   JOBの内容　:　																   */
-/*			搬送　	指定カ所から荷を取って指定カ所へ蔵置後、待機位置への移動まで　 */
-/*			移動　	指定カ所から荷を取って指定カ所へ蔵置後、定期定位置への移動まで */
-/*			その他	電源投入,モード変更等の処理									   */
-/***********************************************************************************/
-#define COM_STEP_MAX		5//　JOBを構成するコマンド最大数
-
-#define JOB_TYPE_HANDLING	0x00000001
-
-//# ClientService タスクセット
-typedef struct _stJobRecipe {
-	DWORD jobID;								//JOB ID
-	DWORD type;									//JOB種別（搬送、移動、操作）
-	int	n_com_step;								//ステップ数
-	double to_pos[COM_STEP_MAX][MOTION_ID_MAX];	//各軸STEP毎　目標位置
-	DWORD option[COM_STEP_MAX][MOTION_ID_MAX];	//各軸STEP毎　オプション条件
-}ST_JOB_RECIPE, * LPST_JOB_RECIPE;
+//Set
+typedef struct stCommandSet {
+	ST_COMMAND_RECIPE	recipe;				//コマンド種別
+	ST_COMMAND_STAT		status;				//ID No.
+}ST_COMMAND_SET, * LPST_COMMAND_SET;
 
 
-//# Policy タスクセット
-typedef struct stJobStat {						//JOB実行状態
-	DWORD jobID;								//JOB ID
-	int n_job_step;								//構成コマンド数
-	int job_step_now;							//実行中ステップ
-	int status;									//job実行状況
-	int elapsed;								//経過時間
-	int error_code;								//エラーコード　異常完了時
-}ST_JOB_STAT, * LPST_JOB_STAT;
-
-#define JOB_HOLD_MAX		10					//	保持可能JOB最大数
-#define NO_JOB_REQUIRED		-1					//  要求ジョブ無し
 
 
 //# Policy タスクセット領域
@@ -382,26 +391,36 @@ typedef struct stJobStat {						//JOB実行状態
 /*   Client Service	情報定義構造体                                   　   　*/
 /* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
 /****************************************************************************/
+
+#define JOB_HOLD_MAX		10					//	保持可能JOB最大数
+
 typedef struct stCSInfo {
 
-	//for Policy
-	int current_job;							//実行要求中のJOBインデックス -1:要求無し
-	ST_JOB_RECIPE	jobs[JOB_HOLD_MAX];			
+	//for Agent
+	int id_job_active;							//実行中のJOBインデックス  -1:実行無し
+	ST_JOB_SET	job_list[JOB_HOLD_MAX];
 
 	//for Client
-	DWORD req_stat;								
+	DWORD req_status;
+	DWORD n_job_hold;							//未完JOB数
 
 }ST_CS_INFO, * LPST_CS_INFO;
 
 
-#define BITSEL_HOIST        0x00000001   //巻 　       ビット
-#define BITSEL_GANTRY       0x00000002   //走行        ビット
-#define BITSEL_TROLLY       0x00000004   //横行        ビット
-#define BITSEL_BOOM_H       0x00000008   //引込        ビット
-#define BITSEL_SLEW         0x00000010   //旋回        ビット
-#define BITSEL_OP_ROOM      0x00000020   //運転室移動　ビット
-#define BITSEL_H_ASSY       0x00000040   //吊具        ビット
-#define BITSEL_COMMON       0x10000000   //共通        ビット
+#define BITSEL_HOIST        0x00000001		//巻 　       ビット
+#define BITSEL_GANTRY       0x00000002		//走行        ビット
+#define BITSEL_TROLLY       0x00000004		//横行        ビット
+#define BITSEL_BOOM_H       0x00000008		//引込        ビット
+#define BITSEL_SLEW         0x00000010		//旋回        ビット
+#define BITSEL_OP_ROOM      0x00000020		//運転室移動　ビット
+#define BITSEL_H_ASSY       0x00000040		//吊具        ビット
+#define BITSEL_COMMON       0x10000000		//共通        ビット
+
+#define POLICY_AUTO_OFF		0x00000000		//自動OFF
+#define POLICY_SEMI_AUTO_ON	0x00000001		//半自動MODE
+
+#define POLICY_ANTISWAY_OFF	0x00000000		//振れ止めOFF
+#define POLICY_ANTISWAY_ON	0x00000001		//振れ止めON
 
 /****************************************************************************/
 /*   Policy	情報定義構造体                                   　			  　*/
@@ -412,13 +431,6 @@ typedef struct stPolicyInfo {
 	//for AGENT
 	DWORD pc_ctrl_mode;							//制御モード
 	DWORD antisway_mode;						//振れ止めモード
-	int current_com;							//実行要求中のコマンドインデックス -1:要求無し
-	ST_COMMAND_RECIPE commands[COM_STEP_MAX];	
-
-	//for CS
-
-
-	ST_JOB_STAT job_stat[JOB_HOLD_MAX];			
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;
 
@@ -431,8 +443,6 @@ typedef struct stPolicyInfo {
 
 
 #define PB_COM_ESTOP			0
-
-
 #define LAMP_AS_OFF				0
 #define LAMP_AS_ON				1
 
@@ -440,7 +450,7 @@ typedef struct stPolicyInfo {
 
 typedef struct stAgentInfo {
 	//for POLICY
-	ST_COMMAND_STAT com_stat[COM_STEP_MAX];	
+	ST_COMMAND_SET com[COM_STEP_MAX];	
 	
 	//for CRANE
 	double v_ref[MOTION_ID_MAX];

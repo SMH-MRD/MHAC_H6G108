@@ -16,6 +16,9 @@ public:
 
    void routine_work(void* param);
 
+   int receipt_job_feedback();
+
+
 private:
    
     LPST_CRANE_STATUS pCraneStat;

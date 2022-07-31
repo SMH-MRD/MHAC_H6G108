@@ -135,6 +135,18 @@ DWORD CPolicy::set_pc_control(DWORD dw_axis) {
 }
 
 /****************************************************************************/
+/*　　COMMAND セット処理													*/
+/****************************************************************************/
+//JOB用処理
+int CPolicy::cal_command_recipe(int type, LPST_JOB_RECIPE pjob) {
+	return 0;
+}
+//単独コマンド用処理
+int CPolicy::cal_command_recipe(int type) {
+	return 0;
+};
+
+/****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
 /****************************************************************************/
 LRESULT CALLBACK CPolicy::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {

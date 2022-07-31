@@ -25,6 +25,8 @@ public:
    
    
    int update_control(DWORD code, LPVOID optlp);
+   int cal_command_recipe(int type, LPST_JOB_RECIPE pjob);
+   int cal_command_recipe(int type);
 
 private:
 

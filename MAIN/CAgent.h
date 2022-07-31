@@ -27,10 +27,15 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    int set_ref_mh();
-    int set_ref_gt();
-    int set_ref_slew();
-    int set_ref_bh();
+    int set_ref_mh();           //巻速度指令値出力
+    int set_ref_gt();           //走行速度指令値出力
+    int set_ref_slew();         //旋回速度指令値出力
+    int set_ref_bh();           //引込速度指令値出力
+    int set_ref_pbs();          //操作PB指令値出力
+
+    int receipt_job();          //Job受付
+    int receipt_com();          //Command受付
+
 
     //タブパネルのStaticテキストを設定
     void set_panel_tip_txt();
