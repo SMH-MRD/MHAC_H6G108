@@ -326,6 +326,7 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
     double time = static_cast<double>(count_now.QuadPart - count_last.QuadPart)/ freq.QuadPart;
     count_last = count_now;
 
+    if (time > 1.0 || time < -0.0) { time = 1.0; }
     pProcObj->set_dt(time);     //サンプリング時間セット
     pProcObj->input();          //入力
     pProcObj->parse();          //データ解析処理

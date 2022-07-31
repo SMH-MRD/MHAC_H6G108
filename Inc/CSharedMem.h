@@ -284,9 +284,10 @@ typedef struct stJobStat {						//JOB実行状態
 
 //Set
 typedef struct stJobSet {
+	DWORD type;
 	ST_JOB_RECIPE	recipe;
 	ST_JOB_STAT		status;
-}ST_JOB_SET, * LPST_JOB_LIST;
+}ST_JOB_SET, * LPST_JOB_SET;
 
 /****************************************************************************/
 /*   運動要素定義構造体                                                     */
