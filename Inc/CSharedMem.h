@@ -56,8 +56,8 @@ using namespace std;
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 /****************************************************************************/
-#define N_PLC_PBS				64 //運転操作PB数
-#define N_PLC_BITS				64 //BIT STATUS数
+#define N_PLC_PB				64 //運転操作PB数
+#define N_PLC_LAMP				64 //BIT STATUS数
 #define N_PLC_CTRL_WORDS        16 //制御センサ信号WORD数
 #define N_PLC_FAULTS			400	//PLCフォルトの割り当てサイズ
 
@@ -75,26 +75,21 @@ using namespace std;
 #define ID_PB_AUTO_TG_TO4		11
 #define ID_PB_CRANE_MODE		12
 #define ID_PB_REMOTE_MODE		13
-#define ID_PB_CTRT_SOURCE_ON	14
-#define ID_PB_CTRT_SOURCE_OFF	15
-#define ID_PB_CTRT_SOURCE2_ON	16
-#define ID_PB_CTRT_SOURCE2_OFF	17
+#define ID_PB_CTRL_SOURCE_ON	14
+#define ID_PB_CTRL_SOURCE_OFF	15
+#define ID_PB_CTRL_SOURCE2_ON	16
+#define ID_PB_CTRL_SOURCE2_OFF	17
 #define ID_PB_AUTO_RESET		18
 
-
-
-
-#define ID_BIT_CTRL_SOURCE_ON	0
-
-#define ID_WORD_CTRL_SOURCE_ON	0
-#define ID_WORD_CTRL_REMOTE		1
+#define PLC_IO_LAMP_FLICKER_COUNT    40 //ランプフリッカの間隔カウント
+#define PLC_IO_LAMP_FLICKER_CHANGE   20 //ランプフリッカの間隔カウント
 
 // PLC_User IF信号構造体（機上運転室IO)
 // IO割付内容は、PLC_IO_DEF.hに定義
 typedef struct StPLCUI {
 	int notch_pos[MOTION_ID_MAX];
-	bool PBs[N_PLC_PBS];
-	bool BITs[N_PLC_BITS];
+	bool PB[N_PLC_PB];
+	bool LAMP[N_PLC_LAMP];
 }ST_PLC_UI, * LPST_PLC_UI;
 
 // PLC_状態信号構造体（機上センサ信号)
@@ -262,6 +257,11 @@ typedef struct StCraneStatus {
 #define COM_STEP_MAX		10					//　JOBを構成するコマンド最大数
 #define COM_TARGET_MAX		MOTION_ID_MAX		//　コマンド毎の目標最大数
 #define JOB_TYPE_HANDLING	0x00000001
+#define COM_PB_SET			1
+#define COM_LAMP_ON			2
+#define COM_LAMP_OFF		3
+#define COM_LAMP_FLICKER	4
+
 
 //Recipe
 typedef struct _stJobRecipe {
@@ -315,13 +315,6 @@ typedef struct stMotionElement {	//運動要素
 /****************************************************************************/
 #define M_ELEMENT_MAX	32
 
-#define REQ_STANDBY			1
-#define REQ_ACTIVE			2
-#define REQ_SUSPENDED		3
-#define REQ_COMP_NORMAL		0
-#define REQ_IMPOSSIBLE		-1
-#define REQ_COMP_ABNORMAL   -2
-
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン
 	DWORD motion_type;							//動作種別、
@@ -352,10 +345,7 @@ typedef struct stMotionSet {
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
-#define STOP_COMMAND		0//　停止運転
-#define PICK_COMMAND		1//　荷掴み運転
-#define GRND_COMMAND		2//　荷卸し運転
-#define PARK_COMMAND		3//　移動運転
+
 //Recipe
 typedef struct stCommandRecipe {				//運転要素
 	LPST_JOB_RECIPE pjob;						//紐付けられているJOB
@@ -393,7 +383,8 @@ typedef struct stCommandSet {
 /* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
 /****************************************************************************/
 
-#define JOB_HOLD_MAX		10					//	保持可能JOB最大数
+#define JOB_HOLD_MAX			10					//	保持可能JOB最大数
+#define SEMI_AUTO_TARGET_MAX	8					// 半自動目標ホールド数
 
 typedef struct stCSInfo {
 
@@ -404,6 +395,8 @@ typedef struct stCSInfo {
 	//for Client
 	DWORD req_status;
 	DWORD n_job_hold;							//未完JOB数
+
+	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];
 
 }ST_CS_INFO, * LPST_CS_INFO;
 
@@ -439,15 +432,6 @@ typedef struct stPolicyInfo {
 /*   Agent	情報定義構造体                                   　   　		*/
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
-#define N_AGENT_PLC_PB_COM		10
-#define N_AGENT_PLC_LAMP_COM	10
-
-
-#define PB_COM_ESTOP			0
-#define LAMP_AS_OFF				0
-#define LAMP_AS_ON				1
-
-
 
 typedef struct stAgentInfo {
 	//for POLICY
@@ -455,8 +439,11 @@ typedef struct stAgentInfo {
 	
 	//for CRANE
 	double v_ref[MOTION_ID_MAX];
-	bool pb_coms[N_AGENT_PLC_PB_COM];
-	bool lamp_coms[N_AGENT_PLC_LAMP_COM];
+	int PLC_PB_com[N_PLC_PB];
+	int PLC_LAMP_com[N_PLC_LAMP];
+
+	//for PLC_IO
+
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

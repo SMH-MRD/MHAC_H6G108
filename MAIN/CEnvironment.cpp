@@ -215,7 +215,7 @@ int CEnvironment::parse_sway_stat(int ID) {
 /****************************************************************************/
 int CEnvironment::mode_set() {
 	//リモートモードセット
-	if (pPLC_IO->ui.PBs[ID_PB_REMOTE_MODE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
+	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
 	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_REMOTE;
 
 	//シミュレータモードセット
@@ -313,12 +313,13 @@ void CEnvironment::tweet_update() {
 	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {
 		if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) wostrs << L" #PLC:DBG";
 		else wostrs << L" #PLC:PLC";
-
+/*
 		if (pPLC_IO->status.ctrl[ID_WORD_CTRL_SOURCE_ON] == L_ON) wostrs << L" ,! PW:ON";
 		else wostrs << L",! PW:OFF";
 
 		if (pPLC_IO->status.ctrl[ID_WORD_CTRL_REMOTE] == L_ON) wostrs << L",@ RMT";
 		else wostrs << L",@CRANE";
+*/
 	}
 	else wostrs << L" # PLC:NG";
 

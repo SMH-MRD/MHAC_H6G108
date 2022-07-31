@@ -94,6 +94,7 @@ typedef struct st_MelsecNet_tag {
 
 }ST_MELSEC_NET, * LPST_MELSEC_NET;
 
+
 class CPLC_IF :    public CBasicControl
 {
 public:

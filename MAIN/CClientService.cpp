@@ -31,7 +31,7 @@ CClientService::~CClientService() {
 /*   タスク初期化処理                                                       */
 /* 　メインスレッドでインスタンス化した後に呼びます。                       */
 /****************************************************************************/
-static BOOL PLC_PBs_last[N_PLC_PBS];
+static BOOL PLC_PBs_last[N_PLC_PB];
 
 void CClientService::init_task(void* pobj) {
 
@@ -39,7 +39,7 @@ void CClientService::init_task(void* pobj) {
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 
-	for (int i = 0;i < N_PLC_PBS;i++) PLC_PBs_last[N_PLC_PBS] = false;
+	for (int i = 0;i < N_PLC_PB;i++) PLC_PBs_last[i] = false;
 
 	set_panel_tip_txt();
 	return;
@@ -73,10 +73,10 @@ void CClientService::main_proc() {
 	CPolicy *pPolicy = (CPolicy * )VectpCTaskObj[g_itask.policy];
 
 	//振れ止めモード要求
-	if ((pPLC_IO->ui.PBs[ID_PB_ANTISWAY_ON] == TRUE) && (PLC_PBs_last[ID_PB_ANTISWAY_ON] == FALSE)) {
+	if ((pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == TRUE) && (PLC_PBs_last[ID_PB_ANTISWAY_ON] == FALSE)) {
 		pPolicy->update_control(POLICY_REQ_ANTISWAY, NULL);
 	}
-	PLC_PBs_last[ID_PB_ANTISWAY_ON] = pPLC_IO->ui.PBs[ID_PB_ANTISWAY_ON];
+	PLC_PBs_last[ID_PB_ANTISWAY_ON] = pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON];
 
 	//デバッグモード要求
 	if ((pPLC_IO->mode & PLC_IF_PC_DBG_MODE) != PLC_Dbg_last_input) {

@@ -1,5 +1,6 @@
 #include "CAgent.h"
 #include "CPolicy.h"
+#include "CPolicy.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -40,6 +41,9 @@ void CAgent::init_task(void* pobj) {
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 
+	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
+	for (int i = 0;i < N_PLC_LAMP;i++) AgentInf_workbuf.PLC_LAMP_com[i] = 0;
+
 	set_panel_tip_txt();
 	return;
 };
@@ -71,17 +75,22 @@ void CAgent::main_proc() {
 //定周期処理手順3　信号出力処理
 void CAgent::output() {
 
-	set_ref_mh();		//巻き速度指令
-	set_ref_gt();		//走行速度指令
-	set_ref_slew();		//旋回速度指令
-	set_ref_bh();		//引込速度指令
-		
+//PLCへの出力計算
+	set_ref_mh();			//巻き速度指令
+	set_ref_gt();			//走行速度指令
+	set_ref_slew();			//旋回速度指令
+	set_ref_bh();			//引込速度指令
+	update_pb_lamp_com();	//PB LAMP出力
+
+
+		//共有メモリ出力処理
+	memcpy_s(pAgentInf, sizeof(ST_AGENT_INFO), &AgentInf_workbuf, sizeof(ST_AGENT_INFO));
 
 	wostrs << L" #Ref:" << fixed<<setprecision(3);
-	wostrs << L"MH " << pAgentInf->v_ref[ID_HOIST];
-	wostrs << L",GT " << pAgentInf->v_ref[ID_GANTRY];
-	wostrs << L",SL " << pAgentInf->v_ref[ID_SLEW];
-	wostrs << L",BH " << pAgentInf->v_ref[ID_BOOM_H];
+	wostrs << L"MH " << AgentInf_workbuf.v_ref[ID_HOIST];
+	wostrs << L",GT " << AgentInf_workbuf.v_ref[ID_GANTRY];
+	wostrs << L",SL " << AgentInf_workbuf.v_ref[ID_SLEW];
+	wostrs << L",BH " << AgentInf_workbuf.v_ref[ID_BOOM_H];
 
 	wostrs <<  L" --Scan " << inf.period;;
 
@@ -95,10 +104,10 @@ void CAgent::output() {
 /****************************************************************************/
 int CAgent::set_ref_mh(){
 	if (pPolicyInf->pc_ctrl_mode & BITSEL_HOIST) {
-		pAgentInf->v_ref[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
+		AgentInf_workbuf.v_ref[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
 	}
 	else {
-		pAgentInf->v_ref[ID_HOIST] = 0.0;
+		AgentInf_workbuf.v_ref[ID_HOIST] = 0.0;
 	}
 	return 0; 
 }
@@ -107,10 +116,10 @@ int CAgent::set_ref_mh(){
 /****************************************************************************/
 int CAgent::set_ref_gt(){
 	if (pPolicyInf->pc_ctrl_mode & BITSEL_GANTRY) {
-		pAgentInf->v_ref[ID_GANTRY] = pCraneStat->notch_spd_ref[ID_GANTRY];
+		AgentInf_workbuf.v_ref[ID_GANTRY] = pCraneStat->notch_spd_ref[ID_GANTRY];
 	}
 	else {
-		pAgentInf->v_ref[ID_GANTRY] = 0.0;
+		AgentInf_workbuf.v_ref[ID_GANTRY] = 0.0;
 	}
 	return 0;
 }
@@ -119,10 +128,10 @@ int CAgent::set_ref_gt(){
 /****************************************************************************/
 int CAgent::set_ref_slew(){
 	if (pPolicyInf->pc_ctrl_mode & BITSEL_SLEW) {
-		pAgentInf->v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
+		AgentInf_workbuf.v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
 	}
 	else {
-		pAgentInf->v_ref[ID_SLEW] = 0.0;
+		AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
 	}
 	
 	return 0;
@@ -132,22 +141,13 @@ int CAgent::set_ref_slew(){
 /****************************************************************************/
 int CAgent::set_ref_bh(){
 	if (pPolicyInf->pc_ctrl_mode & BITSEL_BOOM_H) {
-		pAgentInf->v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
+		AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
 	}
 	else {
-		pAgentInf->v_ref[ID_BOOM_H] = 0.0;
+		AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 	}
 	return 0;
 }
-
-
-/****************************************************************************/
-/*   操作PB指令値出力		                                                */
-/****************************************************************************/
-int CAgent::set_ref_pbs() {
-	return 0;
-};
-
 
 /****************************************************************************/
 /*   Job受付                                                                */
@@ -158,10 +158,96 @@ int CAgent::receipt_job(LPST_JOB_SET pjob, int to_do) {
 /****************************************************************************/
 /*   Command受付															*/
 /****************************************************************************/
-int CAgent::receipt_com(int to_do) {
+int CAgent::receipt_com(int type,int target) {
+	switch(type){
+	case COM_PB_SET:
+		AgentInf_workbuf.PLC_PB_com[target] = AGENT_PB_OFF_DELAY;
+		break;
+	case COM_LAMP_ON:
+		AgentInf_workbuf.PLC_LAMP_com[target] = PLC_IO_LAMP_FLICKER_CHANGE;
+		break;
+	case COM_LAMP_OFF:
+		AgentInf_workbuf.PLC_LAMP_com[target] = 0;
+		break;
+	case COM_LAMP_FLICKER:
+		AgentInf_workbuf.PLC_LAMP_com[target] = PLC_IO_LAMP_FLICKER_COUNT;
+	default:
+		break;
+	}
 	return 0;
 };
+/****************************************************************************/
+/*  PB,ランプ出力内容セット														*/
+/****************************************************************************/
+void CAgent::set_lamp() {
+	if (pPolicyInf->antisway_mode & BITSEL_COMMON) {
+		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_ON;
+		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_OFF;
+	}
+	else {
+		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_OFF;
+		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_ON;
+	}
+	return;
+};  
+/****************************************************************************/
+/*  PB,ランプ指令更新														*/
+/****************************************************************************/
+void CAgent::update_pb_lamp_com() {
+	//PB
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP]--;
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
 
+	//LAMP
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3]++;
+	else;
+
+	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4]++;
+	else;
+
+	return;
+};
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
 /****************************************************************************/
