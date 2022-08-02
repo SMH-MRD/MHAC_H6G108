@@ -65,14 +65,6 @@ using namespace std;
 #define ID_PB_ANTISWAY_ON		1
 #define ID_PB_ANTISWAY_OFF		2
 #define ID_PB_AUTO_START		3
-#define ID_PB_AUTO_TG_FROM1		4
-#define ID_PB_AUTO_TG_FROM2		5
-#define ID_PB_AUTO_TG_FROM3		6
-#define ID_PB_AUTO_TG_FROM4		7
-#define ID_PB_AUTO_TG_TO1		8
-#define ID_PB_AUTO_TG_TO2		9
-#define ID_PB_AUTO_TG_TO3		10
-#define ID_PB_AUTO_TG_TO4		11
 #define ID_PB_CRANE_MODE		12
 #define ID_PB_REMOTE_MODE		13
 #define ID_PB_CTRL_SOURCE_ON	14
@@ -89,6 +81,7 @@ using namespace std;
 typedef struct StPLCUI {
 	int notch_pos[MOTION_ID_MAX];
 	bool PB[N_PLC_PB];
+	bool PBsemiauto[SEMI_AUTO_TARGET_MAX];
 	bool LAMP[N_PLC_LAMP];
 }ST_PLC_UI, * LPST_PLC_UI;
 
@@ -244,8 +237,18 @@ typedef struct StCraneStatus {
 	bool is_fwd_endstop[MOTION_ID_MAX];			//正転極限判定
 	bool is_rev_endstop[MOTION_ID_MAX];			//逆転極限判定
 	double mh_l;								//ロープ長
+	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];//半自動目標位置
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
+#define SEMI_AUTO_TG_CLR	-1
+#define SEMI_AUTO_TG1		0
+#define SEMI_AUTO_TG2		1
+#define SEMI_AUTO_TG3		2
+#define SEMI_AUTO_TG4		3
+#define SEMI_AUTO_TG5		4
+#define SEMI_AUTO_TG6		5
+#define SEMI_AUTO_TG7		6
+#define SEMI_AUTO_TG8		7
 
 /************************************************************************************/
 /*   作業内容（JOB)定義構造体                                 　     　　　　　　	*/
@@ -370,8 +373,6 @@ typedef struct stCommandSet {
 }ST_COMMAND_SET, * LPST_COMMAND_SET;
 
 
-
-
 //# Policy タスクセット領域
 
 #define MODE_PC_CTRL		0x00000001
@@ -384,7 +385,7 @@ typedef struct stCommandSet {
 /****************************************************************************/
 
 #define JOB_HOLD_MAX			10					//	保持可能JOB最大数
-#define SEMI_AUTO_TARGET_MAX	8					// 半自動目標ホールド数
+
 
 typedef struct stCSInfo {
 
@@ -395,8 +396,6 @@ typedef struct stCSInfo {
 	//for Client
 	DWORD req_status;
 	DWORD n_job_hold;							//未完JOB数
-
-	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];
 
 }ST_CS_INFO, * LPST_CS_INFO;
 
@@ -441,6 +440,7 @@ typedef struct stAgentInfo {
 	double v_ref[MOTION_ID_MAX];
 	int PLC_PB_com[N_PLC_PB];
 	int PLC_LAMP_com[N_PLC_LAMP];
+	int PLC_LAMP_semiauto_com[SEMI_AUTO_TARGET_MAX];
 
 	//for PLC_IO
 

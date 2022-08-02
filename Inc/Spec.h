@@ -65,6 +65,8 @@
 #define SID_l0					2	//カメラ中心とハウジング支点間距離
 #define	SID_ph0					3	//カメラのハウジングへの取り付け角度
 
+#define SEMI_AUTO_TARGET_MAX	8	// 半自動目標ホールド数
+
 typedef struct StSpec {
 	//[ID_HOIST],[ID_GANTRY],[ID_TROLLY],[ID_BOOM_H],[ID_SLEW],[ID_OP_ROOM],[ID_H_ASSY],[ID_MOTION1]
 	
@@ -174,6 +176,19 @@ typedef struct StSpec {
 		{{1.0,1.0,0.2,0.01},{1.0,1.0,0.2,0.01}},	//No.1 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
 		{{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0}}		//No.2 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
 	};
+
+	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX]{//半自動デフォルト目標位置
+	//	HST,	GNT,	TRY,	BH,		SLW,	OPR,	ASSY,	COM
+		{10.0,	0.0,	0.0,	8.0,	0.0,	0.0,	0.0,	0.0},
+		{5.0,	0.0,	0.0,	20.0,	PI30,	0.0,	0.0,	0.0},
+		{18.0,	0.0,	0.0,	21.0,	PI90,	0.0,	0.0,	0.0},
+		{20.0,	0.0,	0.0,	27.0,	PI180,	0.0,	0.0,	0.0},
+		{3.0,	0.0,	0.0,	15.0,	-PI45,	0.0,	0.0,	0.0},
+		{15.0,	0.0,	0.0,	18.0,	-PI60,	0.0,	0.0,	0.0},
+		{-3.0,	0.0,	0.0,	10.0,	-PI90,	0.0,	0.0,	0.0},
+		{-5.0,	0.0,	0.0,	15.0,	-PI270,	0.0,	0.0,	0.0}
+	};
+
 }ST_SPEC, * LPST_SPEC;
 
 

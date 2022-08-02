@@ -4,9 +4,9 @@
 #include "Spec.h"
 #include "CSharedMem.h"
 
-#define PLC_IO_HELTHY_NG_COUNT     8
-#define SIM_HELTHY_NG_COUNT     8
-#define SWAY_HELTHY_NG_COUNT     8
+#define PLC_IO_HELTHY_NG_COUNT      8
+#define SIM_HELTHY_NG_COUNT         8
+#define SWAY_HELTHY_NG_COUNT        8
 
 
 
@@ -23,6 +23,7 @@ public:
     void init_task(void* pobj);
     
     void routine_work(void* param);
+    int update_semiauto_target(int ID);
 
 
 private:

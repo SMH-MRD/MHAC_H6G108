@@ -55,6 +55,12 @@ void CEnvironment::init_task(void* pobj) {
 	stWorkCraneStat.sw_stat.cam[ID_BOOM_H].l0 = spec.Csw[SID_CAM1][SID_Y][SID_l0];
 	stWorkCraneStat.sw_stat.cam[ID_BOOM_H].ph0 = spec.Csw[SID_CAM1][SID_Y][SID_ph0];
 
+
+	//半自動目標初期値セット
+	for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++)
+		for (int j = 0;j < MOTION_ID_MAX;j++)
+			stWorkCraneStat.semi_target[i][j] = spec.semi_target[i][j];
+
 	set_panel_tip_txt();
 	return;
 };
@@ -120,6 +126,15 @@ void CEnvironment::output() {
 
 }; 
 
+/****************************************************************************/
+/*　　半自動目標位置更新													*/
+/****************************************************************************/
+int CEnvironment::update_semiauto_target(int ID) {
+	for(int i=0;i< MOTION_ID_MAX;i++)
+		stWorkCraneStat.semi_target[ID][i] = pPLC_IO->status.pos[i];
+
+	return 0;
+};
 /****************************************************************************/
 /*　　ノッチ入力信号を速度指令に変換して取り込み				            */
 /****************************************************************************/

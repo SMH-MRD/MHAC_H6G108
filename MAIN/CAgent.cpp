@@ -68,6 +68,8 @@ void CAgent::input() {
 //’èŽüŠúˆ—Žè‡2@ƒƒCƒ“ˆ—
 void CAgent::main_proc() {
 
+	set_lamp();
+
 	return;
 
 }
@@ -214,36 +216,36 @@ void CAgent::update_pb_lamp_com() {
 	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM1]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM2]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM3]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3] >PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_FROM4]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO1]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO2]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO3]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7]++;
 	else;
 
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_TG_TO4]++;
+	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8] = 0;
+	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8]++;
 	else;
 
 	return;

@@ -1,5 +1,5 @@
 #include "CClientService.h"
-#include "CPolicy.h"
+
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -37,9 +37,15 @@ void CClientService::init_task(void* pobj) {
 
 	//共有メモリ構造体のポインタセット
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
-	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
+	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap()); 
+	pCSinf = (LPST_CS_INFO)(pCSInfObj->get_pMap());
 
 	for (int i = 0;i < N_PLC_PB;i++) PLC_PBs_last[i] = false;
+
+	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
+	pEnvironment = (CEnvironment*)VectpCTaskObj[g_itask.environment];
+
+	semi_auto_target = SEMI_AUTO_TG_CLR;//半自動目標未設定
 
 	set_panel_tip_txt();
 	return;
@@ -70,8 +76,6 @@ static DWORD PLC_Dbg_last_input = 0;
 
 void CClientService::main_proc() {
 
-	CPolicy *pPolicy = (CPolicy * )VectpCTaskObj[g_itask.policy];
-
 	//振れ止めモード要求
 	if ((pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == TRUE) && (PLC_PBs_last[ID_PB_ANTISWAY_ON] == FALSE)) {
 		pPolicy->update_control(POLICY_REQ_ANTISWAY, NULL);
@@ -91,6 +95,9 @@ void CClientService::main_proc() {
 //定周期処理手順3　信号出力処理
 void CClientService::output() {
 
+	//共有メモリ出力
+	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CSinf_workbuf, sizeof(ST_CS_INFO));
+
 	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
@@ -101,6 +108,34 @@ void CClientService::output() {
 int CClientService :: receipt_job_feedback() {
 	return 0;
 };
+
+#define SEMI_AUTO_UPDATE_COUNT	120
+#define SEMI_AUTO_UPDATE_COUNT2	240
+#define SEMI_AUTO_TARGET_SET_COUNT	10
+
+void CClientService::manage_semi_auto() {
+
+	//目標セット,目標設定更新
+	for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++) {
+
+		if (semi_auto_pb_count[i] > SEMI_AUTO_UPDATE_COUNT) {
+			semi_auto_pb_count[i]++; //目標設定更新完了フリッカ表示用カウント
+		}
+		else if (pPLC_IO->ui.PBsemiauto[i]) {
+			if (semi_auto_pb_count[i]++ == SEMI_AUTO_UPDATE_COUNT)//半自動目標セット
+				pEnvironment->update_semiauto_target(i);
+			if (semi_auto_pb_count[i]++ == SEMI_AUTO_TARGET_SET_COUNT)//目標位置更新
+				semi_auto_target = i;
+		}
+		else {
+			if (semi_auto_pb_count[i] > 0) {
+				;
+			}
+			semi_auto_pb_count[i]=0;
+		}
+	}
+	return;
+}
 
 
 /****************************************************************************/
