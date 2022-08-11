@@ -4,32 +4,35 @@
 
 #include "Spec.h"
 #include "CSharedMem.h"
+#include "MKChart.h"
 
-class CSCADA :public CTaskObj
-{
-public:
-    CSCADA();
-    ~CSCADA();
 
-    LRESULT CALLBACK PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
+    class CSCADA :public CTaskObj
+    {
+    public:
+        CSCADA();
+        ~CSCADA();
 
-    void init_task(void* pobj);
+        LRESULT CALLBACK PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
 
-    void routine_work(void* param);
+        void init_task(void* pobj);
 
-private:
-    LPST_CRANE_STATUS pCraneStat;
-    LPST_PLC_IO pPLC_IO;
+        void routine_work(void* param);
 
-    void input();               //外部データ取り込み
-    void main_proc();           //処理内容
-    void output();              //出力データ更新
+    private:
+        LPST_CRANE_STATUS pCraneStat;
+        LPST_PLC_IO pPLC_IO;
 
-    //タブパネルのStaticテキストを設定
-    void set_panel_tip_txt();
-    //タブパネルのFunctionボタンのStaticテキストを設定
-    void set_panel_pb_txt();
+        void input();               //外部データ取り込み
+        void main_proc();           //処理内容
+        void output();              //出力データ更新
 
-};
+        //タブパネルのStaticテキストを設定
+        void set_panel_tip_txt();
+        //タブパネルのFunctionボタンのStaticテキストを設定
+        void set_panel_pb_txt();
+
+    };
+
 
 

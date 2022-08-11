@@ -445,8 +445,8 @@ int CPLC_IF::set_notch_ref() {
 }
 
 //*********************************************************************************************
-// set_notch_ref()
-// AGENTタスクのノッチ位置指令に応じてIO出力を設定
+//set_bit_coms()
+// AGENTタスクのビット指令に応じてIO出力を設定
 //*********************************************************************************************
 int CPLC_IF::set_bit_coms() {
     
@@ -611,10 +611,10 @@ int CPLC_IF::parse_ope_com() {
     plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG2] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target2[ID_WPOS]] & melnet.plc_b_map.PB_auto_target2[ID_BPOS];;
     plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG3] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target3[ID_WPOS]] & melnet.plc_b_map.PB_auto_target3[ID_BPOS];
     plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG4] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target4[ID_WPOS]] & melnet.plc_b_map.PB_auto_target4[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG5] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG6] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target2[ID_WPOS]] & melnet.plc_b_map.PB_auto_target2[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG7] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target3[ID_WPOS]] & melnet.plc_b_map.PB_auto_target3[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG8] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target4[ID_WPOS]] & melnet.plc_b_map.PB_auto_target4[ID_BPOS];
+    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG5] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target5[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
+    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG6] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target6[ID_WPOS]] & melnet.plc_b_map.PB_auto_target2[ID_BPOS];
+    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG7] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target7[ID_WPOS]] & melnet.plc_b_map.PB_auto_target3[ID_BPOS];
+    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG8] = melnet.plc_w_out[melnet.plc_b_map.PB_auto_target8[ID_WPOS]] & melnet.plc_b_map.PB_auto_target4[ID_BPOS];
     plc_io_workbuf.ui.PB[ID_PB_CRANE_MODE];
     plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE];
 

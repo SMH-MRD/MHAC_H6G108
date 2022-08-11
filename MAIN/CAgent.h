@@ -4,23 +4,11 @@
 #include "Spec.h"
 #include "CSharedMem.h"
 
-#define AUTO_DEACTIVATE         0x0000
-#define AUTO_ANTI_SWAY          0x0001
-#define AUTO_SEMI_AUTO          0x0010
-#define AUTO_JOB_COMMAND        0x0100
 
-#define AUTO_NOT_APPLICABLE     0x0000
-#define AUTO_STANDBY            0x0001
-#define AUTO_SUSPEND            0x0010
-#define AUTO_ACTIVE             0x0100
 
-#define AUTO_TO_DO_START        0x00000001
-#define AUTO_TO_DO_INTERRUPT    0x00000100
-#define AUTO_TO_DO_ABORT        0x00100000
-
-#define AGENT_PB_OFF_DELAY        10                            //PB出力OFF DELAY COUNT
-#define AGENT_LAMP_ON             PLC_IO_LAMP_FLICKER_CHANGE    //LAMP ON出力カウント値
-#define AGENT_LAMP_OFF            0                             //LAMP OFF出力カウント値
+#define AGENT_PB_OFF_DELAY          10                            //PB出力OFF DELAY COUNT
+#define AGENT_LAMP_ON               PLC_IO_LAMP_FLICKER_CHANGE    //LAMP ON出力カウント値
+#define AGENT_LAMP_OFF              0                             //LAMP OFF出力カウント値
 
 
 class CAgent:public CTaskObj
@@ -36,8 +24,8 @@ public:
     DWORD auto_type;                 //ANTI_SWAY,SEMI_AUTO,JOB
     DWORD auto_ctrl_mode;            //STAND_BY,SUSPEND,ACTIVE
 
-    int receipt_job(LPST_JOB_SET pjob, int to_do);  //Job受付
-    int receipt_com(int type, int target);          //Command受付
+    int receipt_auto_com(int type, int id, int action);  //Job受付
+    int receipt_ope_com(int type, int id);          //Operation Command受付
 
 private:
     

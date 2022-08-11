@@ -1,5 +1,6 @@
 #include "CSCADA.h"
 
+
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
 extern CSharedMem* pSwayStatusObj;
@@ -35,6 +36,8 @@ void CSCADA::init_task(void* pobj) {
 	//共有メモリ構造体のポインタセット
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
+		
+	CMKChart::init_chartfunc();
 
 	set_panel_tip_txt();
 	return;

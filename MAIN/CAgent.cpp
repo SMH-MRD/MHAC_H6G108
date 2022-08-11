@@ -154,25 +154,36 @@ int CAgent::set_ref_bh(){
 /****************************************************************************/
 /*   Job受付                                                                */
 /****************************************************************************/
-int CAgent::receipt_job(LPST_JOB_SET pjob, int to_do) {
+int CAgent::receipt_auto_com(int type, int id, int action) {
 	return 0;
 };
 /****************************************************************************/
 /*   Command受付															*/
 /****************************************************************************/
-int CAgent::receipt_com(int type,int target) {
+int CAgent::receipt_ope_com(int type,int target) {
 	switch(type){
-	case COM_PB_SET:
+	case OPE_COM_PB_SET:
 		AgentInf_workbuf.PLC_PB_com[target] = AGENT_PB_OFF_DELAY;
 		break;
-	case COM_LAMP_ON:
+	case OPE_COM_LAMP_ON:
 		AgentInf_workbuf.PLC_LAMP_com[target] = PLC_IO_LAMP_FLICKER_CHANGE;
 		break;
-	case COM_LAMP_OFF:
+	case OPE_COM_LAMP_OFF:
 		AgentInf_workbuf.PLC_LAMP_com[target] = 0;
 		break;
-	case COM_LAMP_FLICKER:
+	case OPE_COM_LAMP_FLICKER:
 		AgentInf_workbuf.PLC_LAMP_com[target] = PLC_IO_LAMP_FLICKER_COUNT;
+		break;
+	case OPE_COM_SEMI_LAMP_ON:
+		AgentInf_workbuf.PLC_LAMP_semiauto_com[target] = PLC_IO_LAMP_FLICKER_CHANGE;
+		break;
+	case OPE_COM_SEMI_LAMP_OFF:
+		AgentInf_workbuf.PLC_LAMP_semiauto_com[target] = 0;
+		break;
+	case OPE_COM_SEMI_LAMP_FLICKER:
+		AgentInf_workbuf.PLC_LAMP_semiauto_com[target] = PLC_IO_LAMP_FLICKER_CHANGE;
+		break;
+
 	default:
 		break;
 	}
@@ -196,14 +207,14 @@ void CAgent::set_lamp() {
 /*  PB,ランプ指令更新														*/
 /****************************************************************************/
 void CAgent::update_pb_lamp_com() {
-	//PB
+	//PB ON状態を一定時間ホールド
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
 
-	//LAMP
+	//LAMP　カウント値　0：消灯　カウント値%PLC_IO_LAMP_FLICKER_COUNT　が　PLC_IO_LAMP_FLICKER_CHANGE以下でON,以上でOFF（PLC_IFにて出力）
 	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = 0;
 	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF]++;
 	else;

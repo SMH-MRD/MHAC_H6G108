@@ -103,6 +103,10 @@ typedef struct StPLCOutBMap {
     UINT16 PB_auto_target2[2]    = { 5, BIT5 };
     UINT16 PB_auto_target3[2]    = { 5, BIT6 };
     UINT16 PB_auto_target4[2]    = { 5, BIT7 };
+    UINT16 PB_auto_target5[2]    = { 5, BIT8 };
+    UINT16 PB_auto_target6[2]    = { 5, BIT9 };
+    UINT16 PB_auto_target7[2]    = { 5, BIT10 };
+    UINT16 PB_auto_target8[2]    = { 5, BIT11 };
 
     UINT16 PB_mode_crane[2]      = { 5, BIT13 };
     UINT16 PB_mode_remote[2]     = { 5, BIT14 };

@@ -260,10 +260,6 @@ typedef struct StCraneStatus {
 #define COM_STEP_MAX		10					//　JOBを構成するコマンド最大数
 #define COM_TARGET_MAX		MOTION_ID_MAX		//　コマンド毎の目標最大数
 #define JOB_TYPE_HANDLING	0x00000001
-#define COM_PB_SET			1
-#define COM_LAMP_ON			2
-#define COM_LAMP_OFF		3
-#define COM_LAMP_FLICKER	4
 
 
 //Recipe
@@ -477,3 +473,31 @@ protected:
 
 	HANDLE hMutex;
 };
+
+//コマンド要求応答コード
+#define REQ_ACCEPTED			0
+
+
+//オペレーションコマンド
+#define OPE_COM_PB_SET				1
+#define OPE_COM_LAMP_ON				2
+#define OPE_COM_LAMP_OFF			3
+#define OPE_COM_LAMP_FLICKER		4
+#define OPE_COM_SEMI_LAMP_ON		5
+#define OPE_COM_SEMI_LAMP_OFF		6
+#define OPE_COM_SEMI_LAMP_FLICKER	7
+
+//自動種別
+#define AUTO_TYPE_DEACTIVATE        0x0000
+#define AUTO_TYPE_ANTI_SWAY         0x0001
+#define AUTO_TYPE_SEMI_AUTO         0x0010
+#define AUTO_TYPE_JOB               0x0100
+//自動実行状態
+#define AUTO_STAT_NOT_APPLICABLE    0x0000
+#define AUTO_STAT_STANDBY           0x0001
+#define AUTO_STAT_SUSPEND           0x0010
+#define AUTO_STAT_ACTIVE            0x0100
+//自動起動停止指令
+#define AUTO_TO_DO_START            0x00000001
+#define AUTO_TO_DO_INTERRUPT        0x00000100
+#define AUTO_TO_DO_ABORT            0x00100000

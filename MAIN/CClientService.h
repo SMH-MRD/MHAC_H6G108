@@ -44,6 +44,7 @@ private:
    void output();              //出力データ更新
 
    void manage_semi_auto();
+   void control_request();     //Clientからの要求を処理
                                
    //タブパネルのStaticテキストを設定
    void set_panel_tip_txt();
