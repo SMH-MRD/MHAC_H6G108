@@ -81,6 +81,7 @@ int CMKChart::init_chartfunc() {
 /*##########################################################################*/
 /*	関数：open_chart()														*/
 /*	Chart種別に応じたWINDOWクラスを登録して表示します。						*/
+/*	すでにWINDOWが開いているときは、WINDOWを閉じます。						*/
 /*##########################################################################*/
 HWND CMKChart::open_chart(int chartID, HWND hwnd_parent) {
 
@@ -89,10 +90,15 @@ HWND CMKChart::open_chart(int chartID, HWND hwnd_parent) {
 	ZeroMemory(&wc, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEX);
 
+	if (mkchartset[chartID].hwnd_chart != NULL) {
+		DestroyWindow(mkchartset[chartID].hwnd_chart);
+		mkchartset[chartID].hwnd_chart = NULL;
+		return NULL;
+	}
 
 	if (mkchartset[chartID].chart_type == MK_CHART_TYPE_SCATTER) {
 		wc.style = CS_HREDRAW | CS_VREDRAW;
-		wc.lpfnWndProc = ChartWndProc_B;// !CALLBACKでreturnを返していないとWindowClassの登録に失敗する
+		wc.lpfnWndProc = ChartWndProc_A;// !CALLBACKでreturnを返していないとWindowClassの登録に失敗する
 		wc.cbClsExtra = 0;
 		wc.cbWndExtra = 0;
 		wc.hInstance = hInst;
@@ -320,10 +326,10 @@ int CMKChart::init_chart(int chartID) {
 }
 
 //##########################################################################*/
-/*	関数：close_chart()														*/
+/*	関数：clear_chart()														*/
 /*	チャートを閉じるときの処理（タイマ解放　デバイスコンテキスト解放）		*/
 /*##########################################################################*/
-int CMKChart::close_chart(int chartID) {
+int CMKChart::clear_chart(int chartID) {
 
 	//タイマー解放
 	KillTimer(NULL, mkchartset[chartID].timerID);
@@ -358,7 +364,7 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 	switch (msg) {
 	case WM_DESTROY: {
 
-		close_chart(get_chartID(hwnd));	//タイマ解放　ビットマップメモリ,デバイスコンテキスト解放
+		clear_chart(get_chartID(hwnd));	//タイマ解放　ビットマップメモリ,デバイスコンテキスト解放
 
 	}return 0;
 
@@ -624,16 +630,21 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 		SetWindowText(mkchartset[chartID_work].hwnd_chart_startPB, L"Stop");
 		return 0;
 	}
-#if 0
 	case WM_CREATE: break;
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		hdc = BeginPaint(hwnd, &ps);
 
 		int chartID_work = get_chartID(hwnd);
-		TransparentBlt(mkchartset[chartID_work].hdc_mem0, 0, 0, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, mkchartset[chartID_work].hdc_mem_bg, 0, 0, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, RGB(255, 255, 255));
+		TransparentBlt(mkchartset[chartID_work].hdc_mem0, 0, 20, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, mkchartset[chartID_work].hdc_mem_bg, 0, 0, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, RGB(255, 255, 255));
 		TransparentBlt(mkchartset[chartID_work].hdc_mem0, 0, 0, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, mkchartset[chartID_work].hdc_mem_graph, 0, 0, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, RGB(255, 255, 255));
-		BitBlt(hdc, 0, 0, CHART_WND_W, CHART_WND_H, mkchartset[chartID_work].hdc_mem0, 0, 0, SRCCOPY);
+
+		if (mkchartset[chartID_work].chart_type == MK_CHART_TYPE_SCATTER) {
+			BitBlt(hdc, 0, 0, CHART_WND_W_SCAT, CHART_WND_H_SCAT, mkchartset[chartID_work].hdc_mem0, 0, 0, SRCCOPY);
+		}
+		else {
+			BitBlt(hdc, 0, 0, CHART_WND_W_DEF, CHART_WND_H_DEF, mkchartset[chartID_work].hdc_mem0, 0, 0, SRCCOPY);
+		}
 
 		EndPaint(hwnd, &ps);
 
@@ -651,9 +662,14 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 			}
 			else {
 				init_chart(chartID);
-				PatBlt(mkchartset[chartID].hdc_mem_graph, 0, 0, CHART_WND_W, CHART_WND_H, WHITENESS);
-				PatBlt(mkchartset[chartID].hdc_mem0, 0, 0, CHART_WND_W, CHART_WND_H, WHITENESS);
-
+				if (mkchartset[chartID].chart_type == MK_CHART_TYPE_SCATTER) {
+					PatBlt(mkchartset[chartID].hdc_mem_graph, 0, 0, CHART_WND_W_SCAT, CHART_WND_H_SCAT, WHITENESS);
+					PatBlt(mkchartset[chartID].hdc_mem0, 0, 0, CHART_WND_W_SCAT, CHART_WND_H_SCAT, WHITENESS);
+				}
+				else {
+					PatBlt(mkchartset[chartID].hdc_mem_graph, 0, 0, CHART_WND_W_DEF, CHART_WND_H_DEF, WHITENESS);
+					PatBlt(mkchartset[chartID].hdc_mem0, 0, 0, CHART_WND_W_DEF, CHART_WND_H_DEF, WHITENESS);
+				}
 				mkchartset[chartID].timerID = SetTimer(hwnd, ID_CHART_TIMER + chartID, mkchartset[chartID].plot_interval_ms, NULL);
 				mkchartset[chartID].chart_status |= MK_CHART_ACTIVE;
 				SetWindowText(mkchartset[chartID].hwnd_chart_startPB, L"Stop");
@@ -697,12 +713,10 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 		}
 		}
 	}
-#endif
 				   return 0;
+	default:
+		return DefWindowProc(hwnd, msg, wp, lp);
 	}
-
-
-
 
 	return DefWindowProc(hwnd, msg, wp, lp);
 }
@@ -736,10 +750,10 @@ LRESULT CALLBACK CMKChart::ChartWndProc_B(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 
 //######################################################################################
 // set_double_data()
-// doubleデータの100%値と表示値が格納されるポインタをセット(ライブラリ利用側から利用）
+// doubleデータと100%値が格納されるポインタをセット(ライブラリ利用側から利用）
 // 散布図は、x,y軸の指定有
 //######################################################################################
-int CMKChart::set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_item, double d_100, bool is_x) {
+int CMKChart::set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_item, double* d_100, bool is_x) {
 	if ((chart_WND_ID < 0) || (i_chart >= MK_CHART_WND_MAX))return -1;
 	if ((i_item < 0) || (i_item >= MK_MAX_GRAPH_PER_CHART))return -1;
 
@@ -748,12 +762,12 @@ int CMKChart::set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_i
 		if (is_x) {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pd[i_chart][i_item] = pd;
 			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_DOUBLE;
-			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].d100[i_chart][i_item] = d_100;
+			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].d100[i_chart][i_item] = *d_100;
 		}
 		else {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pd[i_chart][i_item] = pd;
 			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_DOUBLE;
-			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].d100[i_chart][i_item] = d_100;
+			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].d100[i_chart][i_item] = *d_100;
 		}
 	}
 	else {
@@ -762,17 +776,17 @@ int CMKChart::set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_i
 
 		mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pd[i_chart][i_item] = pd;
 		mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_DOUBLE;
-		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].d100[i_chart][i_item] = d_100;
+		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].d100[i_chart][i_item] = *d_100;
 	}
 	return 0;
 };
 
 //######################################################################################
 // set_int_data()
-// intデータの100%値と表示値が格納されるポインタをセット(ライブラリ利用側から利用）
+// intデータと100%値が格納されるポインタをセット(ライブラリ利用側から利用）
 // 散布図は、x,y軸の指定有
 //######################################################################################
-int CMKChart::set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, int i_100, bool is_x) {
+int CMKChart::set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, int* i_100, bool is_x) {
 	if ((chart_WND_ID < 0) || (i_chart >= MK_CHART_MAX_PER_WND))return -1;
 	if ((i_item < 0) || (i_item >= MK_MAX_GRAPH_PER_CHART))return -1;
 
@@ -780,12 +794,12 @@ int CMKChart::set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, i
 		if (is_x) {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pi[i_chart][i_item] = pi;
 			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_INT;
-			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].i100[i_chart][i_item] = i_100;
+			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].i100[i_chart][i_item] = *i_100;
 		}
 		else {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pi[i_chart][i_item] = pi;
 			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_INT;
-			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i_chart][i_item] = i_100;
+			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i_chart][i_item] = *i_100;
 		}
 	}
 	else {
@@ -794,7 +808,7 @@ int CMKChart::set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, i
 
 		mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pi[i_chart][i_item] = pi;
 		mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_INT;
-		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i_chart][i_item] = i_100;
+		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i_chart][i_item] = *i_100;
 	}
 	return 0;
 };
@@ -985,7 +999,7 @@ void CMKChart::draw_bg(int chartID_work) {
 		SetDCPenColor(mkchartset[chartID_work].hdc_mem_bg, RGB(20, 20, 20));
 		//座標軸描画
 		for (int i = 0; i < MK_CHART_MAX_PER_WND; i++) {
-			MoveToEx(mkchartset[chartID_work].hdc_mem_bg, mkchartset[chartID_work].g_origin[i].x, mkchartset[chartID_work].g_origin[i].y, NULL);
+			MoveToEx(mkchartset[chartID_work].hdc_mem_bg, mkchartset[chartID_work].g_origin[i].x, mkchartset[chartID_work].g_origin[i].y , NULL);
 			LineTo(mkchartset[chartID_work].hdc_mem_bg, mkchartset[chartID_work].g_origin[i].x + GRAPH_CHART_DOT_W, mkchartset[chartID_work].g_origin[i].y);
 
 			MoveToEx(mkchartset[chartID_work].hdc_mem_bg, mkchartset[chartID_work].g_origin[i].x, mkchartset[chartID_work].g_origin[i].y + GRAPH_CHART_DOT_H / 2 - 5, NULL);

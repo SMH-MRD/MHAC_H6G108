@@ -70,6 +70,8 @@ void CSCADA::main_proc() {
 //定周期処理手順3　信号出力処理
 void CSCADA::output() {
 
+	if (is_chart_test_active) chart_test(0);
+
 	wostrs << L" V: mh " << ((LPST_PLC_IO)pPLCioObj->get_pMap())->status.v_fb[ID_HOIST];
 	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
@@ -87,6 +89,8 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 		switch (LOWORD(wp)) {
 		case IDC_TASK_FUNC_RADIO1:
 		{
+			inf.panel_func_id = LOWORD(wp); set_panel_tip_txt(); set_PNLparam_value(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+			reset_panel_item_pb(hDlg);
 		}break;
 		case IDC_TASK_FUNC_RADIO2:
 		case IDC_TASK_FUNC_RADIO3:
@@ -97,10 +101,21 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 			reset_panel_item_pb(hDlg);
 			break;
 
-
-
 		case IDC_TASK_ITEM_RADIO1:
+		{
+			if (inf.panel_func_id == IDC_TASK_FUNC_RADIO1) {
+				CMKChart::open_chart(MK_CHART1, inf.hWnd_opepane); 
+			}
+			if (IsDlgButtonChecked(hDlg, IDC_TASK_ITEM_RADIO1) == BST_CHECKED) {
+				SendMessage(GetDlgItem(hDlg, IDC_TASK_ITEM_RADIO1), BM_SETCHECK, BST_UNCHECKED, 0L);
+			}
+			break;
+		}
 		case IDC_TASK_ITEM_RADIO2:
+			if (inf.panel_func_id == IDC_TASK_FUNC_RADIO1) {
+				CMKChart::open_chart(MK_CHART2, inf.hWnd_opepane);
+			}
+			break;
 		case IDC_TASK_ITEM_RADIO3:
 		case IDC_TASK_ITEM_RADIO4:
 		case IDC_TASK_ITEM_RADIO5:
@@ -174,7 +189,7 @@ void CSCADA::set_panel_tip_txt()
 	wstring wstr_type; wstring wstr;
 	switch (inf.panel_func_id) {
 	case IDC_TASK_FUNC_RADIO1: {
-		wstr = L"Type for Func1 \n\r 1:?? 2:?? 3:?? \n\r 4:?? 5:?? 6:??";
+		wstr = L"Type for CHART \n\r 1:Time 2:Scatter 3:?? \n\r 4:?? 5:?? 6:test";
 		switch (inf.panel_type_id) {
 		case IDC_TASK_ITEM_RADIO1:
 			wstr_type += L"Param of type1 \n\r 1:?? 2:?? 3:?? \n\r 4:?? 5:?? 6:??";
@@ -294,7 +309,7 @@ void CSCADA::set_panel_tip_txt()
 		}
 	}break;
 	case IDC_TASK_FUNC_RADIO6: {
-		wstr = L"Func6(Debug) \n\r 1:SIM 2:PLC 3:SWAY 4:RIO 5:?? 6:??";
+		wstr = L"Func6 \n\r 1:?? 2:?? 3:?? 4:?? 5:?? 6:??";
 		switch (inf.panel_type_id) {
 		case IDC_TASK_ITEM_RADIO1:
 			wstr_type += L"Param of type1 \n\r 1:?? 2:??  3:?? \n\r 4:?? 5:?? 6:??";
@@ -332,10 +347,35 @@ void CSCADA::set_panel_tip_txt()
 /****************************************************************************/
 void CSCADA::set_panel_pb_txt() {
 
-	//WCHAR str_func06[] = L"DEBUG";
+	WCHAR str_func01[] = L"CHART";
 
-	//SetDlgItemText(inf.hWnd_opepane, IDC_TASK_FUNC_RADIO6, (LPCWSTR)str_func06);
+	SetDlgItemText(inf.hWnd_opepane, IDC_TASK_FUNC_RADIO1, (LPCWSTR)str_func01);
 
 	return;
 };
+/****************************************************************************/
+/*　　チャートテストデータ					            */
+/****************************************************************************/
+void CSCADA::chart_test(int isample) {
+
+
+	return;
+}
+
+void CSCADA::set_graph_addr() {
+
+	for (int i = 0; i < SCAD_N_CHART_WND; i++) {
+		for (int j = 0; j < SCAD_N_CHART_PER_WND; j++) {
+			for (int k = 0; k < SCAD_N_GRAPH_PAR_CHART; k++) {
+				CMKChart::set_double_data(&chart_plot_buf[SCAD_Y_AXIS].d[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].d100[i][j][k], false);
+				CMKChart::set_double_data(&chart_plot_buf[SCAD_X_AXIS].d[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].d100[i][j][k], true);
+				CMKChart::set_int_data(&chart_plot_buf[SCAD_Y_AXIS].i[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].i100[i][j][k], false);
+				CMKChart::set_int_data(&chart_plot_buf[SCAD_X_AXIS].i[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].i100[i][j][k], true);
+				for (int kk = 0; kk < SCAD_N_BOOL_PAR_GRAPH;kk++) {
+					CMKChart::set_bool_data(&chart_plot_buf[SCAD_Y_AXIS].b[i][j][k][kk], i, j, k, kk);
+				}
+			}
+		}
+	}
+}
 

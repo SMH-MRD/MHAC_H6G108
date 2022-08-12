@@ -5,17 +5,6 @@
 #include <commctrl.h>
 #include <time.h>
 
-//iostream用
-#include <iostream>
-#include <iomanip>
-#include <sstream> //stringstream用
-#include <vector>
-#include <math.h>
-#include <fstream>
-#include <direct.h>
-#include <time.h>
-
-
 #define NAME_OF_MK_INIFILE		L"mkchart"	//iniファイル名
 #define EXT_OF_MK_INIFILE		L"ini"		//iniファイル拡張子
 
@@ -41,17 +30,17 @@
 #define CHART_WND_W_SCAT			400		//CHART WINDOW幅SCATTER
 #define CHART_WND_H_SCAT			480		//CHART WINDOW高さSCATTER
 
-#define GRAPH_CHART_100				100		//100%ドット数
-#define GRAPH_CHART_DOT_H			240		//１つのチャートの高さ
+#define GRAPH_CHART_100				80		//100%ドット数
+#define GRAPH_CHART_DOT_H			200		//１つのチャートの高さ
 #define GRAPH_CHART_DOT_W			500		//１つのチャートの幅
 #define CHART_MARGIN_X				50		//チャート書き出しポイント
+#define CHART_MARGIN_Y				15		//チャート書き出しポイント
 #define GRAPH_CHART_DISP_TIME_DEF	45000	//時間チャート表示時間範囲のデフォルトmsec
 #define GRAPH_CHART_BOOL_H			4		//BOOLデータON時の高さ
 
-#define SCAT_CHART_100				100		//100%ドット数
-#define SCAT_CHART_DOT_H			300		//１つのチャートの高さ
-#define SCAT_CHART_DOT_W			300		//１つのチャートの幅
-#define SCAT_CHART_DOT_W			300		//１つのチャートの幅
+#define SCAT_CHART_100				80		//100%ドット数
+#define SCAT_CHART_DOT_H			200		//１つのチャートの高さ
+#define SCAT_CHART_DOT_W			200		//１つのチャートの幅
 
 #define SCAT_NUM					2		//
 #define SCAT_DURATION_DEF			10000	//散布図表示更新時間msec
@@ -118,7 +107,7 @@
 
 	typedef struct _stMK_plot {		//時間チャート用X,Y軸プロット値の要素
 		INT32 x;
-		MK_plot y;
+		MK_plot y;		//アナログ100%(0.001%単位）で正規化　デジタルはbool　
 	}ST_PLOT_ELEMENT, * LPST_PLOT_ELEMENT;
 
 	typedef struct _stPLOT_BUF {	//各グラフの時間チャート用x,Y軸プロット値の元データのポインタ
@@ -148,6 +137,7 @@
 #define MK_CHART_TIME_GRAPH			0x0001
 #define MK_CHART_SCATTER			0x0002
 
+//プロット位置格納配列インデックス
 #define MK_CHART_AO						0
 #define MK_CHART_DO_0					0
 #define MK_CHART_DO_1					1
@@ -192,20 +182,21 @@
 
 		bool bPrimaryDisp;						//時間チャートは2画像切り替え
 
-		ST_PLOT_BUF pdata[2];					//各グラフの時間チャート用プロット値の元データのポインタ
+		//元データ関連		
+		ST_PLOT_BUF pdata[2];					//各グラフの時間チャート用プロット値の元データのポインタをセットした構造体
 		ST_RANGE_SET value100[2];				//プロットデータ100%の値　時間は、100秒=100%とする
 		int	data_type[2][MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];	//プロットデータの型　[x軸y軸][WNDあたりのCHART数][CHARTあたりのグラフ数]
 
-		ST_PLOT_ELEMENT	plot_data[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_CHART_BUF_MAX];//チャートプロットバッファ ログ記録用
+		UINT_PTR timerID;//プロットタイマーID
+
 		int plot_buf_index;				//plot_dataの書き込みindex
 		int plot_x;						//plotするx座標
 		int spd_dot_per_sec;			//plot速度
 		int graph_count[MK_CHART_MAX_PER_WND];
 	
-		UINT_PTR timerID;//プロットタイマーID
-
-		//プロットする点
-		POINT plot_p[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];
+		//プロット値関連
+		ST_PLOT_ELEMENT	plot_data[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_CHART_BUF_MAX];	//前処理プロット値(正規化値）
+		POINT plot_p[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];			//ビットマップ上のプロット点
 
 		HPEN hpen[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];		//グラフ描画用のPENハンドル
 		HBRUSH hbrush[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];	//グラフ描画用のBRUSHハンドル
@@ -229,16 +220,14 @@
 
 		static int init_chartfunc();
 		static int init_chart(int chartID);
-		static int close_chart(int chartID);
+		static HWND open_chart(int chartID, HWND hwnd_parent);
+		static int clear_chart(int chartID);
 
-		static int set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_item, double d_100, bool is_x);
-		static int set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, int i_100, bool is_x);
+		static int set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_item, double* d_100, bool is_x);
+		static int set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, int* i_100, bool is_x);
 		static int set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item, int i_bool);
 		static int set_chart_spd(int chart_WND_ID, int disp_time_ms);//チャートのスピード　チャート幅記録にかかる時間msec
 		static int set_reflesh_time(int chart_WND_ID, int period_ms);
-
-		static HWND open_chart(int chartID, HWND hwnd_parent);
-
 
 		static int chart_start(int chartID, HWND hwnd_parent);
 		static int get_chartID(HWND hWnd) { for (int i = 0; i < MK_CHART_WND_MAX; i++) { if (hWnd == mkchartset[i].hwnd_chart) return i; } return 0; }
