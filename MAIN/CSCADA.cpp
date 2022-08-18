@@ -362,20 +362,40 @@ void CSCADA::chart_test(int isample) {
 	return;
 }
 
-void CSCADA::set_graph_addr() {
+int CSCADA::set_graph_item(int iwnd, int ichart, int igraph, int ibool, bool is_x, int type) {
 
-	for (int i = 0; i < SCAD_N_CHART_WND; i++) {
-		for (int j = 0; j < SCAD_N_CHART_PER_WND; j++) {
-			for (int k = 0; k < SCAD_N_GRAPH_PAR_CHART; k++) {
-				CMKChart::set_double_data(&chart_plot_buf[SCAD_Y_AXIS].d[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].d100[i][j][k], false);
-				CMKChart::set_double_data(&chart_plot_buf[SCAD_X_AXIS].d[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].d100[i][j][k], true);
-				CMKChart::set_int_data(&chart_plot_buf[SCAD_Y_AXIS].i[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].i100[i][j][k], false);
-				CMKChart::set_int_data(&chart_plot_buf[SCAD_X_AXIS].i[i][j][k], i, j, k, &chart_plot_buf[SCAD_X_AXIS].i100[i][j][k], true);
-				for (int kk = 0; kk < SCAD_N_BOOL_PAR_GRAPH;kk++) {
-					CMKChart::set_bool_data(&chart_plot_buf[SCAD_Y_AXIS].b[i][j][k][kk], i, j, k, kk);
-				}
-			}
+	if (type == MK_DATA_TYPE_DOUBLE) {
+		if (is_x) {
+			CMKChart::set_double_data(&chart_plot_buf[SCAD_X_AXIS].d[iwnd][ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[SCAD_X_AXIS].d100[iwnd][ichart][igraph], true);
 		}
+		else {
+			CMKChart::set_double_data(&chart_plot_buf[SCAD_Y_AXIS].d[iwnd][ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[SCAD_Y_AXIS].d100[iwnd][ichart][igraph], true);
+		}
+		return MK_DATA_TYPE_DOUBLE;
 	}
+	else if (type == MK_DATA_TYPE_INT) {
+		if (is_x) {
+			CMKChart::set_int_data(&chart_plot_buf[SCAD_X_AXIS].i[iwnd][ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[SCAD_X_AXIS].i100[iwnd][ichart][igraph], true);
+		}
+		else {
+			CMKChart::set_int_data(&chart_plot_buf[SCAD_Y_AXIS].i[iwnd][ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[SCAD_Y_AXIS].i100[iwnd][ichart][igraph], true);
+		}
+		return MK_DATA_TYPE_INT;
+	}
+	else if (type == MK_DATA_TYPE_BOOL) {
+		if (is_x) {
+			return -1;
+		}
+		else {
+			CMKChart::set_bool_data(&chart_plot_buf[SCAD_Y_AXIS].b[iwnd][ichart][igraph][ibool], iwnd, ichart, igraph,
+				ibool);
+		}
+		return MK_DATA_TYPE_BOOL;
+	}
+	else return -1;
 }
 

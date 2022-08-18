@@ -61,7 +61,7 @@ private:
     bool is_chart_test_active = false;
     ST_CHART_PLOT chart_plot_buf[SCAD_N_CHART_AXIS];
     void chart_test(int isample);
-    void set_graph_addr();
+    int set_graph_item(int iwnd, int ichart, int igraph, int ibool,bool is_x, int type);
 };
 
 

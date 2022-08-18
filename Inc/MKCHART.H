@@ -110,14 +110,14 @@
 		MK_plot y;		//アナログ100%(0.001%単位）で正規化　デジタルはbool　
 	}ST_PLOT_ELEMENT, * LPST_PLOT_ELEMENT;
 
-	typedef struct _stPLOT_BUF {	//各グラフの時間チャート用x,Y軸プロット値の元データのポインタ
+	typedef struct _stPLOT_BUF {	//各グラフの時間チャート用X,Y軸プロット値の元データのポインタ
 		double* pd[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
 		int* pi[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
 		bool* pb[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];
 	}ST_PLOT_BUF, * LPST_PLOT_BUF;
 
 
-	typedef struct _stRANGE_SET		//各グラフの時間チャート用x,Y軸プロット値の元データ100%値
+	typedef struct _stRANGE_SET		//各グラフの時間チャート用X,Y軸プロット値の元データ100%値
 	{
 		double d100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
 		int    i100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
