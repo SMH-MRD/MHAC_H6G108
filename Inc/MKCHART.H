@@ -76,6 +76,7 @@
 
 #define MK_CHART_REFRESH_MS			10000
 
+#define MK_CHART_PLOT_AXIS			2
 #define MK_DATA_CODE_X				0
 #define MK_DATA_CODE_Y				1
 #define MK_ADDRESS_INT				0
@@ -121,6 +122,7 @@
 	{
 		double d100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
 		int    i100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
+		bool   b100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];
 	}ST_RANGE_SET, * LPST_RANGE_SET;
 
 //chart_status定義
@@ -129,6 +131,7 @@
 #define MK_CHART_PAUSE				0x0004	//描画更新保留中
 #define MK_CHART_NO_LINE			0x0100	//線無
 #define MK_CHART_NO_MARK			0x0200	//マーカ無
+
 //chart_status定義デフォルト値
 #define	MK_CHART_STATUS_DEF_BASIC	0x0202	//マーカ無　描画更新中
 #define	MK_CHART_STATUS_DEF_SCATTER 0x0102	//線無　　　描画更新中
@@ -183,9 +186,9 @@
 		bool bPrimaryDisp;						//時間チャートは2画像切り替え
 
 		//元データ関連		
-		ST_PLOT_BUF pdata[2];					//各グラフの時間チャート用プロット値の元データのポインタをセットした構造体
-		ST_RANGE_SET value100[2];				//プロットデータ100%の値　時間は、100秒=100%とする
-		int	data_type[2][MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];	//プロットデータの型　[x軸y軸][WNDあたりのCHART数][CHARTあたりのグラフ数]
+		ST_PLOT_BUF pdata[MK_CHART_PLOT_AXIS];					//各グラフの時間チャート用プロット値の元データのポインタをセットした構造体
+		ST_RANGE_SET value100[MK_CHART_PLOT_AXIS];				//プロットデータ100%の値　時間は、100秒=100%とする 0セットでプロットしない
+		int	data_type[MK_CHART_PLOT_AXIS][MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];	//プロットデータの型　[x軸y軸][WNDあたりのCHART数][CHARTあたりのグラフ数]
 
 		UINT_PTR timerID;//プロットタイマーID
 
@@ -225,7 +228,8 @@
 
 		static int set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_item, double* d_100, bool is_x);
 		static int set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, int* i_100, bool is_x);
-		static int set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item, int i_bool);
+		static int set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item, int i_bool, bool* b100);
+		
 		static int set_chart_spd(int chart_WND_ID, int disp_time_ms);//チャートのスピード　チャート幅記録にかかる時間msec
 		static int set_reflesh_time(int chart_WND_ID, int period_ms);
 

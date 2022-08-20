@@ -361,7 +361,16 @@ void CSCADA::chart_test(int isample) {
 
 	return;
 }
-
+//****************************************************************************
+//　　チャートモジュールにプロットデータのバッファポインタをセット
+//	引数：
+//		int iwnd	：開いているチャートウィンドウのID (0,1)
+//		int ichart	：ウィンドウ内のチャートのID(0,1)
+//		int igraph	：チャート内のグラフ要素ID(0-3)
+//		int ibool	：グラフ要素がON/OFFの時の要素ID(0-3)
+//		boolis_x	：チャートのタイプが散布図の時、x軸用はtrueをセット
+//		int type	：データのタイプ(double,int,bool)
+//****************************************************************************
 int CSCADA::set_graph_item(int iwnd, int ichart, int igraph, int ibool, bool is_x, int type) {
 
 	if (type == MK_DATA_TYPE_DOUBLE) {
@@ -391,8 +400,7 @@ int CSCADA::set_graph_item(int iwnd, int ichart, int igraph, int ibool, bool is_
 			return -1;
 		}
 		else {
-			CMKChart::set_bool_data(&chart_plot_buf[SCAD_Y_AXIS].b[iwnd][ichart][igraph][ibool], iwnd, ichart, igraph,
-				ibool);
+			CMKChart::set_bool_data(&chart_plot_buf[SCAD_Y_AXIS].b[iwnd][ichart][igraph][ibool], iwnd, ichart, igraph,ibool,&chart_plot_buf[SCAD_Y_AXIS].b100[iwnd][ichart][igraph][ibool]);
 		}
 		return MK_DATA_TYPE_BOOL;
 	}

@@ -817,17 +817,20 @@ int CMKChart::set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, i
 // set_bool_data()
 // DIOデータの100%値と表示値が格納されるポインタをセット(ライブラリ利用側から利用）
 //######################################################################################
-int CMKChart::set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item, int i_bool) {
+int CMKChart::set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item, int i_bool, bool* pb100) {
 	if ((chart_WND_ID < 0) || (i_chart >= MK_CHART_MAX_PER_WND))return -1;
 	if ((i_item < 0) || (i_item >= MK_MAX_GRAPH_PER_CHART))return -1;
 	if ((i_bool < 0) || (i_bool >= MK_MAX_BOOL_PER_CHART))return -1;
 
+	//BOOLはX軸は時間のみ→x軸はy軸と同じ参照先をセット
 	//x軸
-	mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].i100[i_chart][i_item] = 100000;//BOOLのX軸は時間のみ intでセット　100秒
+	mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pb[i_chart][i_item][i_bool] = pb;
+	mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].b100[i_chart][i_item][i_bool] = pb100;
 	mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_TIME;//BOOLのX軸は時間のみ
+
 	//y軸
 	mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pb[i_chart][i_item][i_bool] = pb;
-	mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i_chart][i_item] = 1;
+	mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].b100[i_chart][i_item][i_bool] = pb100;
 	mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_BOOL;
 
 	return 0;
