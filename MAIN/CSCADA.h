@@ -8,10 +8,17 @@
 
 #define SCAD_CHART_WND1         0   
 #define SCAD_CHART_WND2         1 
+#define SCAD_CHART_CHART1       0   
+#define SCAD_CHART_CHART2       1 
 #define SCAD_CHART_GRAPH1       0   
 #define SCAD_CHART_GRAPH2       1 
 #define SCAD_CHART_GRAPH3       2   
 #define SCAD_CHART_GRAPH4       3 
+
+#define SCAD_CHART_PTN0         0   
+#define SCAD_CHART_PTN1         1 
+#define SCAD_CHART_PTN2         2   
+#define SCAD_CHART_PTN3         3 
 
 #define SCAD_N_CHART_WND        2   //Chart表示Window数
 #define SCAD_N_CHART_PER_WND    2   //Window内のChart表示数
@@ -24,13 +31,13 @@
 
 typedef struct _stCHART_PLOT
 {
-	double d[SCAD_N_CHART_WND][SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                       //doubleデータ生値
-    double d100[SCAD_N_CHART_WND][SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                    //doubleデータ100%値
-	int i[SCAD_N_CHART_WND][SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                          //intデータ生値
-    int i100[SCAD_N_CHART_WND][SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                       //intデータ100%値
-	bool b[SCAD_N_CHART_WND][SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];  //boolデータ生値
-    bool b100[SCAD_N_CHART_WND][SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];  //boolデータ100%値
-    char legend[SCAD_N_CHART_WND][SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH][SCAD_N_LEGEND_CH];//凡例文字列
+	double* d[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                           //doubleデータ生値
+    double d100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                        //doubleデータ100%値
+	int* i[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                              //intデータ生値
+    int i100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                           //intデータ100%値
+	bool* b[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];                      //boolデータ生値
+    bool b100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];                   //boolデータ100%値
+    char legend[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH][SCAD_N_LEGEND_CH];//凡例文字列
 }ST_CHART_PLOT, * LPST_CHART_PLOT;
 
 class CSCADA :public CTaskObj
@@ -48,6 +55,12 @@ public:
 private:
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;
+    LPST_REMOTE_IO pRemoteIO;
+    LPST_SWAY_IO pSway_IO;
+    LPST_SIMULATION_STATUS pSimStat;
+    LPST_CS_INFO pCSInf;
+    LPST_POLICY_INFO pPolicyInf;
+    LPST_AGENT_INFO pAgentInf;
 
     void input();               //外部データ取り込み
     void main_proc();           //処理内容
@@ -59,10 +72,12 @@ private:
     void set_panel_pb_txt();
 
     //CHART関連
-    bool is_chart_test_active = false;
-    ST_CHART_PLOT chart_plot_buf[SCAD_N_CHART_AXIS];
-    void chart_test(int isample);
+    int chart_plot_ptn = 0;
+    ST_CHART_PLOT chart_plot_buf[SCAD_N_CHART_WND][SCAD_N_CHART_AXIS];
+ 
     int set_graph_item(int iwnd, int ichart, int igraph, int ibool,bool is_x, int type);
+    int setup_chart(int iwnd);      //チャートライブラリのバッファにプロットデータの参照ポインタをセット
+    int set_chart_data(int iptn);   //指定パターンに従ってプロットデータのバッファセット
 };
 
 

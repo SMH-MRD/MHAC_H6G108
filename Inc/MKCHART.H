@@ -188,7 +188,7 @@
 		//元データ関連		
 		ST_PLOT_BUF pdata[MK_CHART_PLOT_AXIS];					//各グラフの時間チャート用プロット値の元データのポインタをセットした構造体
 		ST_RANGE_SET value100[MK_CHART_PLOT_AXIS];				//プロットデータ100%の値　時間は、100秒=100%とする 0セットでプロットしない
-		int	data_type[MK_CHART_PLOT_AXIS][MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];	//プロットデータの型　[x軸y軸][WNDあたりのCHART数][CHARTあたりのグラフ数]
+		int	data_type[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_CHART_PLOT_AXIS];	//プロットデータの型　[WNDあたりのCHART数][CHARTあたりのグラフ数][x軸y軸]
 
 		UINT_PTR timerID;//プロットタイマーID
 
@@ -226,6 +226,7 @@
 		static HWND open_chart(int chartID, HWND hwnd_parent);
 		static int clear_chart(int chartID);
 
+		static int set_data_type(int type, int chart_WND_ID, int i_chart, int i_item, bool is_x);
 		static int set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_item, double* d_100, bool is_x);
 		static int set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, int* i_100, bool is_x);
 		static int set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item, int i_bool, bool* b100);
@@ -233,6 +234,7 @@
 		static int set_chart_spd(int chart_WND_ID, int disp_time_ms);//チャートのスピード　チャート幅記録にかかる時間msec
 		static int set_reflesh_time(int chart_WND_ID, int period_ms);
 
+		static bool is_chart_open(int iwnd) {if (mkchartset[iwnd].hwnd_chart == NULL)return false;else return true;	}
 		static int chart_start(int chartID, HWND hwnd_parent);
 		static int get_chartID(HWND hWnd) { for (int i = 0; i < MK_CHART_WND_MAX; i++) { if (hWnd == mkchartset[i].hwnd_chart) return i; } return 0; }
 		static int set_graph(int chart_WND_ID);

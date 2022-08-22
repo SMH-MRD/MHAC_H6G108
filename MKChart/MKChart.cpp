@@ -32,8 +32,8 @@ int CMKChart::init_chartfunc() {
 	for (int i = 0; i < MK_CHART_WND_MAX; i++) {
 		for (int j = 0; j < MK_CHART_MAX_PER_WND; j++) {
 			for (int k = 0; k < MK_MAX_GRAPH_PER_CHART; k++) {
-				mkchartset[i].data_type[0][j][k] = MK_DATA_TYPE_NULL;
-				mkchartset[i].data_type[1][j][k] = MK_DATA_TYPE_NULL;
+				mkchartset[i].data_type[j][k][MK_DATA_CODE_X] = MK_DATA_TYPE_NULL;
+				mkchartset[i].data_type[j][k][MK_DATA_CODE_Y] = MK_DATA_TYPE_NULL;
 
 				mkchartset[i].pdata[0].pd[j][k] = &dummy_d;
 				mkchartset[i].pdata[1].pd[j][k] = &dummy_d;
@@ -315,7 +315,7 @@ int CMKChart::init_chart(int chartID) {
 	for (int i = 0; i < MK_CHART_MAX_PER_WND; i++) {
 		mkchartset[chartID].graph_count[i] = 0;
 		for (int k = 0; k < MK_MAX_GRAPH_PER_CHART; k++) {
-			if (mkchartset[chartID].data_type[MK_DATA_CODE_Y][i][k] > 0) {
+			if (mkchartset[chartID].data_type[i][k][MK_DATA_CODE_Y] > 0) {
 				mkchartset[chartID].graph_count[i]++;	//各チャートに表示するグラフ数カウント
 				set_graph(chartID);						//開始点セット
 			}
@@ -441,7 +441,7 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 					for (int j = 0; j < MK_MAX_GRAPH_PER_CHART; j++) {
 						if (mkchartset[chartID_work].graph_count[i] > j) {
 							// DIOデータ
-							if (mkchartset[chartID_work].data_type[MK_DATA_CODE_Y][i][j] == MK_DATA_TYPE_BOOL) {
+							if (mkchartset[chartID_work].data_type[i][j][MK_DATA_CODE_Y] == MK_DATA_TYPE_BOOL) {
 								LONG old_x = mkchartset[chartID_work].plot_p[i][j][MK_CHART_AO].x;	//時間軸前回値（アナログ値）
 								LONG old_y;	//DO前回値（デジタル値）
 								//PENセット
@@ -749,6 +749,19 @@ LRESULT CALLBACK CMKChart::ChartWndProc_B(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 }
 
 //######################################################################################
+// set_data_type()
+//######################################################################################
+int CMKChart::set_data_type(int type, int chart_WND_ID, int i_chart, int i_item, bool is_x) {
+
+	if (is_x)
+		mkchartset[chart_WND_ID].data_type[i_chart][i_item][MK_DATA_CODE_X] = type;
+	else
+		mkchartset[chart_WND_ID].data_type[i_chart][i_item][MK_DATA_CODE_Y] = type;
+	return 0;
+
+}
+
+//######################################################################################
 // set_double_data()
 // doubleデータと100%値が格納されるポインタをセット(ライブラリ利用側から利用）
 // 散布図は、x,y軸の指定有
@@ -761,21 +774,17 @@ int CMKChart::set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_i
 	if (mkchartset[chart_WND_ID].chart_type == MK_CHART_TYPE_SCATTER) {
 		if (is_x) {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pd[i_chart][i_item] = pd;
-			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_DOUBLE;
 			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].d100[i_chart][i_item] = *d_100;
 		}
 		else {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pd[i_chart][i_item] = pd;
-			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_DOUBLE;
 			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].d100[i_chart][i_item] = *d_100;
 		}
 	}
 	else {
 		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].i100[i_chart][i_item] = 100000;		//X軸は時間 intでセット
-		mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_TIME;//X軸は時間
 
 		mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pd[i_chart][i_item] = pd;
-		mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_DOUBLE;
 		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].d100[i_chart][i_item] = *d_100;
 	}
 	return 0;
@@ -793,25 +802,22 @@ int CMKChart::set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, i
 	if (mkchartset[chart_WND_ID].chart_type == MK_CHART_TYPE_SCATTER) {
 		if (is_x) {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pi[i_chart][i_item] = pi;
-			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_INT;
 			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].i100[i_chart][i_item] = *i_100;
 		}
 		else {
 			mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pi[i_chart][i_item] = pi;
-			mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_INT;
 			mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i_chart][i_item] = *i_100;
 		}
 	}
 	else {
 		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].i100[i_chart][i_item] = 100000;		//X軸は時間 intでセット
-		mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_TIME;//X軸は時間
 
 		mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pi[i_chart][i_item] = pi;
-		mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_INT;
 		mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i_chart][i_item] = *i_100;
 	}
 	return 0;
 };
+
 
 //######################################################################################
 // set_bool_data()
@@ -826,12 +832,10 @@ int CMKChart::set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item,
 	//x軸
 	mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pb[i_chart][i_item][i_bool] = pb;
 	mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].b100[i_chart][i_item][i_bool] = pb100;
-	mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i_chart][i_item] = MK_DATA_TYPE_TIME;//BOOLのX軸は時間のみ
 
 	//y軸
 	mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pb[i_chart][i_item][i_bool] = pb;
 	mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].b100[i_chart][i_item][i_bool] = pb100;
-	mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i_chart][i_item] = MK_DATA_TYPE_BOOL;
 
 	return 0;
 };
@@ -871,15 +875,15 @@ int CMKChart::set_graph(int chart_WND_ID) {
 		for (int j = 0; j < MK_MAX_GRAPH_PER_CHART; j++) {	//各グラフ単位
 
 			//各グラフY軸データのプロット値をセット　
-			if (mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i][j] == MK_DATA_TYPE_DOUBLE) {		//double 元データを100%で正規化後、プロット値への変換係数を掛ける
+			if (mkchartset[chart_WND_ID].data_type[i][j][MK_DATA_CODE_Y] == MK_DATA_TYPE_DOUBLE) {		//double 元データを100%で正規化後、プロット値への変換係数を掛ける
 				mkchartset[chart_WND_ID].plot_data[i][j][mkchartset[chart_WND_ID].plot_buf_index].y.i_data			//yは、INT32とbool[4]のunion
 					= (int)(MK_RANGE_100PERCENT * (*mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pd[i][j]) / mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].d100[i][j]);
 			}
-			else if (mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i][j] == MK_DATA_TYPE_INT) {	//int 元データを100%で正規化後、プロット値への変換係数を掛ける
+			else if (mkchartset[chart_WND_ID].data_type[i][j][MK_DATA_CODE_Y] == MK_DATA_TYPE_INT) {	//int 元データを100%で正規化後、プロット値への変換係数を掛ける
 				mkchartset[chart_WND_ID].plot_data[i][j][mkchartset[chart_WND_ID].plot_buf_index].y.i_data			//yは、INT32とbool[4]のunion
 					= (int)(MK_RANGE_100PERCENT * (*mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pi[i][j]) / mkchartset[chart_WND_ID].value100[MK_DATA_CODE_Y].i100[i][j]);
 			}
-			else if (mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_Y][i][j] == MK_DATA_TYPE_BOOL) {	//bool DIOは、bool値でセット
+			else if (mkchartset[chart_WND_ID].data_type[i][j][MK_DATA_CODE_Y] == MK_DATA_TYPE_BOOL) {	//bool DIOは、bool値でセット
 				for (int k = 0; k < MK_MAX_BOOL_PER_CHART; k++) {
 					mkchartset[chart_WND_ID].plot_data[i][j][mkchartset[chart_WND_ID].plot_buf_index].y.b_data[k]	//yは、INT32とbool[4]のunion
 						= *mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_Y].pb[i][j][k];		
@@ -889,11 +893,11 @@ int CMKChart::set_graph(int chart_WND_ID) {
 
 			//各グラフX軸データのプロット値をセット　
 			if (mkchartset[chart_WND_ID].chart_type == MK_CHART_TYPE_SCATTER) {							//散布図のx軸の値
-				if (mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i][j] == MK_DATA_TYPE_DOUBLE) {
+				if (mkchartset[chart_WND_ID].data_type[i][j][MK_DATA_CODE_X] == MK_DATA_TYPE_DOUBLE) {
 					mkchartset[chart_WND_ID].plot_data[i][j][mkchartset[chart_WND_ID].plot_buf_index].x
 						= (int)(MK_RANGE_100PERCENT * (*mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pd[i][j]) / mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].d100[i][j]);
 				}
-				else if (mkchartset[chart_WND_ID].data_type[MK_DATA_CODE_X][i][j] == MK_DATA_TYPE_INT) {
+				else if (mkchartset[chart_WND_ID].data_type[i][j][MK_DATA_CODE_X] == MK_DATA_TYPE_INT) {
 					mkchartset[chart_WND_ID].plot_data[i][j][mkchartset[chart_WND_ID].plot_buf_index].x
 						= (int)(MK_RANGE_100PERCENT * (*mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].pi[i][j]) / mkchartset[chart_WND_ID].value100[MK_DATA_CODE_X].i100[i][j]);
 				}
