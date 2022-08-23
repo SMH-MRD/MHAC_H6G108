@@ -20,8 +20,13 @@ extern ST_iTask g_itask;
 CSCADA::CSCADA() {
 	pPLC_IO = NULL;
 	pCraneStat = NULL;
+	pRemoteIO = NULL;
+	pSway_IO = NULL;
+	pSimStat = NULL;
+	pCSInf = NULL;
+	pPolicyInf = NULL;
+	pAgentInf = NULL;
 }
-
 CSCADA::~CSCADA() {
 
 }
@@ -44,8 +49,36 @@ void CSCADA::init_task(void* pobj) {
 	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	
 	//チャートデータバッファクリア
-	memset(&chart_plot_buf[SCAD_X_AXIS], 0, sizeof(ST_CHART_PLOT));
-	memset(&chart_plot_buf[SCAD_Y_AXIS], 0, sizeof(ST_CHART_PLOT));
+	memset(&chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS], 0, sizeof(ST_CHART_PLOT));
+	memset(&chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS], 0, sizeof(ST_CHART_PLOT));
+	memset(&chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS], 0, sizeof(ST_CHART_PLOT));
+	memset(&chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS], 0, sizeof(ST_CHART_PLOT));
+	//チャート100％値デフォルト値セット
+	for (int i = 0; i < SCAD_N_CHART_PER_WND;i++) {
+		for (int j = 0; j < SCAD_N_GRAPH_PAR_CHART;j++) {
+			chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS].d100[i][j] = 1.0;
+			chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[i][j] = 1.0;
+			chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].i100[i][j] = 1;
+			chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].i100[i][j] = 1;
+		}
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS].b100 = true;
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].b100 = true;
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].b100 = true;
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].b100 = true;
+	}
+	//チャート100％値ポインタバッファセット
+	for (int i = 0; i < SCAD_N_CHART_PER_WND;i++) {
+		for (int j = 0; j < SCAD_N_GRAPH_PAR_CHART;j++) {
+			chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS].pd100[i][j] = &chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS].d100[i][j];
+			chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].pd100[i][j] = &chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[i][j];
+			chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].pd100[i][j] = &chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].d100[i][j];
+			chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].pd100[i][j] = &chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].d100[i][j];
+			chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS].pi100[i][j] = &chart_plot_buf[SCAD_CHART_WND1][SCAD_X_AXIS].i100[i][j];
+			chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].pi100[i][j] = &chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].i100[i][j];
+			chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].pi100[i][j] = &chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].i100[i][j];
+			chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].pi100[i][j] = &chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].i100[i][j];
+		}
+	}
 
 	CMKChart::init_chartfunc();
 
@@ -75,11 +108,13 @@ void CSCADA::input() {
 void CSCADA::main_proc() {
 
 	//チャートデータセット
+	/*
 	if (chart_plot_ptn != SCAD_CHART_PTN0) {
 		if (CMKChart::is_chart_open(MK_CHART1) || CMKChart::is_chart_open(MK_CHART2)){
 			set_chart_data(chart_plot_ptn);
 		}
 	}
+	*/
 	return;
 }
 
@@ -146,18 +181,21 @@ LRESULT CALLBACK CSCADA::PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp) {
 		case IDC_TASK_ITEM_RADIO4:
 			if (inf.panel_func_id == IDC_TASK_FUNC_RADIO1) {
 				chart_plot_ptn = SCAD_CHART_PTN1;
+				set_chart_data(SCAD_CHART_PTN1);
 			}
 			inf.panel_type_id = LOWORD(wp);set_panel_tip_txt();  SetFocus(GetDlgItem(inf.hWnd_opepane, IDC_TASK_EDIT1));
 			break;
 		case IDC_TASK_ITEM_RADIO5:
 			if (inf.panel_func_id == IDC_TASK_FUNC_RADIO1) {
 				chart_plot_ptn = SCAD_CHART_PTN2;
+				set_chart_data(SCAD_CHART_PTN2);
 			}
 			inf.panel_type_id = LOWORD(wp);set_panel_tip_txt();  SetFocus(GetDlgItem(inf.hWnd_opepane, IDC_TASK_EDIT1));
 			break;
 		case IDC_TASK_ITEM_RADIO6:
 			if (inf.panel_func_id == IDC_TASK_FUNC_RADIO1) {
 				chart_plot_ptn = SCAD_CHART_PTN3;
+				set_chart_data(SCAD_CHART_PTN3);
 			}
 			inf.panel_type_id = LOWORD(wp);set_panel_tip_txt();  SetFocus(GetDlgItem(inf.hWnd_opepane, IDC_TASK_EDIT1));
 			break;
@@ -401,35 +439,35 @@ int CSCADA::set_graph_item(int iwnd, int ichart, int igraph, int ibool, bool is_
 
 	if (type == MK_DATA_TYPE_DOUBLE) {
 		if (is_x) {
-			CMKChart::set_double_data(chart_plot_buf[iwnd][SCAD_X_AXIS].d[ichart][igraph], iwnd, ichart, igraph,
-				&chart_plot_buf[iwnd][SCAD_X_AXIS].d100[ichart][igraph], true);
+			CMKChart::set_double_data(&chart_plot_buf[iwnd][SCAD_X_AXIS].pd[ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[iwnd][SCAD_X_AXIS].pd100[ichart][igraph], true);
 		}
 		else {
-			CMKChart::set_double_data(chart_plot_buf[iwnd][SCAD_Y_AXIS].d[ichart][igraph], iwnd, ichart, igraph,
-				&chart_plot_buf[iwnd][SCAD_Y_AXIS].d100[ichart][igraph], false);
+			CMKChart::set_double_data(&chart_plot_buf[iwnd][SCAD_Y_AXIS].pd[ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[iwnd][SCAD_Y_AXIS].pd100[ichart][igraph], false);
 		}
 		return MK_DATA_TYPE_DOUBLE;
 	}
 	else if (type == MK_DATA_TYPE_INT) {
 		if (is_x) {
-			CMKChart::set_int_data(chart_plot_buf[iwnd][SCAD_X_AXIS].i[ichart][igraph], iwnd, ichart, igraph,
-				&chart_plot_buf[iwnd][SCAD_X_AXIS].i100[ichart][igraph], true);
+			CMKChart::set_int_data(&chart_plot_buf[iwnd][SCAD_X_AXIS].pi[ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[iwnd][SCAD_X_AXIS].pi100[ichart][igraph], true);
 		}
 		else {
-			CMKChart::set_int_data(chart_plot_buf[iwnd][SCAD_Y_AXIS].i[ichart][igraph], iwnd, ichart, igraph,
-				&chart_plot_buf[iwnd][SCAD_Y_AXIS].i100[ichart][igraph], false);
+			CMKChart::set_int_data(&chart_plot_buf[iwnd][SCAD_Y_AXIS].pi[ichart][igraph], iwnd, ichart, igraph,
+				&chart_plot_buf[iwnd][SCAD_Y_AXIS].pi100[ichart][igraph], false);
 		}
 		return MK_DATA_TYPE_INT;
 	}
 	else if (type == MK_DATA_TYPE_BOOL) {
 		if (is_x) {
-			CMKChart::set_bool_data(chart_plot_buf[iwnd][SCAD_X_AXIS].b[ichart][igraph][ibool], iwnd, ichart, igraph, ibool, 
-				&chart_plot_buf[iwnd][SCAD_X_AXIS].b100[ichart][igraph][ibool]);
+			CMKChart::set_bool_data(&chart_plot_buf[iwnd][SCAD_X_AXIS].pb[ichart][igraph][ibool], iwnd, ichart, igraph, ibool, 
+				&chart_plot_buf[iwnd][SCAD_X_AXIS].pb100[ichart][igraph][ibool]);
 
 		}
 		else {
-			CMKChart::set_bool_data(chart_plot_buf[iwnd][SCAD_Y_AXIS].b[ichart][igraph][ibool], iwnd, ichart, igraph,ibool,
-				&chart_plot_buf[iwnd][SCAD_Y_AXIS].b100[ichart][igraph][ibool]);
+			CMKChart::set_bool_data(&chart_plot_buf[iwnd][SCAD_Y_AXIS].pb[ichart][igraph][ibool], iwnd, ichart, igraph,ibool,
+				&chart_plot_buf[iwnd][SCAD_Y_AXIS].pb100[ichart][igraph][ibool]);
 		}
 		return MK_DATA_TYPE_BOOL;
 	}
@@ -459,31 +497,58 @@ int CSCADA::setup_chart(int iwnd) {
 //　　プロットデータをバッファにセット
 //****************************************************************************
 int CSCADA::set_chart_data(int iptn) {
+
 	if (iptn == SCAD_CHART_PTN1) {
 	//Window1 Time Chart
 		//Chart1
 		CMKChart::set_data_type(MK_DATA_TYPE_TIME, SCAD_CHART_WND1, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, true);
+
 		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND1, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, false);
-		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pAgentInf->v_ref[ID_HOIST]);
-		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = pCraneStat->spec.notch_spd_f[ID_HOIST][NOTCH_5];
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].pd[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_BOOM_H].th);
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = PI30;
 
 		//Chart2		
 		CMKChart::set_data_type(MK_DATA_TYPE_TIME, SCAD_CHART_WND1, SCAD_CHART_CHART2, SCAD_CHART_GRAPH1, true);
+
 		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND1, SCAD_CHART_CHART2, SCAD_CHART_GRAPH1, false);
-		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d[SCAD_CHART_CHART2][SCAD_CHART_GRAPH1] = &(pAgentInf->v_ref[ID_BOOM_H]);
-		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[SCAD_CHART_CHART2][SCAD_CHART_GRAPH1] = pCraneStat->spec.notch_spd_f[ID_BOOM_H][NOTCH_5];
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].pd[SCAD_CHART_CHART2][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_SLEW].th);
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[SCAD_CHART_CHART2][SCAD_CHART_GRAPH1] = PI30;
 
 	//Window2 Scatter
 		//Chart1
 		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND2, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, true);
-		chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].d[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_BOOM_H].th);
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].pd[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_BOOM_H].th);
 		chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].d100[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = PI180;
+
 		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND2, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, false);
-		chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].d[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_SLEW].th);
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].pd[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_SLEW].th);
 		chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].d100[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = PI180;
 	}
 	else if (iptn == SCAD_CHART_PTN2) {
-		;
+		//Window1 Time Chart
+			//Chart1
+		CMKChart::set_data_type(MK_DATA_TYPE_TIME, SCAD_CHART_WND1, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, true);
+
+		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND1, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, false);
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].pd[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pAgentInf->v_ref[ID_HOIST]);
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = pCraneStat->spec.notch_spd_f[ID_HOIST][NOTCH_5];
+
+		//Chart2		
+		CMKChart::set_data_type(MK_DATA_TYPE_TIME, SCAD_CHART_WND1, SCAD_CHART_CHART2, SCAD_CHART_GRAPH1, true);
+
+		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND1, SCAD_CHART_CHART2, SCAD_CHART_GRAPH1, false);
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].pd[SCAD_CHART_CHART2][SCAD_CHART_GRAPH1] = &(pAgentInf->v_ref[ID_BOOM_H]);
+		chart_plot_buf[SCAD_CHART_WND1][SCAD_Y_AXIS].d100[SCAD_CHART_CHART2][SCAD_CHART_GRAPH1] = pCraneStat->spec.notch_spd_f[ID_BOOM_H][NOTCH_5];
+
+		//Window2 Scatter
+			//Chart1
+		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND2, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, true);
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].pd[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_BOOM_H].th);
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_X_AXIS].d100[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = PI180;
+
+		CMKChart::set_data_type(MK_DATA_TYPE_DOUBLE, SCAD_CHART_WND2, SCAD_CHART_CHART1, SCAD_CHART_GRAPH1, false);
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].pd[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = &(pCraneStat->sw_stat.sw[ID_SLEW].th);
+		chart_plot_buf[SCAD_CHART_WND2][SCAD_Y_AXIS].d100[SCAD_CHART_CHART1][SCAD_CHART_GRAPH1] = PI180;
 	}
 	else if (iptn == SCAD_CHART_PTN3) {
 		;

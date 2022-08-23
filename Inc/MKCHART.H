@@ -64,6 +64,10 @@
 #define MK_CHART2					1
 #define MK_CHART3					2
 #define MK_CHART4					3
+#define MK_GRAPH1					0
+#define MK_GRAPH2					1
+#define MK_GRAPH3					2
+#define MK_GRAPH4					3
 
 #define MK_DATA_TYPE_NULL			0
 #define MK_DATA_TYPE_TIME			1
@@ -75,6 +79,7 @@
 #define MK_RANGE_100PERCENT			100000	//1%->1000 = 0.001%単位
 
 #define MK_CHART_REFRESH_MS			10000
+#define MK_CHART_TIME_100			10000
 
 #define MK_CHART_PLOT_AXIS			2
 #define MK_DATA_CODE_X				0
@@ -111,18 +116,18 @@
 		MK_plot y;		//アナログ100%(0.001%単位）で正規化　デジタルはbool　
 	}ST_PLOT_ELEMENT, * LPST_PLOT_ELEMENT;
 
-	typedef struct _stPLOT_BUF {	//各グラフの時間チャート用X,Y軸プロット値の元データのポインタ
-		double* pd[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
-		int* pi[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
-		bool* pb[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];
+	typedef struct _stPLOT_BUF {	//各グラフの時間チャート用X,Y軸プロット値の元データのポインタのポインタ
+		double** ppd[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
+		int** ppi[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
+		bool** ppb[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];
 	}ST_PLOT_BUF, * LPST_PLOT_BUF;
 
 
 	typedef struct _stRANGE_SET		//各グラフの時間チャート用X,Y軸プロット値の元データ100%値
 	{
-		double d100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
-		int    i100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
-		bool   b100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];
+		double** ppd100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
+		int**    ppi100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART];
+		bool**   ppb100[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_MAX_BOOL_PER_CHART];
 	}ST_RANGE_SET, * LPST_RANGE_SET;
 
 //chart_status定義
@@ -137,8 +142,8 @@
 #define	MK_CHART_STATUS_DEF_SCATTER 0x0102	//線無　　　描画更新中
 
 //chart_type定義
-#define MK_CHART_TIME_GRAPH			0x0001
-#define MK_CHART_SCATTER			0x0002
+//#define MK_CHART_TIME_GRAPH			0x0001
+//#define MK_CHART_SCATTER			0x0002
 
 //プロット位置格納配列インデックス
 #define MK_CHART_AO						0
@@ -154,8 +159,8 @@
 		int num_of_plot;						//プロット数
 		int chart_x, chart_y, chart_w, chart_h;	//チャート画面の位置　幅、高さ
 		int graph_field_w, graph_field_h;		//Time GRAPHチャート表示領域のビットマップサイズ
-		int plot_interval_ms;					//表示間隔msec（タイマーイベントの設定値）
-		int refresh_interval;					//グラフ表示クリア間隔(プロット回数	散布図用）
+		int plot_interval_ms=100;				//表示間隔msec（タイマーイベントの設定値）
+		int refresh_interval=100;				//グラフ表示クリア間隔(プロット回数	散布図用）
 		DWORD	start_time_ms;					//チャート開始時間（PCを起動してからの起動時間）
 		DWORD	latast_plot_time_ms;			//最後にプロットした時間（PCを起動してからの起動時間）
 
@@ -187,7 +192,7 @@
 
 		//元データ関連		
 		ST_PLOT_BUF pdata[MK_CHART_PLOT_AXIS];					//各グラフの時間チャート用プロット値の元データのポインタをセットした構造体
-		ST_RANGE_SET value100[MK_CHART_PLOT_AXIS];				//プロットデータ100%の値　時間は、100秒=100%とする 0セットでプロットしない
+		ST_RANGE_SET pvalue100[MK_CHART_PLOT_AXIS];				//プロットデータ100%の値のポインタをセットした構造体　時間は、100秒=100%とする 0セットでプロットしない
 		int	data_type[MK_CHART_MAX_PER_WND][MK_MAX_GRAPH_PER_CHART][MK_CHART_PLOT_AXIS];	//プロットデータの型　[WNDあたりのCHART数][CHARTあたりのグラフ数][x軸y軸]
 
 		UINT_PTR timerID;//プロットタイマーID
@@ -227,9 +232,9 @@
 		static int clear_chart(int chartID);
 
 		static int set_data_type(int type, int chart_WND_ID, int i_chart, int i_item, bool is_x);
-		static int set_double_data(double* pd, int chart_WND_ID, int i_chart, int i_item, double* d_100, bool is_x);
-		static int set_int_data(int* pi, int chart_WND_ID, int i_chart, int i_item, int* i_100, bool is_x);
-		static int set_bool_data(bool* pb, int chart_WND_ID, int i_chart, int i_item, int i_bool, bool* b100);
+		static int set_double_data(double** ppd, int chart_WND_ID, int i_chart, int i_item, double** ppd_100, bool is_x);
+		static int set_int_data(int** ppi, int chart_WND_ID, int i_chart, int i_item, int** ppi_100, bool is_x);
+		static int set_bool_data(bool** ppb, int chart_WND_ID, int i_chart, int i_item, int i_bool, bool** ppb100);
 		
 		static int set_chart_spd(int chart_WND_ID, int disp_time_ms);//チャートのスピード　チャート幅記録にかかる時間msec
 		static int set_reflesh_time(int chart_WND_ID, int period_ms);

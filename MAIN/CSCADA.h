@@ -31,13 +31,17 @@
 
 typedef struct _stCHART_PLOT
 {
-	double* d[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                           //doubleデータ生値
-    double d100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                        //doubleデータ100%値
-	int* i[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                              //intデータ生値
-    int i100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                                           //intデータ100%値
-	bool* b[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];                      //boolデータ生値
-    bool b100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];                   //boolデータ100%値
+	double* pd[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                           //doubleデータ生値
+    double* pd100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                        //doubleデータ100%値バッファポインタ
+    double  d100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                         //doubleデータ100%値
+	int*    pi[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                           //intデータ生値
+    int*    pi100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                        //intデータ100%値バッファポインタ
+    int     i100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                         //intデータ100%値
+ 	bool*   pb[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];    //boolデータ生値
+    bool*   pb100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH]; //boolデータ100%値バッファポインタ
+    bool    b100;                                                                      //boolデータ100%値
     char legend[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH][SCAD_N_LEGEND_CH];//凡例文字列
+    
 }ST_CHART_PLOT, * LPST_CHART_PLOT;
 
 class CSCADA :public CTaskObj
