@@ -29,6 +29,7 @@
 #define PI60            1.0472
 #define PI45            0.7854
 #define PI30            0.5236
+#define PI15            0.2618
 #define PI1DEG          0.017453
 
 #define RAD2DEG         57.29578

@@ -35,8 +35,9 @@
 #define GRAPH_CHART_DOT_W			500		//１つのチャートの幅
 #define CHART_MARGIN_X				50		//チャート書き出しポイント
 #define CHART_MARGIN_Y				15		//チャート書き出しポイント
-#define GRAPH_CHART_DISP_TIME_DEF	45000	//時間チャート表示時間範囲のデフォルトmsec
+#define GRAPH_CHART_DISP_TIME_DEF	30000	//時間チャート表示時間範囲のデフォルトmsec
 #define GRAPH_CHART_BOOL_H			4		//BOOLデータON時の高さ
+#define GRAPH_CHART_PADDING_Y		20		//背景,グラフィック表示用Y方向パディング値
 
 #define SCAT_CHART_100				80		//100%ドット数
 #define SCAT_CHART_DOT_H			200		//１つのチャートの高さ
@@ -69,11 +70,12 @@
 #define MK_GRAPH3					2
 #define MK_GRAPH4					3
 
-#define MK_DATA_TYPE_NULL			0
-#define MK_DATA_TYPE_TIME			1
-#define MK_DATA_TYPE_DOUBLE			2
-#define MK_DATA_TYPE_INT			3
-#define MK_DATA_TYPE_BOOL			4
+#define MK_DATA_TYPE_NULL			0x0000
+#define MK_DATA_TYPE_TIME			0x0001
+#define MK_DATA_TYPE_DOUBLE			0x0002
+#define MK_DATA_TYPE_INT			0x0004
+#define MK_DATA_TYPE_BOOL			0x0008
+#define MK_DATA_TYPE_ANALOG			0x0006
 
 #define MK_CHART_BUF_MAX			600
 #define MK_RANGE_100PERCENT			100000	//1%->1000 = 0.001%単位
@@ -211,6 +213,17 @@
 
 	}ST_CHART_SET, * LPST_CHART_SET;
 
+#define MK_CHART_N_HPEN		8
+#define MK_CHART_N_HBRUSH	8
+#define MK_CHART_BLACK		0
+#define MK_CHART_WHITE		1
+#define MK_CHART_RED		2
+#define MK_CHART_BLUE		3
+#define MK_CHART_GREEN		4
+#define MK_CHART_YELLOW		5
+#define MK_CHART_MAGENDA	6
+#define MK_CHART_GLAY		7
+
 
 	class CMKChart
 	{
@@ -225,7 +238,8 @@
 		
 		static ST_CHART_SET mkchartset[MK_CHART_WND_MAX];	//チャート管理構造体
 		static HINSTANCE hInst;
-
+		static HPEN hpens[MK_CHART_N_HPEN];
+		static HBRUSH hbrushes[MK_CHART_N_HBRUSH];
 		static int init_chartfunc();
 		static int init_chart(int chartID);
 		static HWND open_chart(int chartID, HWND hwnd_parent);
@@ -235,6 +249,7 @@
 		static int set_double_data(double** ppd, int chart_WND_ID, int i_chart, int i_item, double** ppd_100, bool is_x);
 		static int set_int_data(int** ppi, int chart_WND_ID, int i_chart, int i_item, int** ppi_100, bool is_x);
 		static int set_bool_data(bool** ppb, int chart_WND_ID, int i_chart, int i_item, int i_bool, bool** ppb100);
+		static int clear_set_data();
 		
 		static int set_chart_spd(int chart_WND_ID, int disp_time_ms);//チャートのスピード　チャート幅記録にかかる時間msec
 		static int set_reflesh_time(int chart_WND_ID, int period_ms);
@@ -245,7 +260,6 @@
 		static int set_graph(int chart_WND_ID);
 		static void draw_bg(int chartID);
 
-		//グローバル関数
 		static LRESULT CALLBACK ChartWndProc_A(HWND, UINT, WPARAM, LPARAM);//Time-Data Graph
 		static LRESULT CALLBACK ChartWndProc_B(HWND, UINT, WPARAM, LPARAM);//Data-Data Graph
 	};
