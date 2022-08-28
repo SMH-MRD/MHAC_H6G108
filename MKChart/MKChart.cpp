@@ -115,7 +115,7 @@ HWND CMKChart::open_chart(int chartID, HWND hwnd_parent) {
 	}
 
 
-	if (mkchartset[chartID].chart_type == MK_CHART_TYPE_SCATTER) {//chart timeは、iniファイルで設定
+	if (mkchartset[chartID].chart_type == MK_WND_TYPE_SCATTER) {//chart timeは、iniファイルで設定
 		wc.style = CS_HREDRAW | CS_VREDRAW;
 		wc.lpfnWndProc = ChartWndProc_A;// !CALLBACKでreturnを返していないとWindowClassの登録に失敗する
 		wc.cbClsExtra = 0;
@@ -210,13 +210,15 @@ int CMKChart::init_chart(int chartID) {
 
 
 	//PEN　BRUCHを用意
+	hpens[MK_CHART_NULL] = CreatePen(PS_NULL, 1, RGB(0, 0, 0));
 	hpens[MK_CHART_BLACK] = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 	hpens[MK_CHART_WHITE] = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
 	hpens[MK_CHART_RED] = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
 	hpens[MK_CHART_BLUE] = CreatePen(PS_SOLID, 1, RGB(0, 0, 255));
 	hpens[MK_CHART_GREEN] = CreatePen(PS_SOLID, 1, RGB(0, 255, 0));
-	hpens[MK_CHART_YELLOW] = CreatePen(PS_SOLID, 1, RGB(0, 255, 255));
-	hpens[MK_CHART_MAGENDA] = CreatePen(PS_SOLID, 1, RGB(255, 255, 0));
+	hpens[MK_CHART_LIGHT_BLUE] = CreatePen(PS_SOLID, 1, RGB(0, 255, 255));
+	hpens[MK_CHART_MAGENDA] = CreatePen(PS_SOLID, 1, RGB(255, 0, 255));
+	hpens[MK_CHART_YELLOW] = CreatePen(PS_SOLID, 1, RGB(255, 255,  0));
 	hpens[MK_CHART_GLAY] = CreatePen(PS_SOLID, 1, RGB(180, 180, 180));
 
 	hbrushes[MK_CHART_BLACK] = CreateSolidBrush(RGB(0, 0, 0));
@@ -224,7 +226,7 @@ int CMKChart::init_chart(int chartID) {
 	hbrushes[MK_CHART_RED] = CreateSolidBrush(RGB(255, 0, 0));
 	hbrushes[MK_CHART_BLUE] = CreateSolidBrush(RGB(0, 0, 255));
 	hbrushes[MK_CHART_GREEN] = CreateSolidBrush(RGB(0, 255, 0));
-	hbrushes[MK_CHART_YELLOW] = CreateSolidBrush(RGB(0, 255, 255));
+	hbrushes[MK_CHART_LIGHT_BLUE] = CreateSolidBrush(RGB(0, 255, 255));
 	hbrushes[MK_CHART_MAGENDA] = CreateSolidBrush(RGB(255, 255, 0));
 	hbrushes[MK_CHART_GLAY] = CreateSolidBrush(RGB(180, 180, 180));
 
@@ -234,7 +236,7 @@ int CMKChart::init_chart(int chartID) {
 	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH1] = hpens[MK_CHART_RED];
 	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH2] = hpens[MK_CHART_GREEN];
 	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH3] = hpens[MK_CHART_BLUE];
-	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH4] = hpens[MK_CHART_YELLOW];
+	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH4] = hpens[MK_CHART_MAGENDA];
 	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH1] = hpens[MK_CHART_RED];
 	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH2] = hpens[MK_CHART_GREEN];
 	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH3] = hpens[MK_CHART_BLUE];
@@ -250,31 +252,12 @@ int CMKChart::init_chart(int chartID) {
 	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH4] = hbrushes[MK_CHART_YELLOW];
 
 
-/*
-	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH1] = CreatePen(PS_SOLID, 1, RGB(0, 0, 255));	//青
-	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH2] = CreatePen(PS_SOLID, 1, RGB(0, 255, 0));	//緑
-	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH3] = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));	//赤
-	mkchartset[chartID].hpen[MK_CHART1][MK_GRAPH4] = CreatePen(PS_SOLID, 1, RGB(255, 255, 0));	//黄
-	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH1] = CreatePen(PS_SOLID, 1, RGB(0, 0, 255));
-	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH2] = CreatePen(PS_SOLID, 1, RGB(0, 255, 0));
-	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH3] = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
-	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH4] = CreatePen(PS_SOLID, 1, RGB(255, 255, 0));
-
-	mkchartset[chartID].hbrush[MK_CHART1][MK_GRAPH1] = CreateSolidBrush(RGB(0, 0, 255));
-	mkchartset[chartID].hbrush[MK_CHART1][MK_GRAPH2] = CreateSolidBrush(RGB(0, 255, 0));
-	mkchartset[chartID].hbrush[MK_CHART1][MK_GRAPH3] = CreateSolidBrush(RGB(255, 0, 0));
-	mkchartset[chartID].hbrush[MK_CHART1][MK_GRAPH4] = CreateSolidBrush(RGB(255, 255, 0));
-	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH1] = CreateSolidBrush(RGB(0, 0, 255));
-	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH2] = CreateSolidBrush(RGB(0, 255, 0));
-	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH3] = CreateSolidBrush(RGB(255, 0, 0));
-	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH4] = CreateSolidBrush(RGB(255, 255, 0));
-*/
 
 	//Chart表示状態デフォルトセット プロットACTIVE　#Line MArkerの有無
-	if (mkchartset[chartID].chart_type == MK_CHART_TYPE_TIME_GRAPH) {
+	if (mkchartset[chartID].chart_type == MK_WND_TYPE_TIME_GRAPH) {
 		mkchartset[chartID].chart_status |= MK_CHART_STATUS_DEF_BASIC;
 	}
-	if (mkchartset[chartID].chart_type == MK_CHART_TYPE_SCATTER) {
+	if (mkchartset[chartID].chart_type == MK_WND_TYPE_SCATTER) {
 		mkchartset[chartID].chart_status |= MK_CHART_STATUS_DEF_SCATTER;
 	}
 
@@ -297,7 +280,7 @@ int CMKChart::init_chart(int chartID) {
 	}
 
 	
-	if (mkchartset[chartID].chart_type == MK_CHART_TYPE_SCATTER) {	//散布図
+	if (mkchartset[chartID].chart_type == MK_WND_TYPE_SCATTER) {	//散布図
 		//CHART原点セット
 		mkchartset[chartID].g_origin[0].x = SCAT_MARGIN_X + SCAT_CHART_DOT_W / 2;
 		mkchartset[chartID].g_origin[0].y = SCAT_CHART_DOT_H / 2;
@@ -328,7 +311,7 @@ int CMKChart::init_chart(int chartID) {
 
 		//プロット点を原点にセット
 		for (int i = 0; i < MK_CHART_MAX_PER_WND; i++) {
-			for (int j = 0; j < MK_CHART_MAX_PER_WND; j++) {
+			for (int j = 0; j < MK_MAX_GRAPH_PER_CHART; j++) {
 				for (int k = 0; k < MK_MAX_BOOL_PER_CHART; k++) {
 					mkchartset[chartID].plot_p[i][j][k].x = mkchartset[chartID].g_origin[i].x;
 					mkchartset[chartID].plot_p[i][j][k].y = mkchartset[chartID].g_origin[i].y;
@@ -365,12 +348,20 @@ int CMKChart::init_chart(int chartID) {
 
 	memset(mkchartset[chartID].plot_data, 0, sizeof(mkchartset[chartID].plot_data));//チャートデータバッファの初期化
 	mkchartset[chartID].plot_buf_index = 0;					//チャートデータバッファのindex
-	mkchartset[chartID].plot_x = 0;							//データプロットBITMAP上のX位置
 	mkchartset[chartID].start_time_ms = GetTickCount();		//GetTickCountはPCを起動してからの経過時間をミリ秒単位で返すための関数
 
 	//chart速度セット　指定時間より1秒あたりのdot数をセットする
 	set_chart_spd(chartID, GRAPH_CHART_DISP_TIME_DEF);
-	//clear_set_data();
+
+	//プロット点を原点にセット
+	for (int i = 0; i < MK_CHART_MAX_PER_WND; i++) {
+		for (int j = 0; j < MK_MAX_GRAPH_PER_CHART; j++) {
+			for (int k = 0; k < MK_MAX_BOOL_PER_CHART; k++) {
+				mkchartset[chartID].plot_p[i][j][k].x = mkchartset[chartID].g_origin[i].x;
+				mkchartset[chartID].plot_p[i][j][k].y = mkchartset[chartID].g_origin[i].y;
+			}
+		}
+	}
 	
 	return 0;
 }
@@ -434,7 +425,7 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 		SelectObject(mkchartset[chartID_work].hdc_mem_graph, GetStockObject(DC_PEN));
 		SetDCPenColor(mkchartset[chartID_work].hdc_mem_graph, RGB(0, 0, 255));
 
-		if (mkchartset[chartID_work].chart_type == MK_CHART_TYPE_SCATTER) {	// Scatter Chart
+		if (mkchartset[chartID_work].chart_type == MK_WND_TYPE_SCATTER) {	// Scatter Chart
 			bool b_refresh = true;
 
 			//プロット回数がリフレッシュ設定値周期に達したときグラフ画面クリア　
@@ -589,7 +580,7 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 	case WM_MKCHART_INIT: {
 		int chartID_work = wp;
 		//ボタン作成
-		if (mkchartset[chartID_work].chart_type == MK_CHART_TYPE_SCATTER){
+		if (mkchartset[chartID_work].chart_type == MK_WND_TYPE_SCATTER){
 			mkchartset[chartID_work].hwnd_chart_startPB = CreateWindow(
 				L"BUTTON", L"Start",
 				WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -632,7 +623,7 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 
 		//デバイスコンテキスト設定
 		hdc = GetDC(hwnd);
-		if (mkchartset[chartID_work].chart_type == MK_CHART_TYPE_SCATTER) {
+		if (mkchartset[chartID_work].chart_type == MK_WND_TYPE_SCATTER) {
 			mkchartset[chartID_work].hBmap_mem0 = CreateCompatibleBitmap(hdc, CHART_WND_W_SCAT, CHART_WND_H_SCAT);
 			mkchartset[chartID_work].hdc_mem0 = CreateCompatibleDC(hdc);
 			SelectObject(mkchartset[chartID_work].hdc_mem0, mkchartset[chartID_work].hBmap_mem0);
@@ -689,7 +680,7 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 		TransparentBlt(mkchartset[chartID_work].hdc_mem0, 0, GRAPH_CHART_PADDING_Y, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, mkchartset[chartID_work].hdc_mem_bg, 0, 0, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, RGB(255, 255, 255));
 		TransparentBlt(mkchartset[chartID_work].hdc_mem0, 0, GRAPH_CHART_PADDING_Y, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, mkchartset[chartID_work].hdc_mem_graph, 0, 0, mkchartset[chartID_work].chart_w, mkchartset[chartID_work].chart_h, RGB(255, 255, 255));
 
-		if (mkchartset[chartID_work].chart_type == MK_CHART_TYPE_SCATTER) {
+		if (mkchartset[chartID_work].chart_type == MK_WND_TYPE_SCATTER) {
 			BitBlt(hdc, 0, 0, CHART_WND_W_SCAT, CHART_WND_H_SCAT, mkchartset[chartID_work].hdc_mem0, 0, 0, SRCCOPY);
 		}
 		else {
@@ -712,7 +703,7 @@ LRESULT CALLBACK CMKChart::ChartWndProc_A(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 			}
 			else {
 				init_chart(chartID);
-				if (mkchartset[chartID].chart_type == MK_CHART_TYPE_SCATTER) {
+				if (mkchartset[chartID].chart_type == MK_WND_TYPE_SCATTER) {
 					PatBlt(mkchartset[chartID].hdc_mem_graph, 0, 0, CHART_WND_W_SCAT, CHART_WND_H_SCAT, WHITENESS);
 					PatBlt(mkchartset[chartID].hdc_mem0, 0, 0, CHART_WND_W_SCAT, CHART_WND_H_SCAT, WHITENESS);
 				}
@@ -878,31 +869,20 @@ int CMKChart::set_bool_data(bool** ppb, int chart_WND_ID, int i_chart, int i_ite
 // clear_set_data()
 // プロット元データのリンクを初期化
 //######################################################################################
-int CMKChart::clear_set_data() {
+int CMKChart::clear_set_data(int iwnd) {
 
-	for (int i = 0; i < MK_CHART_WND_MAX; i++) {
-		for (int j = 0; j < MK_CHART_MAX_PER_WND; j++) {
+	mkchartset[iwnd].plot_buf_index = 0;					//チャートデータバッファのindex
+	mkchartset[iwnd].start_time_ms = GetTickCount();		//GetTickCountはPCを起動してからの経過時間をミリ秒単位で返すための関数	
+	
+	for (int j = 0; j < MK_CHART_MAX_PER_WND; j++) {
 			for (int k = 0; k < MK_MAX_GRAPH_PER_CHART; k++) {
-				mkchartset[i].data_type[j][k][MK_DATA_CODE_X] = MK_DATA_TYPE_NULL;
-				mkchartset[i].data_type[j][k][MK_DATA_CODE_Y] = MK_DATA_TYPE_NULL;
-
-				mkchartset[i].pdata[MK_DATA_CODE_X].ppd[j][k] = &dummy_pd;
-				mkchartset[i].pdata[MK_DATA_CODE_Y].ppd[j][k] = &dummy_pd;
-				mkchartset[i].pdata[MK_DATA_CODE_X].ppi[j][k] = &dummy_pi;
-				mkchartset[i].pdata[MK_DATA_CODE_Y].ppi[j][k] = &dummy_pi;
-				mkchartset[i].pvalue100[MK_DATA_CODE_X].ppd100[j][k] = &dummy_pd;
-				mkchartset[i].pvalue100[MK_DATA_CODE_Y].ppd100[j][k] = &dummy_pd;
-				mkchartset[i].pvalue100[MK_DATA_CODE_X].ppi100[j][k] = &dummy_pi;
-				mkchartset[i].pvalue100[MK_DATA_CODE_Y].ppi100[j][k] = &dummy_pi;
-				for (int l = 0; l < MK_MAX_BOOL_PER_CHART; l++) {
-					mkchartset[i].pdata[MK_DATA_CODE_X].ppb[j][k][l] = &dummy_pb;
-					mkchartset[i].pdata[MK_DATA_CODE_Y].ppb[j][k][l] = &dummy_pb;
-					mkchartset[i].pvalue100[MK_DATA_CODE_X].ppb100[j][k][l] = &dummy_pb;
-					mkchartset[i].pvalue100[MK_DATA_CODE_Y].ppb100[j][k][l] = &dummy_pb;
-				}
+				mkchartset[iwnd].data_type[j][k][MK_DATA_CODE_X] = MK_DATA_TYPE_NULL;
+				mkchartset[iwnd].data_type[j][k][MK_DATA_CODE_Y] = MK_DATA_TYPE_NULL;
 			}
-		}
 	}
+
+	PatBlt(mkchartset[iwnd].hdc_mem_graph, 0, 0, CHART_WND_W_DEF, CHART_WND_H_DEF, WHITENESS);
+	PatBlt(mkchartset[iwnd].hdc_mem0, 0, 0, CHART_WND_W_DEF, CHART_WND_H_DEF, WHITENESS);
 
 	return 0;
 }
@@ -959,7 +939,7 @@ int CMKChart::set_graph(int chart_WND_ID) {
 			else continue;	//データ無し
 
 			//各グラフX軸データのプロット値をセット　
-			if (mkchartset[chart_WND_ID].chart_type == MK_CHART_TYPE_SCATTER) {	//散布図のx軸の値
+			if (mkchartset[chart_WND_ID].chart_type == MK_WND_TYPE_SCATTER) {	//散布図のx軸の値
 				if (mkchartset[chart_WND_ID].data_type[i][j][MK_DATA_CODE_X] == MK_DATA_TYPE_DOUBLE) {
 					mkchartset[chart_WND_ID].plot_data[i][j][mkchartset[chart_WND_ID].plot_buf_index].x
 						= (int)(MK_RANGE_100PERCENT * (**mkchartset[chart_WND_ID].pdata[MK_DATA_CODE_X].ppd[i][j]) / **mkchartset[chart_WND_ID].pvalue100[MK_DATA_CODE_X].ppd100[i][j]);
@@ -1009,7 +989,7 @@ int CMKChart::set_reflesh_time(int chartID, int period_ms) {
 //########################################################################
 void CMKChart::draw_bg(int chartID_work) {
 
-	if (mkchartset[chartID_work].chart_type == MK_CHART_TYPE_SCATTER) {	//散布図
+	if (mkchartset[chartID_work].chart_type == MK_WND_TYPE_SCATTER) {	//散布図
 
 		//描画領域クリア
 		PatBlt(mkchartset[chartID_work].hdc_mem0, 0, 0, CHART_WND_W_SCAT, CHART_WND_H_SCAT, WHITENESS);

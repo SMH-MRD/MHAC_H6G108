@@ -39,7 +39,7 @@ typedef struct _stCHART_PLOT
     int     i100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART];                         //intデータ100%値
  	bool*   pb[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH];    //boolデータ生値
     bool*   pb100[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH]; //boolデータ100%値バッファポインタ
-    bool    b100;                                                                      //boolデータ100%値
+    bool    b100;                                                                       //boolデータ100%値
     char legend[SCAD_N_CHART_PER_WND][SCAD_N_GRAPH_PAR_CHART][SCAD_N_BOOL_PAR_GRAPH][SCAD_N_LEGEND_CH];//凡例文字列
     
 }ST_CHART_PLOT, * LPST_CHART_PLOT;
@@ -79,7 +79,10 @@ private:
     int chart_plot_ptn = 0;
     ST_CHART_PLOT chart_plot_buf[SCAD_N_CHART_WND][SCAD_N_CHART_AXIS];
  
-    int set_graph_item(int iwnd, int ichart, int igraph, int ibool,bool is_x, int type);
+    int set_graph_link(int iwnd, int ichart, int igraph, int ibool,bool is_x, int type);
+    int set_graph_double(int iwnd, int ichart, int igraph, bool is_x, double* pd, double d100);
+    int set_graph_int(int iwnd, int ichart, int igraph, bool is_x, int* pi, int i100);
+    int set_graph_bool(int iwnd, int ichart, int igraph, int ibool, bool* pb);
     int setup_chart(int iwnd);      //チャートライブラリのバッファにプロットデータの参照ポインタをセット
     int set_chart_data(int iptn);   //指定パターンに従ってプロットデータのバッファセット
 };

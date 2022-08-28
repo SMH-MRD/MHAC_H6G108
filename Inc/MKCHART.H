@@ -58,8 +58,10 @@
 #define MK_MAX_GRAPH_PER_CHART		4		//1つのチャートに重ねて表示可能なグラフ数
 #define MK_MAX_BOOL_PER_CHART		4		//１つのグラフに重ねて表示可能なON/OFFデータ数
 
-#define MK_CHART_TYPE_TIME_GRAPH	0		//X:時間　Y:DATA
-#define MK_CHART_TYPE_SCATTER		1		//散布図
+#define MK_WND_TYPE_TIME_GRAPH		0		//X:時間　Y:DATA
+#define MK_WND_TYPE_SCATTER			1		//散布図
+#define MK_CHART_WND1				MK_WND_TYPE_TIME_GRAPH
+#define MK_CHART_WND2				MK_WND_TYPE_SCATTER
 
 #define MK_CHART1					0
 #define MK_CHART2					1
@@ -200,7 +202,6 @@
 		UINT_PTR timerID;//プロットタイマーID
 
 		int plot_buf_index;				//plot_dataの書き込みindex
-		int plot_x;						//plotするx座標
 		int spd_dot_per_sec;			//plot速度
 		int graph_count[MK_CHART_MAX_PER_WND];
 	
@@ -213,16 +214,19 @@
 
 	}ST_CHART_SET, * LPST_CHART_SET;
 
-#define MK_CHART_N_HPEN		8
-#define MK_CHART_N_HBRUSH	8
-#define MK_CHART_BLACK		0
-#define MK_CHART_WHITE		1
-#define MK_CHART_RED		2
-#define MK_CHART_BLUE		3
-#define MK_CHART_GREEN		4
-#define MK_CHART_YELLOW		5
-#define MK_CHART_MAGENDA	6
-#define MK_CHART_GLAY		7
+#define MK_CHART_N_HPEN		20
+#define MK_CHART_N_HBRUSH	20
+
+#define MK_CHART_NULL		0
+#define MK_CHART_BLACK		1
+#define MK_CHART_WHITE		2
+#define MK_CHART_RED		3
+#define MK_CHART_BLUE		4
+#define MK_CHART_GREEN		5
+#define MK_CHART_YELLOW		6
+#define MK_CHART_MAGENDA	7
+#define MK_CHART_LIGHT_BLUE	8
+#define MK_CHART_GLAY		9
 
 
 	class CMKChart
@@ -249,7 +253,7 @@
 		static int set_double_data(double** ppd, int chart_WND_ID, int i_chart, int i_item, double** ppd_100, bool is_x);
 		static int set_int_data(int** ppi, int chart_WND_ID, int i_chart, int i_item, int** ppi_100, bool is_x);
 		static int set_bool_data(bool** ppb, int chart_WND_ID, int i_chart, int i_item, int i_bool, bool** ppb100);
-		static int clear_set_data();
+		static int clear_set_data(int iwnd);
 		
 		static int set_chart_spd(int chart_WND_ID, int disp_time_ms);//チャートのスピード　チャート幅記録にかかる時間msec
 		static int set_reflesh_time(int chart_WND_ID, int period_ms);
