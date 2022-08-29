@@ -193,7 +193,7 @@ int CAgent::receipt_ope_com(int type,int target) {
 /*  PB,ランプ出力内容セット														*/
 /****************************************************************************/
 void CAgent::set_lamp() {
-	if (pPolicyInf->antisway_mode & BITSEL_COMMON) {
+	if (pCraneStat->anti_sway_mode & BITSEL_COMMON) {
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_ON;
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_OFF;
 	}

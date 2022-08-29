@@ -35,6 +35,10 @@ private:
     LPST_SWAY_IO pSway_IO;
     LPST_REMOTE_IO pRemoteIO;
     LPST_SIMULATION_STATUS pSimStat;
+    LPST_CS_INFO pCSInf;
+    LPST_POLICY_INFO pPolicyInf;
+    LPST_AGENT_INFO pAgentInf;
+
  
     void input();                   //外部データ取り込み
     void main_proc();               //処理内容

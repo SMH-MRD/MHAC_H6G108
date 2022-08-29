@@ -7,8 +7,8 @@ extern CSharedMem* pSimulationStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pRemoteIO_Obj;
-extern CSharedMem*  pCSInfObj;
-extern CSharedMem* pPolicyInfmandStatusObj;
+extern CSharedMem* pCSInfObj;
+extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
 
 /****************************************************************************/
@@ -20,6 +20,9 @@ CEnvironment::CEnvironment() {
 	pSway_IO = NULL;
 	pRemoteIO = NULL;
 	pSimStat = NULL;
+	pCSInf = NULL;
+	pPolicyInf = NULL;
+	pAgentInf = NULL;
 }
 
 CEnvironment::~CEnvironment() {
@@ -39,6 +42,9 @@ void CEnvironment::init_task(void* pobj) {
 	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 	pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
+	pCSInf=(LPST_CS_INFO)(pCSInfObj->get_pMap());
+	pPolicyInf = (LPST_POLICY_INFO)(pPolicyInfObj->get_pMap());
+	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	
 	//クレーン仕様セット
 	stWorkCraneStat.spec = this->spec;
@@ -121,6 +127,8 @@ void CEnvironment::output() {
 
 	//共有メモリ出力
 	memcpy_s(pCraneStat, sizeof(ST_CRANE_STATUS), &stWorkCraneStat, sizeof(ST_CRANE_STATUS));
+
+
 	
 	return;
 
@@ -239,7 +247,39 @@ int CEnvironment::mode_set() {
 
 	//PLCデバッグモードセット
 	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_PLC_DBGIO;
-	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO;
+	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO; 
+
+
+	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == true) {
+		stWorkCraneStat.anti_sway_mode |= BITSEL_COMMON | BITSEL_BOOM_H | BITSEL_SLEW;
+	}
+	else {
+		stWorkCraneStat.anti_sway_mode &= ~(BITSEL_COMMON | BITSEL_BOOM_H | BITSEL_SLEW);
+	}
+
+	bool is_0_notch;
+	if ((pPLC_IO->ui.notch_pos[ID_SLEW] == 0) && (pPLC_IO->ui.notch_pos[ID_BOOM_H] == 0)){
+		is_0_notch = true;
+	}
+	else {
+		is_0_notch = false;
+	}
+
+	if ((is_0_notch == false) || (stWorkCraneStat.anti_sway_mode == 0)) {
+		stWorkCraneStat.auto_mode = MANUAL_MODE;
+	}
+	else if ((stWorkCraneStat.auto_mode == AUTO_ACTIVE)&&(pCSInf->n_job_standby == 0)) {
+			stWorkCraneStat.auto_mode = ANTI_SWAY_MODE;
+	}
+	else if((stWorkCraneStat.auto_mode == ANTI_SWAY_MODE)&&(pCSInf->n_job_standby != 0)){
+		stWorkCraneStat.auto_mode = AUTO_ACTIVE;
+	}
+	else if (stWorkCraneStat.auto_mode == MANUAL_MODE) {
+		if ((stWorkCraneStat.auto_mode) && (pCSInf->n_job_standby != 0))	stWorkCraneStat.auto_mode = AUTO_ACTIVE;
+		else if (stWorkCraneStat.auto_mode)stWorkCraneStat.auto_mode = ANTI_SWAY_MODE;
+		else;
+	}
+	else;
 
 	return 0;
 
@@ -324,6 +364,14 @@ void CEnvironment::chk_subproc() {
 /****************************************************************************/
 void CEnvironment::tweet_update() {
 
+	if (pCraneStat->anti_sway_mode) wostrs << L" # AS:ON";
+	else  wostrs << L" # AS:OFF";
+
+	if (pCraneStat->auto_mode == ANTI_SWAY_MODE) wostrs << L" # MODE:ASWAY";
+	else if (pCraneStat->auto_mode == AUTO_ACTIVE) wostrs << L" # MODE:AUTO";
+	else  wostrs << L" # MODE:MANU";
+
+#if 0
 	//PLC
 	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {
 		if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) wostrs << L" #PLC:DBG";
@@ -351,7 +399,7 @@ void CEnvironment::tweet_update() {
 		else wostrs << L" #SIM:STP";
 	}
 	else wostrs << L" #SIM:OUT";
-
+#endif
 	wostrs << L" --Scan " << inf.period;
 
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();

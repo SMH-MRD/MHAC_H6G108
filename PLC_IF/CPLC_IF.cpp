@@ -205,10 +205,10 @@ int CPLC_IF::set_debug_status() {
     plc_io_workbuf.ui.PB[ID_PB_ESTOP] = pWorkWindow->stOpePaneStat.check_estop;
 
     if (pWorkWindow->stOpePaneStat.check_antisway) {
-        plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] |= true;plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] = false;
+        plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] = true; plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] = false;
      }
     else {
-        plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] = false;plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] |= true;
+        plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] = false; plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] |= true;
     }
     plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE] = pWorkWindow->stOpePaneStat.button_remote;
     plc_io_workbuf.ui.PB[ID_PB_AUTO_START] = pWorkWindow->stOpePaneStat.button_auto_start;

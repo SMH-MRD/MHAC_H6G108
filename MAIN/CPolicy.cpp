@@ -71,8 +71,7 @@ void CPolicy::main_proc() {
 //’èŽüŠúˆ—Žè‡3@M†o—Íˆ—
 void CPolicy::output() {
 	
-	if (pPolicyInf->antisway_mode) wostrs << L" # AS:ON";
-	else  wostrs << L" # AS:OFF";
+
 
 	wostrs << L", CTRL:" << hex << pPolicyInf->pc_ctrl_mode;
 
@@ -92,22 +91,7 @@ int CPolicy::update_control(DWORD code, LPVOID optlp) {
 	switch (req) {
 	case POLICY_REQ_REMOTE:
 		break;
-	case POLICY_REQ_ANTISWAY: {
-		if (pPolicyInf->antisway_mode & BITSEL_COMMON) {
 
-			pPolicyInf->antisway_mode &= ~BITSEL_COMMON;
-			pPolicyInf->antisway_mode &= ~BITSEL_GANTRY;
-			pPolicyInf->antisway_mode &= ~BITSEL_SLEW;
-			pPolicyInf->antisway_mode &= ~BITSEL_BOOM_H;
-		}
-		else {
-
-			pPolicyInf->antisway_mode |= BITSEL_COMMON;
-			pPolicyInf->antisway_mode |= BITSEL_GANTRY;
-			pPolicyInf->antisway_mode |= BITSEL_SLEW;
-			pPolicyInf->antisway_mode |= BITSEL_BOOM_H;
-		}
-	}break;
 	case POLICY_REQ_DEBUG: {
 		set_pc_control(BITSEL_COMMON);
 	}break;
