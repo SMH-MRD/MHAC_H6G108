@@ -300,13 +300,13 @@ VOID CMonWin::draw_inf() {
 	_stprintf_s(tbuf, L"%.4f", pSimStat->w_cam_y); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 140, ws.c_str(), (int)ws.length());
 
-	_stprintf_s(tbuf, L":%.4f", pCraneStat->sw_stat.sw[ID_SLEW].th); ws = tbuf;
+	_stprintf_s(tbuf, L":%.4f", pSway_IO ->th[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 725, 155, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pCraneStat->sw_stat.sw[ID_BOOM_H].th); ws = tbuf;
+	_stprintf_s(tbuf, L"%.4f", pSway_IO->th[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 800, 155, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pCraneStat->sw_stat.sw[ID_SLEW].dth); ws = tbuf;
+	_stprintf_s(tbuf, L"%.4f", pSway_IO->dth[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 865, 155, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pCraneStat->sw_stat.sw[ID_BOOM_H].dth); ws = tbuf;
+	_stprintf_s(tbuf, L"%.4f", pSway_IO->dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 155, ws.c_str(), (int)ws.length());
 
 	return;
@@ -368,8 +368,8 @@ VOID CMonWin::draw_graphic() {
 
 	r = 4;
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_PEN]);
-	pt.x = LONG(pCraneStat->sw_stat.sw[ID_SLEW].th * 573.0) + LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
-	pt.y = LONG(pCraneStat->sw_stat.sw[ID_BOOM_H].th * 573.0) + LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
+	pt.x = LONG(pSway_IO->th[ID_SLEW] * 573.0) + LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
+	pt.y = LONG(pSway_IO->th[ID_BOOM_H] * 573.0) + LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
 	Ellipse(stGraphic.hdc_mem_gr, pt.x - r, pt.y - r, pt.x + r, pt.y + r);
 
 	return;

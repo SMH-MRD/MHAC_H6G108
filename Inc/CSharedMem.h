@@ -129,9 +129,14 @@ typedef struct StPLCIO {
 #define SWAY_FAULT_ITEM_MAX			 4//異常検出項目数
 #define SID_COMMON_FLT               0
 
-
-
 #define SWAY_IF_SIM_DBG_MODE  0x00000010	//振れデータをSIM出力から生成
+
+
+#define CAM_SET_PARAM_N_PARAM       4
+#define CAM_SET_PARAM_a             0
+#define CAM_SET_PARAM_b             1
+#define CAM_SET_PARAM_c             2
+#define CAM_SET_PARAM_d             3
 
 typedef struct StSwayIO {
 	DWORD proc_mode;
@@ -144,8 +149,13 @@ typedef struct StSwayIO {
 	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];	//ターゲット検出PIXEL数（面積）
 	double tilt_rad[DETECT_AXIS_MAX];						//傾斜角
 
-	double rad[MOTION_ID_MAX];								//振れ角
-	double w[MOTION_ID_MAX];								//振れ角速度
+	double th[MOTION_ID_MAX];		//振角			rad
+	double dth[MOTION_ID_MAX];		//振角速度		rad/s
+	double dthw[MOTION_ID_MAX];		//振角速度/ω　	rad
+	double ph[MOTION_ID_MAX];		//位相平面位相	rad
+	double amp2[MOTION_ID_MAX];		//振幅の2乗		rad2
+
+
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
 /****************************************************************************/
@@ -190,29 +200,6 @@ typedef struct StSimulationStatus {
 
 #define N_SWAY_DIR				4
 
-
-//振れセンサ状態定義構造体
-typedef struct StSwaySet {
-	double T;		//振周期		/s
-	double w;		//振角周波数	/s
-	double th;		//振角			rad
-	double dth;		//振角速度		rad/s
-	double dthw;	//振角速度/ω　	rad
-	double ph;		//位相平面位相	rad
-	double amp2;	//振幅の2乗		rad2
-}ST_SWAY_SET, * LPST_SWAY__SET;
-typedef struct StSwCamSet {
-	double D0;		//吊点-カメラハウジング軸位置間水平距離	m
-	double H0;		//吊点-カメラハウジング軸位置間高さ距離	m
-	double l0;		//カメラハウジング軸-カメラ位置間距離	m
-	double ph0;		//カメラハウジング軸-カメラ位置間角度	rad
-}ST_SWCAM_SET, * LPST_SWCAM__SET;
-
-typedef struct StSwayStatus {
-	ST_SWAY_SET sw[MOTION_ID_MAX];
-	ST_SWCAM_SET cam[MOTION_ID_MAX];
-}ST_SWAY_STATUS, * LPST_SWAY_STATUS;
-
 typedef struct stEnvSubproc {
 
 	bool is_plcio_join = false;
@@ -245,13 +232,15 @@ typedef struct StCraneStatus {
 	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
 	WORD faultPC[N_PC_FAULT_WORDS];				//PLC検出異常
 	WORD faultPLC[N_PLC_FAULT_WORDS];			//制御PC検出異常
-	ST_SWAY_STATUS sw_stat;						//振れ状態解析結果
 	Vector3 rc0;								//クレーン基準点のx,y,z座標（x:走行位置 y:旋回中心 z:走行レール高さ）
 	Vector3 rc;									//クレーン吊点のクレーン基準点とのx,y,z相対座標
 	Vector3 rl;									//吊荷のクレーン吊点とのx,y,z相対座標
 	bool is_fwd_endstop[MOTION_ID_MAX];			//正転極限判定
 	bool is_rev_endstop[MOTION_ID_MAX];			//逆転極限判定
 	double mh_l;								//ロープ長
+	double T;						//振周期		s
+	double w;						//振角周波数	/s
+
 	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];//半自動目標位置
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;

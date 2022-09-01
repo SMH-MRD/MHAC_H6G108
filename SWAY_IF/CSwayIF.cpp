@@ -44,6 +44,22 @@ int CSwayIF::init_proc() {
         mode |= SWAY_IF_CRANE_MEM_NG;
     }
 
+    //共有クレーンステータス構造体のポインタセット
+    pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
+    pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
+
+    //振れ角計算用カメラパラメータセット
+    for(int i=0;i< CAM_SET_PARAM_N_CAM;i++)
+        for (int j = 0;j < CAM_SET_PARAM_N_AXIS;j++)
+        {
+            double D0 = pCraneStat->spec.SwayCamParam[i][j][SID_D0];
+            double H0 = pCraneStat->spec.SwayCamParam[i][j][SID_H0];
+            double l0 = pCraneStat->spec.SwayCamParam[i][j][SID_l0];
+            
+            SwayCamParam[i][j][CAM_SET_PARAM_a] = sqrt(D0*D0 + (H0-l0)* (H0 - l0));
+            SwayCamParam[i][j][CAM_SET_PARAM_b] = atan(D0/(H0 - l0));
+            SwayCamParam[i][j][CAM_SET_PARAM_c] = pCraneStat->spec.SwayCamParam[i][j][SID_ph0];
+        }
     return int(mode & 0xff00);
 }
 //*********************************************************************************************
@@ -66,13 +82,21 @@ int CSwayIF::input() {
 //*********************************************************************************************
 int CSwayIF::parse() {
 
+
 #ifdef _DVELOPMENT_MODE
-
     if (pSim->mode & SIM_ACTIVE_MODE) {
-        set_sim_status(&sway_io_workbuf);
+        set_sim_status(&sway_io_workbuf);//SENSOR2の受信バッファセット
+        parse_sway_stat(SWAY_SENSOR2);
     }
-
+    else {
+        parse_sway_stat(SWAY_SENSOR1);
+    }
+#else
+    parse_sway_stat(SWAY_SENSOR1);
 #endif
+
+
+
 
     return 0;
 }
@@ -96,11 +120,86 @@ int CSwayIF::output() {
 //*********************************************************************************************
 int CSwayIF::set_sim_status(LPST_SWAY_IO pworkbuf) {
 
-    pworkbuf->rad[ID_BOOM_H] = pSim->sway_io.rad[ID_BOOM_H];
-    pworkbuf->rad[ID_SLEW] = pSim->sway_io.rad[ID_SLEW];
+    sway_io_workbuf.th[ID_BOOM_H] = pSim->sway_io.th[ID_BOOM_H];
+    sway_io_workbuf.th[ID_SLEW] = pSim->sway_io.th[ID_SLEW];
      
-    pworkbuf->w[ID_BOOM_H] = pSim->sway_io.w[ID_BOOM_H];
-    pworkbuf->w[ID_SLEW] = pSim->sway_io.w[ID_SLEW];
+    sway_io_workbuf.dth[ID_BOOM_H] = pSim->sway_io.dth[ID_BOOM_H];
+    sway_io_workbuf.dthw[ID_SLEW] = pSim->sway_io.dth[ID_SLEW];
     
     return 0;
+}
+
+int CSwayIF::parse_sway_stat(int ID) {
+    
+    SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_d]= (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_x);//rad→pix変換係数
+    SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_d]= (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_y);//rad→pix変換係数
+    
+    double ax = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_a];//センサ検出角補正値
+    double bx = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_b];//センサ検出角補正値
+    double cx = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_c];//センサ検出角補正値
+    double dx = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_d];//rad→pix変換係数
+    double ay = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_a];//センサ検出角補正値
+    double by = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_b];//センサ検出角補正値
+    double cy = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_c];//センサ検出角補正値
+    double dy = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_d];//rad→pix変換係数
+    double L = pCraneStat->mh_l;
+    double T = pCraneStat->T;
+    double w = pCraneStat->w;
+
+    double tilt_x = ((double)rcv_msg[ID]->head.tilt_x) / 1000000.0;
+    double tilt_y = ((double)rcv_msg[ID]->head.tilt_y) / 1000000.0;
+ 	
+    double phx = tilt_x + cx;
+    double phy = tilt_y + cy;
+
+    double psix = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->th_x) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_x) + phx;
+    double psiy = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->th_y) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_y) + phy;
+
+    double offset_thx = asin(ax * sin(phx + bx) / L);
+    double offset_thy = asin(ay * sin(phy + by) / L);
+
+    //振角　振角速度　振幅　位相　
+	//    カメラ位置からの振れ角＝カメラ検出角＋取付オフセット  
+    sway_io_workbuf.th[ID_SLEW] = psix + offset_thx;
+    sway_io_workbuf.th[ID_BOOM_H] = psiy + offset_thy;
+
+    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->dth_x) / dx;  // radに変換
+    sway_io_workbuf.dth[ID_BOOM_H] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->dth_y) / dy;// radに変換
+
+    sway_io_workbuf.dthw[ID_SLEW] = sway_io_workbuf.dth[ID_SLEW] / w;
+    sway_io_workbuf.dthw[ID_BOOM_H] = sway_io_workbuf.dth[ID_BOOM_H] / w;
+
+    sway_io_workbuf.amp2[ID_SLEW] = sway_io_workbuf.th[ID_SLEW] * sway_io_workbuf.th[ID_SLEW] + sway_io_workbuf.dth[ID_SLEW] * sway_io_workbuf.dth[ID_SLEW];
+    sway_io_workbuf.amp2[ID_BOOM_H] = sway_io_workbuf.th[ID_BOOM_H] * sway_io_workbuf.th[ID_BOOM_H] + sway_io_workbuf.dth[ID_BOOM_H] * sway_io_workbuf.dth[ID_BOOM_H];
+
+    //合成振幅  
+    sway_io_workbuf.amp2[ID_COMMON] = sway_io_workbuf.amp2[ID_SLEW] + sway_io_workbuf.amp2[ID_BOOM_H];
+
+    //位相(X軸）
+    if (sway_io_workbuf.th[ID_SLEW] > 0.00001) {
+        sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]);
+    }
+    else if (sway_io_workbuf.th[ID_SLEW] > -0.00001) { // atan()引数の0割回避
+        if (sway_io_workbuf.dth[ID_SLEW] >= 0.0) sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]) - PI180;
+        else                                    sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]) + PI180;
+    }
+    else{ //位相は-π～πの範囲で表現
+        if (sway_io_workbuf.dth[ID_SLEW] >= 0.0) sway_io_workbuf.ph[ID_SLEW] = PI90;
+        else                                    sway_io_workbuf.ph[ID_SLEW] = -PI90;
+    }
+
+    //位相(Y軸）
+    if (sway_io_workbuf.th[ID_BOOM_H] > 0.00001) {
+        sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]);
+    }
+    else if (sway_io_workbuf.th[ID_BOOM_H] > -0.00001) { // atan()引数の0割回避
+        if (sway_io_workbuf.dth[ID_BOOM_H] >= 0.0) sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]) - PI180;
+        else                                    sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]) + PI180;
+    }
+    else { //位相は-π～πの範囲で表現
+        if (sway_io_workbuf.dth[ID_SLEW] >= 0.0) sway_io_workbuf.ph[ID_SLEW] = PI90;
+        else                                    sway_io_workbuf.ph[ID_SLEW] = -PI90;
+    }
+    
+	return 0;
 }

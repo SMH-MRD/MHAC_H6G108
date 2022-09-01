@@ -591,32 +591,32 @@ int CSCADA::set_chart_data(int iptn) {
 		//Graph1
 		//Graph2
 		//Graph3
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH3, false, &(pCraneStat->sw_stat.sw[ID_SLEW].th), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH3, false, &(pSway_IO->th[ID_SLEW]), PI15);
 		//Graph4
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH4, false, &(pCraneStat->sw_stat.sw[ID_BOOM_H].th), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH4, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
 
 
 	//Window2 Scatter
 	//Chart2
 		//Graph4
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH4, true, &(pCraneStat->sw_stat.sw[ID_SLEW].th), PI15);
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH4, false, &(pCraneStat->sw_stat.sw[ID_BOOM_H].th), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH4, true, &(pSway_IO->th[ID_SLEW]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH4, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
 
 	}
 	else if (iptn == SCAD_CHART_PTN2) {
 	//Window1 Time Chart	
 	//Chart2
 	//Graph1
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pCraneStat->sw_stat.sw[ID_SLEW].th), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pSway_IO->th[ID_SLEW]), PI15);
 	//Graph2
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pCraneStat->sw_stat.sw[ID_BOOM_H].th), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
 	//Graph3
 	//Graph4
 	//Window2 Scatter
 	//Chart1
 		//Graph3
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, true, &(pCraneStat->sw_stat.sw[ID_SLEW].th), PI15);
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, false, &(pCraneStat->sw_stat.sw[ID_BOOM_H].th), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, true, &(pSway_IO->th[ID_SLEW]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH3, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
 	}
 	else if (iptn == SCAD_CHART_PTN3) {
 		;
