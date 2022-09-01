@@ -57,17 +57,6 @@
 #define ID_DELAY_CNT_ACC		3	//定速からの加速時
 #define ID_DELAY_CNT_DEC		4	//定速からの減速時
 
-#define SID_CAM1				0	//No.1カメラ
-#define SID_CAM2				1	//No.2カメラ
-
-#define SID_AXIS_X				0	//X軸
-#define SID_AXIS_Y				1	//y軸
-
-#define SID_D0					0	//カメラ取付位置水平方向オフセット
-#define SID_H0					1	//カメラ取付位置高さ方向オフセット
-#define SID_l0					2	//カメラ中心とハウジング支点間距離
-#define	SID_ph0					3	//カメラのハウジングへの取り付け角度
-
 #define SEMI_AUTO_TARGET_MAX	8	// 半自動目標ホールド数
 
 typedef struct StSpec {
@@ -175,9 +164,29 @@ typedef struct StSpec {
 	//吊具荷重
 	double m_loard0 = 1000;	//吊具質量kg
 	//振れセンサ
-	double SwayCamParam[2][2][4] = {	//振れセンサ　パラメータ
-		{{1.0,1.0,0.2,0.01},{1.0,1.0,0.2,0.01}},	//No.1 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
-		{{0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0}}		//No.2 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
+
+
+
+#define N_SWAY_SENSOR				3   //振れセンサの数
+#define SID_CAM1				0	//No.1カメラ
+#define SID_CAM2				1	//No.2カメラ
+#define SID_SIM					2	//シミュレータ
+
+#define SWAY_SENSOR_N_AXIS		2
+#define SID_AXIS_X				0	//X軸
+#define SID_AXIS_Y				1	//y軸
+
+#define SWAY_CAMERA_N_PARAM		5
+#define SID_D0					0	//カメラ取付位置水平方向オフセット
+#define SID_H0					1	//カメラ取付位置高さ方向オフセット
+#define SID_l0					2	//カメラ中心とハウジング支点間距離
+#define	SID_ph0					3	//カメラのハウジングへの取り付け角度
+#define	SID_PIXlRAD				4 	//PIX/rad変換係数
+
+	double SwayCamParam[N_SWAY_SENSOR][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
+		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//No.1 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
+		{{0.0,0.0,0.0,0.0,2800.0},{0.0,0.0,0.0,0.0,2800.0}},		//No.2 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
+		{{0.0,0.0,0.0,0.0,2800.0},{0.0,0.0,0.0,0.0,2800.0}}		//No.2 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
 	};
 
 	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX]{//半自動デフォルト目標位置

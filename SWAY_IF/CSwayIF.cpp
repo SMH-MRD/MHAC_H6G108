@@ -25,6 +25,7 @@ int CSwayIF::set_outbuf(LPVOID pbuf) {
 //******************************************************************************************
 int CSwayIF::init_proc() {
 
+     
     // 共有メモリ取得
 
      // 出力用共有メモリ取得
@@ -38,8 +39,7 @@ int CSwayIF::init_proc() {
     if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) {
         mode |= SWAY_IF_SIM_MEM_NG;
     }
-    pSim = (LPST_SIMULATION_STATUS)pSimulationStatusObj->get_pMap();
-
+ 
     if (OK_SHMEM != pCraneStatusObj->create_smem(SMEM_CRANE_STATUS_NAME, sizeof(ST_CRANE_STATUS), MUTEX_CRANE_STATUS_NAME)) {
         mode |= SWAY_IF_CRANE_MEM_NG;
     }
@@ -49,16 +49,24 @@ int CSwayIF::init_proc() {
     pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
 
     //振れ角計算用カメラパラメータセット
-    for(int i=0;i< CAM_SET_PARAM_N_CAM;i++)
-        for (int j = 0;j < CAM_SET_PARAM_N_AXIS;j++)
+    for(int i=0;i< N_SWAY_SENSOR;i++)
+        for (int j = 0;j < SWAY_SENSOR_N_AXIS;j++)
         {
             double D0 = pCraneStat->spec.SwayCamParam[i][j][SID_D0];
             double H0 = pCraneStat->spec.SwayCamParam[i][j][SID_H0];
             double l0 = pCraneStat->spec.SwayCamParam[i][j][SID_l0];
             
             SwayCamParam[i][j][CAM_SET_PARAM_a] = sqrt(D0*D0 + (H0-l0)* (H0 - l0));
-            SwayCamParam[i][j][CAM_SET_PARAM_b] = atan(D0/(H0 - l0));
+            double tempd = H0 - l0; if (tempd < 0.0) tempd *= -1.0;
+            if (tempd < 0.000001) {
+                SwayCamParam[i][j][CAM_SET_PARAM_b] = 0.0;
+            }
+            else {
+                SwayCamParam[i][j][CAM_SET_PARAM_b] = atan(D0 / (H0 - l0));
+            }
             SwayCamParam[i][j][CAM_SET_PARAM_c] = pCraneStat->spec.SwayCamParam[i][j][SID_ph0];
+            SwayCamParam[i][j][CAM_SET_PARAM_d] = pCraneStat->spec.SwayCamParam[i][j][SID_PIXlRAD];//rad→pix変換係数
+ 
         }
     return int(mode & 0xff00);
 }
@@ -84,12 +92,12 @@ int CSwayIF::parse() {
 
 
 #ifdef _DVELOPMENT_MODE
-    if (pSim->mode & SIM_ACTIVE_MODE) {
-        set_sim_status(&sway_io_workbuf);//SENSOR2の受信バッファセット
-        parse_sway_stat(SWAY_SENSOR2);
+    if (pSimStat->mode & SIM_ACTIVE_MODE) {
+        set_sim_status(&sway_io_workbuf);
+        parse_sway_stat(SID_SIM);
     }
     else {
-        parse_sway_stat(SWAY_SENSOR1);
+        parse_sway_stat(SID_CAM1);
     }
 #else
     parse_sway_stat(SWAY_SENSOR1);
@@ -120,28 +128,21 @@ int CSwayIF::output() {
 //*********************************************************************************************
 int CSwayIF::set_sim_status(LPST_SWAY_IO pworkbuf) {
 
-    sway_io_workbuf.th[ID_BOOM_H] = pSim->sway_io.th[ID_BOOM_H];
-    sway_io_workbuf.th[ID_SLEW] = pSim->sway_io.th[ID_SLEW];
-     
-    sway_io_workbuf.dth[ID_BOOM_H] = pSim->sway_io.dth[ID_BOOM_H];
-    sway_io_workbuf.dthw[ID_SLEW] = pSim->sway_io.dth[ID_SLEW];
-    
+    memcpy_s(&rcv_msg[SID_SIM][0], sizeof(ST_SWAY_RCV_MSG), &pSimStat->rcv_msg, sizeof(ST_SWAY_RCV_MSG));
+ 
     return 0;
 }
 
 int CSwayIF::parse_sway_stat(int ID) {
     
-    SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_d]= (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_x);//rad→pix変換係数
-    SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_d]= (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_y);//rad→pix変換係数
-    
-    double ax = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_a];//センサ検出角補正値
-    double bx = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_b];//センサ検出角補正値
-    double cx = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_c];//センサ検出角補正値
-    double dx = SwayCamParam[ID][CAM_SET_PARAM_X_AXIS][CAM_SET_PARAM_d];//rad→pix変換係数
-    double ay = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_a];//センサ検出角補正値
-    double by = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_b];//センサ検出角補正値
-    double cy = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_c];//センサ検出角補正値
-    double dy = SwayCamParam[ID][CAM_SET_PARAM_Y_AXIS][CAM_SET_PARAM_d];//rad→pix変換係数
+    double ax = SwayCamParam[ID][SID_AXIS_X][CAM_SET_PARAM_a];//センサ検出角補正値
+    double bx = SwayCamParam[ID][SID_AXIS_X][CAM_SET_PARAM_b];//センサ検出角補正値
+    double cx = SwayCamParam[ID][SID_AXIS_X][CAM_SET_PARAM_c];//センサ検出角補正値
+    double dx = SwayCamParam[ID][SID_AXIS_X][CAM_SET_PARAM_d];//rad→pix変換係数
+    double ay = SwayCamParam[ID][SID_AXIS_Y][CAM_SET_PARAM_a];//センサ検出角補正値
+    double by = SwayCamParam[ID][SID_AXIS_Y][CAM_SET_PARAM_b];//センサ検出角補正値
+    double cy = SwayCamParam[ID][SID_AXIS_Y][CAM_SET_PARAM_c];//センサ検出角補正値
+    double dy = SwayCamParam[ID][SID_AXIS_Y][CAM_SET_PARAM_d];//rad→pix変換係数
     double L = pCraneStat->mh_l;
     double T = pCraneStat->T;
     double w = pCraneStat->w;
@@ -152,8 +153,8 @@ int CSwayIF::parse_sway_stat(int ID) {
     double phx = tilt_x + cx;
     double phy = tilt_y + cy;
 
-    double psix = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->th_x) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_x) + phx;
-    double psiy = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->th_y) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_y) + phy;
+    double psix = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_x) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_x) + phx;
+    double psiy = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_y) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_y) + phy;
 
     double offset_thx = asin(ax * sin(phx + bx) / L);
     double offset_thy = asin(ay * sin(phy + by) / L);
@@ -163,8 +164,8 @@ int CSwayIF::parse_sway_stat(int ID) {
     sway_io_workbuf.th[ID_SLEW] = psix + offset_thx;
     sway_io_workbuf.th[ID_BOOM_H] = psiy + offset_thy;
 
-    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->dth_x) / dx;  // radに変換
-    sway_io_workbuf.dth[ID_BOOM_H] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data->dth_y) / dy;// radに変換
+    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].dth_x) / dx;  // radに変換
+    sway_io_workbuf.dth[ID_BOOM_H] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].dth_y) / dy;// radに変換
 
     sway_io_workbuf.dthw[ID_SLEW] = sway_io_workbuf.dth[ID_SLEW] / w;
     sway_io_workbuf.dthw[ID_BOOM_H] = sway_io_workbuf.dth[ID_BOOM_H] / w;

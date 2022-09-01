@@ -4,6 +4,8 @@
 #include "common_def.h"
 #include "spec.h"
 #include "CVector3.h"
+#include "Swaysensor.h"
+
 
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
 #define SMEM_SWAY_STATUS_NAME			L"SWAY_STATUS"
@@ -180,6 +182,10 @@ typedef struct StSimulationStatus {
 	ST_SWAY_IO sway_io;
 	Vector3 L, vL;//€∞ÃﬂÕﬁ∏ƒŸ(êUÇÍÅj
 	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//ÉJÉÅÉâç¿ïWêUÇÍäp
+
+	ST_SWAY_RCV_MSG rcv_msg;
+	ST_SWAY_SND_MSG snd_msg;
+
 }ST_SIMULATION_STATUS, * LPST_SIMULATION_STATUS;
 
 /****************************************************************************/

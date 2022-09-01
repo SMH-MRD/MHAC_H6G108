@@ -35,7 +35,7 @@ private:
     CCrane* pCrane; //クレーンのモデル
     CLoad* pLoad;   //吊荷のモデル
 
-public:
+  public:
     CSIM();
     ~CSIM();
 
@@ -57,6 +57,11 @@ public:
     int is_act_mode() { return(mode & SIM_ACTIVE_MODE); }
 
 private:
+   
+    ST_SWAY_RCV_MSG rcv_msg;
+    ST_SWAY_SND_MSG snd_msg;
+    double SwayCamParam[SWAY_SENSOR_N_AXIS][CAM_SET_PARAM_N_PARAM];
+    
     int set_cran_motion();
     int set_sway_io();
 

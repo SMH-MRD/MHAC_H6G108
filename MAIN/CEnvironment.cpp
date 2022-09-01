@@ -246,6 +246,9 @@ int CEnvironment::pos_set() {
 	stWorkCraneStat.rl.y = pCraneStat->rc.y;
 	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];
 
+	//ÉçÅ[Éví∑
+	stWorkCraneStat.mh_l = spec.boom_high - stWorkCraneStat.rl.z;
+
 	//ã…å¿îªíË
 	if (stWorkCraneStat.rc0.x < spec.gantry_pos_min) stWorkCraneStat.is_rev_endstop[ID_GANTRY] = true;
 	else stWorkCraneStat.is_rev_endstop[ID_GANTRY] = false;
