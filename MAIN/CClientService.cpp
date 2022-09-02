@@ -48,6 +48,8 @@ void CClientService::init_task(void* pobj) {
 	semi_auto_target = SEMI_AUTO_TG_CLR;//”¼©“®–Ú•W–¢İ’è
 
 	set_panel_tip_txt();
+
+	inf.is_init_complete = true;
 	return;
 };
 

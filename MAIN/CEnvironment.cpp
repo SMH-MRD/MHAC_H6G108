@@ -11,6 +11,8 @@ extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
 
+extern vector<void*>	VectpCTaskObj;
+
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
 /****************************************************************************/
@@ -48,6 +50,7 @@ void CEnvironment::init_task(void* pobj) {
 	
 	//クレーン仕様セット
 	stWorkCraneStat.spec = this->spec;
+	stWorkCraneStat.is_tasks_standby_ok = false;
 
 	//半自動目標初期値セット
 	for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++)
@@ -55,8 +58,27 @@ void CEnvironment::init_task(void* pobj) {
 			stWorkCraneStat.semi_target[i][j] = spec.semi_target[i][j];
 
 	set_panel_tip_txt();
+
+	inf.is_init_complete = true;
 	return;
 };
+
+/****************************************************************************/
+/*   タスク定周期処理                                                       */
+/* 　タスクスレッドで毎周期実行される関数			　                      */
+/****************************************************************************/
+bool CEnvironment::check_tasks_init() {
+
+	CTaskObj* ptask;
+	int n_tasks = VectpCTaskObj.size();
+
+	for (int i = 0;i < n_tasks ;i++) {
+		ptask = (CTaskObj*)VectpCTaskObj[i];
+		if(ptask->inf.is_init_complete == false) return false;
+	}
+	return true;
+
+}
 
 /****************************************************************************/
 /*   タスク定周期処理                                                       */
@@ -79,6 +101,11 @@ void CEnvironment::input(){
 //定周期処理手順2　メイン処理
 
 void CEnvironment::main_proc() {
+
+	//各タスクの初期化完了チェック
+	if (pCraneStat->is_tasks_standby_ok == false) {
+		stWorkCraneStat.is_tasks_standby_ok = check_tasks_init();
+	}
 
 	//メインウィンドウのTweetメッセージ更新
 	tweet_update();
@@ -241,7 +268,7 @@ int CEnvironment::pos_set() {
 	stWorkCraneStat.rc.y = pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
 	stWorkCraneStat.rc.z = spec.boom_high;
 
-	//吊荷のクレーン基準点とのx, y, z相対座標
+	//吊荷のx, y, z座標
 	stWorkCraneStat.rl.x = pCraneStat->rc.x;
 	stWorkCraneStat.rl.y = pCraneStat->rc.y;
 	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];

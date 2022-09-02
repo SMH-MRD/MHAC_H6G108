@@ -24,6 +24,7 @@ public:
     
     void routine_work(void* param);
     int update_semiauto_target(int ID);
+    bool check_tasks_init();
 
 
 private:

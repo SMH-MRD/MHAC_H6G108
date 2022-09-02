@@ -45,6 +45,8 @@ void CAgent::init_task(void* pobj) {
 	for (int i = 0;i < N_PLC_LAMP;i++) AgentInf_workbuf.PLC_LAMP_com[i] = 0;
 
 	set_panel_tip_txt();
+
+	inf.is_init_complete = true;
 	return;
 };
 

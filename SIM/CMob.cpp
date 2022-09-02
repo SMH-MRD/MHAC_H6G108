@@ -271,7 +271,10 @@ void CCrane::timeEvolution() {
 	r0[ID_HOIST]	+= v0[ID_HOIST] * dt;	
 	r0[ID_GANTRY]	+= v0[ID_GANTRY] * dt;
 	r0[ID_BOOM_H]	+= v0[ID_BOOM_H] * dt;
-	r0[ID_SLEW] += v0[ID_SLEW] * dt; if (r0[ID_SLEW] >= PI360)r0[ID_SLEW] -= PI360; if (r0[ID_SLEW] <= -PI360)r0[ID_SLEW] += PI360;
+	r0[ID_SLEW] += v0[ID_SLEW] * dt; 
+	
+	//-ƒÎ`ƒÎ‚Ì•\Œ»‚É‚·‚é
+	if (r0[ID_SLEW] >= PI180)r0[ID_SLEW] -= PI360; if (r0[ID_SLEW] <= -PI180)r0[ID_SLEW] += PI360;
 
 	vc.x = v0[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;
 	rc.x = r0[ID_GANTRY]; rc.y = R0.y; rc.z = R0.z;

@@ -48,6 +48,11 @@ int CSwayIF::init_proc() {
     pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
     pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
 
+    //CraneStat立ち上がり待ち
+    while (pCraneStat->is_tasks_standby_ok == false) {
+        Sleep(10);
+    }
+    
     //振れ角計算用カメラパラメータセット
     for(int i=0;i< N_SWAY_SENSOR;i++)
         for (int j = 0;j < SWAY_SENSOR_N_AXIS;j++)
@@ -103,9 +108,6 @@ int CSwayIF::parse() {
     parse_sway_stat(SWAY_SENSOR1);
 #endif
 
-
-
-
     return 0;
 }
 //*********************************************************************************************
@@ -153,8 +155,8 @@ int CSwayIF::parse_sway_stat(int ID) {
     double phx = tilt_x + cx;
     double phy = tilt_y + cy;
 
-    double psix = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_x) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_x) + phx;
-    double psiy = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_y) / (double)(rcv_msg[ID][i_rcv_msg[ID]].head.pixlrad_y) + phy;
+    double psix = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_x) / dx + phx;
+    double psiy = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_y) / dy + phy;
 
     double offset_thx = asin(ax * sin(phx + bx) / L);
     double offset_thy = asin(ay * sin(phy + by) / L);

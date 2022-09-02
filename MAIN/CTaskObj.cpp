@@ -32,6 +32,7 @@ CTaskObj::~CTaskObj() {
 /****************************************************************************/
 void CTaskObj::init_task(void* pobj) {
 	set_panel_tip_txt();
+	inf.is_init_complete = true;
 	return;
 };
 

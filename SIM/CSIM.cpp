@@ -70,7 +70,7 @@ int CSIM::init_proc() {
     pAgent = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
    //CraneStat立ち上がり待ち
-    while (pCraneStat->spec.boom_high ==0.0) {
+    while (pCraneStat->is_tasks_standby_ok ==false) {
         Sleep(10);
     }
 
@@ -197,26 +197,23 @@ int CSIM::set_cran_motion() {
 // output() 振れセンサ信号セット
 //*********************************************************************************************
 
-static double radx_last, rady_last;
-
+static double thcamx_last=0, thcamy_last=0;
 
 int CSIM::set_sway_io() {
       
     // 傾斜計検出角度
     double tilt_x = 0.0;
     double tilt_y = 0.0;
-    rcv_msg.head.tilt_x = (UINT32)(tilt_x * 1000000.0);
-    rcv_msg.head.tilt_y = (UINT32)(tilt_y * 1000000.0);
+    sim_stat_workbuf.rcv_msg.head.tilt_x = (UINT32)(tilt_x * 1000000.0);
+    sim_stat_workbuf.rcv_msg.head.tilt_y = (UINT32)(tilt_y * 1000000.0);
     
     // クレーンxy座標をカメラxy座標に回転変換　→　角度radに変換　
     double th = pCrane->r0[ID_SLEW];//旋回角度
-    double thx = asin(((pLoad->L.x) * cos(th) + (pLoad->L.y) * sin(th)) / pCrane->l_mh);
-    double thy = asin((-(pLoad->L.x) * sin(th) + (pLoad->L.y) * cos(th)) / pCrane->l_mh);
+    double thx = asin(((pLoad->L.x) * -sin(th) + (pLoad->L.y) * cos(th)) / pCrane->l_mh);
+    double thy = asin(((pLoad->L.x) * cos(th) + (pLoad->L.y) * sin(th)) / pCrane->l_mh);
 
+    double tempd = pLoad->L.x - pCrane->r.x;
 
-
-
- 
     // カメラ取付オフセット値の計算
     double ax = SwayCamParam[SID_AXIS_X][CAM_SET_PARAM_a];//センサ検出角補正値
     double bx = SwayCamParam[SID_AXIS_X][CAM_SET_PARAM_b];//センサ検出角補正値
@@ -240,25 +237,24 @@ int CSIM::set_sway_io() {
     double th_camx = thx - offset_thx - phx;
     double th_camy = thy - offset_thy - phy;
     //カメラ検出角速度rad
-    double dth_camx = (th_camx - radx_last) / pCrane->dt;
-    double dth_camy = (th_camy - rady_last) / pCrane->dt;
+    double dth_camx = (th_camx - thcamx_last) / pCrane->dt;
+    double dth_camy = (th_camy - thcamy_last) / pCrane->dt;
 
-    radx_last = th_camx;
-    rady_last = th_camy;
+    thcamx_last = th_camx;
+    thcamy_last = th_camy;
 
     //カメラ検出角度pix
-    rcv_msg.body.data[SWAY_SENSOR_TG1].th_x = (UINT32)(th_camx * dx);
-    rcv_msg.body.data[SWAY_SENSOR_TG1].th_y = (UINT32)(th_camx * dy);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].th_x = (INT32)(th_camx * dx);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].th_y = (INT32)(th_camy * dy);
     //カメラ検出角度pix
-    rcv_msg.body.data[SWAY_SENSOR_TG1].dth_x = (UINT32)(dth_camx * dx);
-    rcv_msg.body.data[SWAY_SENSOR_TG1].dth_y = (UINT32)(dth_camx * dy);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].dth_x = (INT32)(dth_camx * dx);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].dth_y = (INT32)(dth_camy * dy);
     
-
     //シミュレータロジックチェック用バッファセット
     sim_stat_workbuf.sway_io.th[ID_SLEW] = thx;
     sim_stat_workbuf.sway_io.th[ID_BOOM_H] = thy;
-    sim_stat_workbuf.sway_io.dth[ID_SLEW] = th_camx;
-    sim_stat_workbuf.sway_io.dth[ID_BOOM_H] = th_camy;
+    sim_stat_workbuf.sway_io.dth[ID_SLEW] = dth_camx;
+    sim_stat_workbuf.sway_io.dth[ID_BOOM_H] = dth_camy;
     
     return 0;
 }

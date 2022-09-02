@@ -291,13 +291,13 @@ VOID CMonWin::draw_inf() {
 	TextOutW(stGraphic.hdc_mem_inf, 860, 95, ws.c_str(), (int)ws.length());
 
 	//振れ
-	_stprintf_s(tbuf, L":%.4f", pSimStat->rad_cam_x); ws = tbuf;
+	_stprintf_s(tbuf, L":%.4f", pSimStat->sway_io.th[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 725, 140, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pSimStat->rad_cam_y); ws = tbuf;
+	_stprintf_s(tbuf, L"%.4f", pSimStat->sway_io.th[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 800, 140, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pSimStat->w_cam_x); ws = tbuf;
+	_stprintf_s(tbuf, L"%.4f", pSimStat-> sway_io.dth[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 865, 140, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pSimStat->w_cam_y); ws = tbuf;
+	_stprintf_s(tbuf, L"%.4f", pSimStat->sway_io.dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 140, ws.c_str(), (int)ws.length());
 
 	_stprintf_s(tbuf, L":%.4f", pSway_IO ->th[ID_SLEW]); ws = tbuf;
@@ -321,7 +321,7 @@ VOID CMonWin::draw_graphic() {
 //# ブーム先端描画
 	POINT boom_end_xy;					//ブーム先端位置
 	boom_end_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rc.x * CMON_PIX_PER_M_CRANE);
-	boom_end_xy.y = CRANE_GRAPHIC_CENTER_Y + (int)(pCraneStat->rc.y * CMON_PIX_PER_M_CRANE);
+	boom_end_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rc.y * CMON_PIX_PER_M_CRANE);
 
 	//ペン、ブラシセット
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_BLUE_BRUSH]);
@@ -329,12 +329,24 @@ VOID CMonWin::draw_graphic() {
 	//ブームライン描画
 	MoveToEx(stGraphic.hdc_mem_gr, CRANE_GRAPHIC_CENTER_X, CRANE_GRAPHIC_CENTER_Y, NULL);
 	LineTo(stGraphic.hdc_mem_gr, boom_end_xy.x, boom_end_xy.y);
+
 	//ブーム先端描画
 	Ellipse(stGraphic.hdc_mem_gr, 
 		boom_end_xy.x - CMON_PIX_R_BOOM_END, 
 		boom_end_xy.y - CMON_PIX_R_BOOM_END, 
 		boom_end_xy.x + CMON_PIX_R_BOOM_END, 
 		boom_end_xy.y + CMON_PIX_R_BOOM_END);
+
+	//吊荷描画
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_BRUSH]);
+	POINT load_xy;
+	load_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rc.x * CMON_PIX_PER_M_CRANE);
+	load_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rc.y * CMON_PIX_PER_M_CRANE);
+	Ellipse(stGraphic.hdc_mem_gr,
+		load_xy.x - CMON_PIX_R_BOOM_END,
+		load_xy.y - CMON_PIX_R_BOOM_END,
+		load_xy.x + CMON_PIX_R_BOOM_END,
+		load_xy.y + CMON_PIX_R_BOOM_END);
 
 //# 走行位置描画
 	//走行位置描画
@@ -361,15 +373,16 @@ VOID CMonWin::draw_graphic() {
 	LONG r=6;
 	POINT pt;
 
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_BLUE_BRUSH]);
 	SelectObject(stGraphic.hdc_mem_gr, GetStockObject(NULL_PEN));
-	pt.x = LONG(pSimStat->rad_cam_x * 573.0)+ LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
-	pt.y = LONG(pSimStat->rad_cam_y * 573.0)+ LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
+	pt.x = LONG(pSimStat->sway_io.th[ID_SLEW] * 573.0)+ LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix→ 1rad　≒　572pix
+	pt.y = -LONG(pSimStat->sway_io.th[ID_BOOM_H] * 573.0)+ LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
 	Ellipse(stGraphic.hdc_mem_gr, pt.x-r, pt.y-r, pt.x+r, pt.y+r);
 
 	r = 4;
-	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_PEN]);
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_BRUSH]);
 	pt.x = LONG(pSway_IO->th[ID_SLEW] * 573.0) + LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
-	pt.y = LONG(pSway_IO->th[ID_BOOM_H] * 573.0) + LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
+	pt.y = -LONG(pSway_IO->th[ID_BOOM_H] * 573.0) + LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
 	Ellipse(stGraphic.hdc_mem_gr, pt.x - r, pt.y - r, pt.x + r, pt.y + r);
 
 	return;

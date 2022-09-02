@@ -23,7 +23,7 @@
 #define ID_UPDATE_TIMER				100
 
 //•\¦XVüŠú(msec)
-#define TIMER_PRIOD        			200
+#define TIMER_PRIOD        			50
 
 #define ID_STATUS					WM_USER + 600
 

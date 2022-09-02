@@ -41,6 +41,8 @@ void CPolicy::init_task(void* pobj) {
 	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
 
 	set_panel_tip_txt();
+
+	inf.is_init_complete = true;
 	return;
 };
 

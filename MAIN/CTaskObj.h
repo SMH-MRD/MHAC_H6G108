@@ -92,6 +92,8 @@ typedef struct st_thread_info {
 	unsigned long* psys_counter;					//メインシステムカウンターの参照先ポインタ
 	unsigned		work_select = 0;				//スレッド実行の関数の種類を指定
 
+	bool is_init_complete = false;
+
 }ST_THREAD_INFO, * PST_THREAD_INFO;
 
 /***********************************************************************

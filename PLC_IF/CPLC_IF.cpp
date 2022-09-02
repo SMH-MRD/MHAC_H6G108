@@ -72,6 +72,11 @@ int CPLC_IF::init_proc() {
 
     pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
+    //CraneStat—§‚¿ã‚ª‚è‘Ò‚¿
+    while (pCrane->is_tasks_standby_ok == false) {
+        Sleep(10);
+    }
+
     return int(mode & 0xff00);
 }
 //*********************************************************************************************
@@ -200,7 +205,7 @@ int CPLC_IF::set_debug_status() {
     plc_io_workbuf.ui.notch_pos[ID_HOIST]       = pWorkWindow->stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH;
     plc_io_workbuf.ui.notch_pos[ID_GANTRY]      = pWorkWindow->stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH;
     plc_io_workbuf.ui.notch_pos[ID_BOOM_H]      = pWorkWindow->stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH;
-    plc_io_workbuf.ui.notch_pos[ID_SLEW]        = pWorkWindow->stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH;
+    plc_io_workbuf.ui.notch_pos[ID_SLEW]        = -(pWorkWindow->stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH);//ŽÀ‹@‚Æƒmƒbƒ`‚Ì{•ûŒü‚ª‹t
 
     plc_io_workbuf.ui.PB[ID_PB_ESTOP] = pWorkWindow->stOpePaneStat.check_estop;
 

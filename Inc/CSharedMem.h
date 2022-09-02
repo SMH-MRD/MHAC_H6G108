@@ -231,6 +231,7 @@ typedef struct stEnvSubproc {
 typedef struct StCraneStatus {
 	DWORD env_act_count=0;						//ヘルシー信号
 	ST_ENV_SUBPROC subproc_stat;				//サブプロセスの状態
+	bool is_tasks_standby_ok;					//タスクの立ち上がり確認
 	ST_SPEC spec;								//クレーン仕様
 	WORD operation_mode;						//運転モード　機上,リモート
 	WORD anti_sway_mode;						//振れ止め入切

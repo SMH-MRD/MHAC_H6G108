@@ -49,7 +49,7 @@ private:
 //r,vは、吊点の位置と座標
 
 #define SIM_INIT_R                  10.0        //引込初期値 m
-#define SIM_INIT_TH                 0.0         //旋回初期値 rad
+#define SIM_INIT_TH                 PI90//0.0         //旋回初期値 rad
 #define SIM_INIT_L                  9.8        //ロープ長初期値 m
 #define SIM_INIT_X                  10.0        //走行初期値 m
 #define SIM_INIT_M                  10000.0     //荷重初期値 kg
