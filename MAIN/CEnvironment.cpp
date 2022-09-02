@@ -258,23 +258,32 @@ int CEnvironment::mode_set() {
 /*　 位置情報セット											            */
 /****************************************************************************/
 int CEnvironment::pos_set() {
+
+	double sin_slew = sin(pPLC_IO->status.pos[ID_SLEW]);
+	double cos_slew = cos(pPLC_IO->status.pos[ID_SLEW]);
+
 	//クレーン基準点のx,y,z相対座標
 	stWorkCraneStat.rc0.x = pPLC_IO->status.pos[ID_GANTRY];	//走行位置
 	stWorkCraneStat.rc0.y = 0.0;							//旋回中心点
 	stWorkCraneStat.rc0.z = 0.0;							//走行レール高さ
 
 	//クレーン吊点のクレーン基準点とのx,y,z相対座標
-	stWorkCraneStat.rc.x = pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
-	stWorkCraneStat.rc.y = pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
+	stWorkCraneStat.rc.x = pPLC_IO->status.pos[ID_BOOM_H] * cos_slew;
+	stWorkCraneStat.rc.y = pPLC_IO->status.pos[ID_BOOM_H] * sin_slew;
 	stWorkCraneStat.rc.z = spec.boom_high;
 
-	//吊荷のx, y, z座標
-	stWorkCraneStat.rl.x = pCraneStat->rc.x;
-	stWorkCraneStat.rl.y = pCraneStat->rc.y;
-	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];
-
 	//ロープ長
-	stWorkCraneStat.mh_l = spec.boom_high - stWorkCraneStat.rl.z;
+	stWorkCraneStat.mh_l = spec.boom_high - pPLC_IO->status.pos[ID_HOIST];
+	
+	//吊荷のカメラ座標での吊荷xyz相対座標
+	stWorkCraneStat.rcam.x = stWorkCraneStat.mh_l * sin(pSway_IO->th[ID_SLEW]) ;
+	stWorkCraneStat.rcam.y = stWorkCraneStat.mh_l * sin(pSway_IO->th[ID_BOOM_H]);
+	stWorkCraneStat.rcam.z = -stWorkCraneStat.mh_l;
+
+	//吊荷のx, y, z座標
+	stWorkCraneStat.rl.x = pCraneStat->rc.x + stWorkCraneStat.rcam.x * sin_slew + stWorkCraneStat.rcam.y * cos_slew;
+	stWorkCraneStat.rl.y = pCraneStat->rc.y + stWorkCraneStat.rcam.x * -cos_slew + stWorkCraneStat.rcam.y * sin_slew;
+	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];
 
 	//極限判定
 	if (stWorkCraneStat.rc0.x < spec.gantry_pos_min) stWorkCraneStat.is_rev_endstop[ID_GANTRY] = true;

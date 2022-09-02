@@ -340,8 +340,8 @@ VOID CMonWin::draw_graphic() {
 	//’Ý‰×•`‰æ
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_BRUSH]);
 	POINT load_xy;
-	load_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rc.x * CMON_PIX_PER_M_CRANE);
-	load_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rc.y * CMON_PIX_PER_M_CRANE);
+	load_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rl.x * CMON_PIX_PER_M_CRANE);
+	load_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rl.y * CMON_PIX_PER_M_CRANE);
 	Ellipse(stGraphic.hdc_mem_gr,
 		load_xy.x - CMON_PIX_R_BOOM_END,
 		load_xy.y - CMON_PIX_R_BOOM_END,

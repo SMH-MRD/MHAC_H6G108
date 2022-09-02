@@ -209,11 +209,10 @@ int CSIM::set_sway_io() {
     
     // クレーンxy座標をカメラxy座標に回転変換　→　角度radに変換　
     double th = pCrane->r0[ID_SLEW];//旋回角度
-    double thx = asin(((pLoad->L.x) * -sin(th) + (pLoad->L.y) * cos(th)) / pCrane->l_mh);
+    double thx = asin(((pLoad->L.x) * sin(th) + (pLoad->L.y) * -cos(th)) / pCrane->l_mh);
     double thy = asin(((pLoad->L.x) * cos(th) + (pLoad->L.y) * sin(th)) / pCrane->l_mh);
 
-    double tempd = pLoad->L.x - pCrane->r.x;
-
+   
     // カメラ取付オフセット値の計算
     double ax = SwayCamParam[SID_AXIS_X][CAM_SET_PARAM_a];//センサ検出角補正値
     double bx = SwayCamParam[SID_AXIS_X][CAM_SET_PARAM_b];//センサ検出角補正値

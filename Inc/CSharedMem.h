@@ -242,6 +242,7 @@ typedef struct StCraneStatus {
 	Vector3 rc0;								//クレーン基準点のx,y,z座標（x:走行位置 y:旋回中心 z:走行レール高さ）
 	Vector3 rc;									//クレーン吊点のクレーン基準点とのx,y,z相対座標
 	Vector3 rl;									//吊荷のクレーン吊点とのx,y,z相対座標
+	Vector3 rcam;								//振れセンサ検出x,y,z座標
 	bool is_fwd_endstop[MOTION_ID_MAX];			//正転極限判定
 	bool is_rev_endstop[MOTION_ID_MAX];			//逆転極限判定
 	double mh_l;								//ロープ長
