@@ -127,10 +127,7 @@ int CPLC_IF::input() {
 //*********************************************************************************************
 int CPLC_IF::parse() { 
 
-    //PLCからの入力をオウム返しで出力（試験対応処理）
- //   memcpy_s(melnet.plc_w_buf_B.pc_com_buf, 16, melnet.plc_r_buf_B.spare, 16);     //Bレジスタ
- //   memcpy_s(melnet.plc_w_buf_W.pc_com_buf, 16, melnet.plc_r_buf_W.main_x_buf, 16); //Wレジスタ
-
+ 
     //### PLCリンク入力を解析
     parse_notch_com();
     
@@ -514,18 +511,19 @@ int CPLC_IF::parse_notch_com() {
     INT16 check_i;
  
     //巻きノッチ
+    //巻に対応するbitを抽出
     check_i = melnet.plc_w_out[melnet.plc_w_map.com_hst_notch_0[ID_WPOS]] & NOTCH_PTN0_ALL;
 
-    if(check_i & NOTCH_PTN0_0) plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_0;
-    else if(check_i & NOTCH_PTN0_F1) {
-      if(check_i == NOTCH_PTN0_F5) plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_5;
+    if(check_i & NOTCH_PTN0_0) plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_0;             //0ノッチ
+    else if(check_i & NOTCH_PTN0_F1) {                                                      //正転ビット（1ノッチ）ON
+      if(check_i == NOTCH_PTN0_F5) plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_5;         //以下ビットパターンを照合
       else if (check_i == NOTCH_PTN0_F4) plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_4;
       else if (check_i == NOTCH_PTN0_F3) plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_3;
       else if (check_i == NOTCH_PTN0_F2) plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_2;
       else plc_io_workbuf.ui.notch_pos[ID_HOIST] = NOTCH_1;
     }
-    else if (check_i & NOTCH_PTN0_R1) {
-      if (check_i == NOTCH_PTN0_R5) plc_io_workbuf.ui.notch_pos[ID_HOIST] = -NOTCH_5;
+    else if (check_i & NOTCH_PTN0_R1) {                                                     //逆転ビット（1ノッチ）ON
+      if (check_i == NOTCH_PTN0_R5) plc_io_workbuf.ui.notch_pos[ID_HOIST] = -NOTCH_5;       //以下ビットパターンを照合
       else if (check_i == NOTCH_PTN0_R4) plc_io_workbuf.ui.notch_pos[ID_HOIST] = -NOTCH_4;
       else if (check_i == NOTCH_PTN0_R3) plc_io_workbuf.ui.notch_pos[ID_HOIST] = -NOTCH_3;
       else if (check_i == NOTCH_PTN0_R2) plc_io_workbuf.ui.notch_pos[ID_HOIST] =- NOTCH_2;

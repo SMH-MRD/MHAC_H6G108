@@ -27,12 +27,15 @@ public:
     int receipt_auto_com(int type, int id, int action);  //Job受付
     int receipt_ope_com(int type, int id);          //Operation Command受付
 
+  
 private:
     
     LPST_POLICY_INFO pPolicyInf;
     LPST_AGENT_INFO pAgentInf;
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;
+
+ 
 
     ST_AGENT_INFO   AgentInf_workbuf;
 
@@ -47,6 +50,9 @@ private:
     int set_ref_bh();           //引込速度指令値出力
     void update_pb_lamp_com();
 
+    int set_position_target();  //位置決め目標位置セット
+    int set_auto_status();
+    UCHAR is_auto_active();
 
     //タブパネルのStaticテキストを設定
     void set_panel_tip_txt();

@@ -42,6 +42,8 @@ void CPolicy::init_task(void* pobj) {
 
 	set_panel_tip_txt();
 
+	pPolicyInf->i_current_command = 0;
+
 	inf.is_init_complete = true;
 	return;
 };
@@ -124,13 +126,28 @@ DWORD CPolicy::set_pc_control(DWORD dw_axis) {
 /*　　COMMAND セット処理													*/
 /****************************************************************************/
 //JOB用処理
-int CPolicy::cal_command_recipe(int type, LPST_JOB_RECIPE pjob) {
-	return 0;
+LPST_COMMAND_SET CPolicy::cal_command_recipe(int type, double* ptarget_pos) {
+	double tg_pos[NUM_OF_AS_AXIS];
+
+	pPolicyInf->i_current_command++;
+	if (pPolicyInf->i_current_command >= COM_STEP_MAX) pPolicyInf->i_current_command = 0;
+
+	if (type == POLICY_TYPE_SEMI) {
+		for(int i=0; i< NUM_OF_AS_AXIS;i++)
+			*(ptarget_pos + i)= tg_pos[i] = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][i];
+	}
+	else if (type == POLICY_TYPE_JOB) {
+		for (int i = 0; i < NUM_OF_AS_AXIS;i++)
+			*(ptarget_pos + i) = tg_pos[i] = pPLC_IO->status.pos[i];
+	}
+	else {
+		for (int i = 0; i < NUM_OF_AS_AXIS;i++)
+			*(ptarget_pos + i) = tg_pos[i] = pPLC_IO->status.pos[i];
+	}
+	
+	return &(pPolicyInf->com[pPolicyInf->i_current_command]);
 }
-//単独コマンド用処理
-int CPolicy::cal_command_recipe(int type) {
-	return 0;
-};
+
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */

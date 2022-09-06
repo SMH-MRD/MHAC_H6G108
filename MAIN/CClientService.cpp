@@ -90,8 +90,6 @@ void CClientService::main_proc() {
 	}
 	PLC_Dbg_last_input = pPLC_IO->mode & PLC_IF_PC_DBG_MODE;
 
-	manage_semi_auto();
-
 	return;
 
 }
@@ -112,47 +110,6 @@ void CClientService::output() {
 int CClientService :: receipt_job_feedback() {
 	return 0;
 };
-
-#define SEMI_AUTO_UPDATE_COUNT	15
-#define SEMI_AUTO_UPDATE_COUNT2	30
-#define SEMI_AUTO_TARGET_SET_COUNT	5
-
-void CClientService::manage_semi_auto() {
-
-	//目標セット,目標設定更新
-	for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++) {
-
-		if (pPLC_IO->ui.PBsemiauto[i]) {
-			if (semi_auto_pb_count[i] > SEMI_AUTO_UPDATE_COUNT2) {
-				semi_auto_pb_count[i]= SEMI_AUTO_UPDATE_COUNT; 
-			}
-			else if (semi_auto_pb_count[i] > SEMI_AUTO_UPDATE_COUNT) {
-				semi_auto_pb_count[i]++; 
-			}
-			else{
-				semi_auto_pb_count[i]++;
-				if (semi_auto_pb_count[i] == SEMI_AUTO_UPDATE_COUNT)//半自動目標セット
-					pEnvironment->update_semiauto_target(i);
-				if (semi_auto_pb_count[i] == SEMI_AUTO_TARGET_SET_COUNT)//目標位置更新
-					semi_auto_target = i;
-			}
-		}
-		else {
-			if (semi_auto_pb_count[i] >= SEMI_AUTO_UPDATE_COUNT2) {
-				semi_auto_pb_count[i] = 0;
-			}
-			else if (semi_auto_pb_count[i] < SEMI_AUTO_UPDATE_COUNT) {
-				semi_auto_pb_count[i] = 0;
-			}
-			else {
-				semi_auto_pb_count[i]++;
-			}
-			
-		}
-	}
-	return;
-}
-
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */

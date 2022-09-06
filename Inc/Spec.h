@@ -149,12 +149,19 @@ typedef struct StSpec {
 	{ 0.003, 0.006, 0.020 },										//[ID_SLEW]
 	};
 
+	
+#define DELAY_PTN_1			0
+#define DELAY_PTN_2			1
+#define DELAY_PTN_3			2
+#define DELAY_PTN_4			3
+#define DELAY_SPD_FB		4
+
 	double delay_time[NUM_OF_AS_AXIS][NUM_OF_DELAY_PTN] = {		// â¡å∏ë¨éûÇÃFBàÍéûíxÇÍéûíËêî
-	{ 0.1,0.1,0.1,0.1,0.1},											//[ID_HOIST]
-	{ 0.1,0.1,0.1,0.1,0.1 },										//[ID_GANTRY]
-	{ 0.1,0.1,0.1,0.1,0.1 },										//[ID_TROLLY]
-	{ 0.1,0.1,0.1,0.1,0.1 },										//[ID_BOOM_H]
-	{ 0.1,0.1,0.1,0.1,0.1 },										//[ID_SLEW]
+	{ 0.1,0.1,0.1,0.1,0.5},											//[ID_HOIST]
+	{ 0.1,0.1,0.1,0.1,0.5 },										//[ID_GANTRY]
+	{ 0.1,0.1,0.1,0.1,0.5 },										//[ID_TROLLY]
+	{ 0.1,0.1,0.1,0.1,0.5 },										//[ID_BOOM_H]
+	{ 0.1,0.1,0.1,0.1,0.5 },										//[ID_SLEW]
 	};
 	
 	//ç\ë¢ê°ñ@

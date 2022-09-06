@@ -9,6 +9,10 @@
 #define POLICY_REQ_JOB          0x00000004
 #define POLICY_REQ_DEBUG        0x00000008
 
+#define POLICY_TYPE_AS          0
+#define POLICY_TYPE_SEMI        1
+#define POLICY_TYPE_JOB         2
+
 class CPolicy :public CTaskObj
 {
 public:
@@ -22,12 +26,11 @@ public:
    void init_task(void* pobj);
 
    void routine_work(void* param);
-   
-   
-   int update_control(DWORD code, LPVOID optlp);
-   int cal_command_recipe(int type, LPST_JOB_RECIPE pjob);
-   int cal_command_recipe(int type);
+      
+   int update_control(DWORD code, LPVOID optlp);            //自動選択ビットを設定　＊要見直し　ENVが担当
 
+   LPST_COMMAND_SET cal_command_recipe(int type, double* ptarget_pos);
+ 
 private:
 
     LPST_POLICY_INFO pPolicyInf;
@@ -40,7 +43,7 @@ private:
     void output();               //出力データ更新
 
     DWORD set_pc_control(DWORD dw_axis);
-
+ 
    //タブパネルのStaticテキストを設定
    void set_panel_tip_txt();
    //タブパネルのFunctionボタンのStaticテキストを設定

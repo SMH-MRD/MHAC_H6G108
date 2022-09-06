@@ -1,6 +1,5 @@
 #include "CAgent.h"
 #include "CPolicy.h"
-#include "CPolicy.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -14,6 +13,8 @@ extern CSharedMem* pAgentInfObj;
 
 extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
 extern ST_iTask g_itask;
+
+static CPolicy* pPolicy;
 
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
@@ -33,6 +34,8 @@ CAgent::~CAgent() {
 /*   タスク初期化処理                                                       */
 /* 　メインスレッドでインスタンス化した後に呼びます。                       */
 /****************************************************************************/
+
+
 void CAgent::init_task(void* pobj) {
 
 	//共有メモリ構造体のポインタセット
@@ -41,6 +44,8 @@ void CAgent::init_task(void* pobj) {
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 
+	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
+	
 	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
 	for (int i = 0;i < N_PLC_LAMP;i++) AgentInf_workbuf.PLC_LAMP_com[i] = 0;
 
@@ -191,11 +196,72 @@ int CAgent::receipt_ope_com(int type,int target) {
 	}
 	return 0;
 };
+
+/****************************************************************************/
+/*  自動実行状態セット													*/
+/****************************************************************************/
+static bool notch_0_last[MOTION_ID_MAX];
+static bool auto_active_last[MOTION_ID_MAX];
+
+int CAgent::set_auto_status() {
+	//位置決め目標位置設定
+	for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
+		//0速チェック
+		if ((pPLC_IO->status.v_fb[i] >= pCraneStat->spec.notch_spd_f[i][NOTCH_1] * SPD0_CHECK_RETIO) ||
+			(pPLC_IO->status.v_fb[i] <= pCraneStat->spec.notch_spd_r[i][NOTCH_1] * SPD0_CHECK_RETIO)) {//1ノッチの10％速度以上
+			AgentInf_workbuf.is_spdfb_0[i] = false;	//0速でない
+		}
+		else if (pCraneStat->is_notch_0[i] == false) {//ノッチ0で無い
+			AgentInf_workbuf.is_spdfb_0[i] = false;
+		}
+		else {
+			AgentInf_workbuf.is_spdfb_0[i] = true;
+		}
+
+		//減速距離
+		if (pPLC_IO->status.v_fb[i] < 0.0) {
+			AgentInf_workbuf.dist_for_stop[i]
+				= pPLC_IO->status.v_fb[i] * (-0.5 * pPLC_IO->status.v_fb[i] / pCraneStat->spec.accdec[i][ID_REV][ID_DEC] + pCraneStat->spec.delay_time[i][DELAY_SPD_FB]);
+
+		}
+		else {
+			AgentInf_workbuf.dist_for_stop[i]
+				= pPLC_IO->status.v_fb[i] * (-0.5 * pPLC_IO->status.v_fb[i] / pCraneStat->spec.accdec[i][ID_FWD][ID_DEC] + pCraneStat->spec.delay_time[i][DELAY_SPD_FB]);
+		}
+
+
+		//位置決め目標位置セット
+		if (AgentInf_workbuf.auto_active[i]) {
+			if (!auto_active_last[i]) {
+				if (pCraneStat->semi_auto_selected) {//半自動設定有効
+					pPolicy->cal_command_recipe(POLICY_TYPE_SEMI, AgentInf_workbuf.positioning_target);
+
+				}
+			}
+		}
+		else {
+			if (pCraneStat->auto_mode[i]) {		//auto_mode
+				AgentInf_workbuf.positioning_target[i] = pPLC_IO->status.pos[i] + AgentInf_workbuf.dist_for_stop[i];
+			}
+			else {
+				AgentInf_workbuf.positioning_target[i] = pPLC_IO->status.pos[i];
+			}
+		}
+
+		//前回値保持
+		notch_0_last[i] = pCraneStat->is_notch_0[i];
+		auto_active_last[i] = AgentInf_workbuf.auto_active[i];
+	}
+
+	return 0;
+};
+
+
 /****************************************************************************/
 /*  PB,ランプ出力内容セット														*/
 /****************************************************************************/
 void CAgent::set_lamp() {
-	if (pCraneStat->anti_sway_mode & BITSEL_COMMON) {
+	if (pCraneStat->auto_mode[ID_SLEW]|| pCraneStat->auto_mode[ID_BOOM_H]) {
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_ON;
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_OFF;
 	}

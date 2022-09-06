@@ -216,7 +216,8 @@ typedef struct stEnvSubproc {
 
 #define MANUAL_MODE				0
 #define ANTI_SWAY_MODE			1
-#define AUTO_ACTIVE				2
+#define SEMI_AUTO_ACTIVE		2
+#define AUTO_ACTIVE				3
 
 #define BITSEL_HOIST        0x0001		//巻 　       ビット
 #define BITSEL_GANTRY       0x0002		//走行        ビット
@@ -227,15 +228,26 @@ typedef struct stEnvSubproc {
 #define BITSEL_H_ASSY       0x0040		//吊具        ビット
 #define BITSEL_COMMON       0x0080		//共通        ビット
 
+#define BITSEL_SEMIAUTO     0x0001
+#define BITSEL_AUTO			0x0002
+
+#define SPD0_CHECK_RETIO	0.1
 
 typedef struct StCraneStatus {
-	DWORD env_act_count=0;						//ヘルシー信号
-	ST_ENV_SUBPROC subproc_stat;				//サブプロセスの状態
-	bool is_tasks_standby_ok;					//タスクの立ち上がり確認
-	ST_SPEC spec;								//クレーン仕様
-	WORD operation_mode;						//運転モード　機上,リモート
-	WORD anti_sway_mode;						//振れ止め入切
-	WORD auto_mode;							//手動,振れ止め,自動
+	DWORD env_act_count=0;													//ヘルシー信号
+	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
+	bool is_tasks_standby_ok;												//タスクの立ち上がり確認
+	ST_SPEC spec;															//クレーン仕様
+	WORD operation_mode;													//運転モード　機上,リモート
+
+	bool auto_mode[MOTION_ID_MAX];											//手動,自動(軸毎)
+	WORD auto_standby;														//半自動,自動(ビットセット）
+	double semi_auto_setting_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];	//半自動設定目標位置
+	int	 semi_auto_selected;												//半自動選択ID
+	int	 semi_auto_pb_count[SEMI_AUTO_TARGET_MAX];							//半自動PB　ONカウント
+	int	 auto_start_pb_count;												//自動開始PB　ONカウント
+	bool is_notch_0[MOTION_ID_MAX];											//振れ止めモードノッチ条件
+	
 	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
 	WORD faultPC[N_PC_FAULT_WORDS];				//PLC検出異常
 	WORD faultPLC[N_PLC_FAULT_WORDS];			//制御PC検出異常
@@ -246,21 +258,22 @@ typedef struct StCraneStatus {
 	bool is_fwd_endstop[MOTION_ID_MAX];			//正転極限判定
 	bool is_rev_endstop[MOTION_ID_MAX];			//逆転極限判定
 	double mh_l;								//ロープ長
-	double T;						//振周期		s
-	double w;						//振角周波数	/s
+	double T;									//振周期		s
+	double w;									//振角周波数	/s
 
-	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];//半自動目標位置
+
+
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
-#define SEMI_AUTO_TG_CLR	-1
-#define SEMI_AUTO_TG1		0
-#define SEMI_AUTO_TG2		1
-#define SEMI_AUTO_TG3		2
-#define SEMI_AUTO_TG4		3
-#define SEMI_AUTO_TG5		4
-#define SEMI_AUTO_TG6		5
-#define SEMI_AUTO_TG7		6
-#define SEMI_AUTO_TG8		7
+#define SEMI_AUTO_TG_CLR	0
+#define SEMI_AUTO_TG1		1
+#define SEMI_AUTO_TG2		2
+#define SEMI_AUTO_TG3		3
+#define SEMI_AUTO_TG4		4
+#define SEMI_AUTO_TG5		5
+#define SEMI_AUTO_TG6		6
+#define SEMI_AUTO_TG7		7
+#define SEMI_AUTO_TG8		8
 
 /************************************************************************************/
 /*   作業内容（JOB)定義構造体                                 　     　　　　　　	*/
@@ -463,6 +476,11 @@ typedef struct stPolicyInfo {
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
 
+#define AUTO_TYPE_AS	0x01
+#define AUTO_TYPE_SEMI	0x11
+#define AUTO_TYPE_JOB	0x21
+#define AUTO_TYPE_MANU	0x00
+
 typedef struct stAgentInfo {
 
 	//for CRANE
@@ -470,6 +488,10 @@ typedef struct stAgentInfo {
 	int PLC_PB_com[N_PLC_PB];
 	int PLC_LAMP_com[N_PLC_LAMP];
 	int PLC_LAMP_semiauto_com[SEMI_AUTO_TARGET_MAX];
+	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中(軸毎)
+	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
+	double positioning_target[MOTION_ID_MAX];		//位置決め目標位置
+	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め速度FB条件
 
 	//for PLC_IO
 
@@ -520,17 +542,4 @@ protected:
 #define OPE_COM_SEMI_LAMP_OFF		6
 #define OPE_COM_SEMI_LAMP_FLICKER	7
 
-//自動種別
-#define AUTO_TYPE_DEACTIVATE        0x0000
-#define AUTO_TYPE_ANTI_SWAY         0x0001
-#define AUTO_TYPE_SEMI_AUTO         0x0010
-#define AUTO_TYPE_JOB               0x0100
-//自動実行状態
-#define AUTO_STAT_NOT_APPLICABLE    0x0000
-#define AUTO_STAT_STANDBY           0x0001
-#define AUTO_STAT_SUSPEND           0x0010
-#define AUTO_STAT_ACTIVE            0x0100
-//自動起動停止指令
-#define AUTO_TO_DO_START            0x00000001
-#define AUTO_TO_DO_INTERRUPT        0x00000100
-#define AUTO_TO_DO_ABORT            0x00100000
+

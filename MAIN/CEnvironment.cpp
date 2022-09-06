@@ -55,7 +55,7 @@ void CEnvironment::init_task(void* pobj) {
 	//半自動目標初期値セット
 	for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++)
 		for (int j = 0;j < MOTION_ID_MAX;j++)
-			stWorkCraneStat.semi_target[i][j] = spec.semi_target[i][j];
+			stWorkCraneStat.semi_auto_setting_target[i][j] = spec.semi_target[i][j];
 
 	set_panel_tip_txt();
 
@@ -126,9 +126,8 @@ void CEnvironment::main_proc() {
 	//位置情報セット
 	pos_set();
 	
-	//振れ情報セット
-	parse_sway_stat(ID_SLEW);
-	parse_sway_stat(ID_BOOM_H);
+	//自動情報セット
+	parse_auto_ctrl();
 
 	return;
 }
@@ -148,27 +147,43 @@ void CEnvironment::output() {
 
 }; 
 
-/****************************************************************************/
-/*　　半自動目標位置更新													*/
-/****************************************************************************/
-int CEnvironment::update_semiauto_target(int ID) {
-	for(int i=0;i< MOTION_ID_MAX;i++)
-		stWorkCraneStat.semi_target[ID][i] = pPLC_IO->status.pos[i];
 
-	return 0;
-};
 /****************************************************************************/
 /*　　ノッチ入力信号を速度指令に変換して取り込み				            */
 /****************************************************************************/
 int CEnvironment::parse_notch_com() {
 
+	//ノッチ位置配列のポインタセット
 	int* p_notch;
 	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) p_notch = pRemoteIO->PLCui.notch_pos;
 	else p_notch = pPLC_IO->ui.notch_pos;
 
+	for (int i = 0;i < MOTION_ID_MAX;i++) {
+		if (*(p_notch+i) == NOTCH_0) {
+			stWorkCraneStat.is_notch_0[i] = true;
+			stWorkCraneStat.notch_spd_ref[i] = 0.0;
+		}
+		else {
+			stWorkCraneStat.is_notch_0[i] = false;
+			if (p_notch[i] < 0) 
+				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_r[i][-p_notch[i]];
+			else 
+				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_f[i][p_notch[i]];
+		}
+	}
 
-	if (pPLC_IO->ui.notch_pos[ID_HOIST] < 0) stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_r[ID_HOIST][iABS(p_notch[ID_HOIST])];
-	else stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_f[ID_HOIST][iABS(p_notch[ID_HOIST])];
+/*
+	//ノッチ位置配列のポインタセット
+	if (pPLC_IO->ui.notch_pos[ID_HOIST] == NOTCH_0) {
+		stWorkCraneStat.is_notch_0[ID_HOIST] = true;
+		stWorkCraneStat.notch_spd_ref[ID_HOIST] = 0.0;
+	}
+	else {
+		stWorkCraneStat.is_notch_0[ID_HOIST] = false;
+		if (pPLC_IO->ui.notch_pos[ID_HOIST] < 0) stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_r[ID_HOIST][iABS(p_notch[ID_HOIST])];
+		else stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_f[ID_HOIST][iABS(p_notch[ID_HOIST])];
+	}
+
 
 
 	if (pPLC_IO->ui.notch_pos[ID_GANTRY] < 0) stWorkCraneStat.notch_spd_ref[ID_GANTRY] = stWorkCraneStat.spec.notch_spd_r[ID_GANTRY][iABS(p_notch[ID_GANTRY])];
@@ -181,15 +196,16 @@ int CEnvironment::parse_notch_com() {
 
 	if (pPLC_IO->ui.notch_pos[ID_SLEW] < 0) stWorkCraneStat.notch_spd_ref[ID_SLEW] = stWorkCraneStat.spec.notch_spd_r[ID_SLEW][iABS(p_notch[ID_SLEW])];
 	else stWorkCraneStat.notch_spd_ref[ID_SLEW] = stWorkCraneStat.spec.notch_spd_f[ID_SLEW][iABS(p_notch[ID_SLEW])];
-
+*/
 	return 0;
 
 };
 /****************************************************************************/
-/*　 制御用振れ状態計算											            */
+/*　 自動制御設定											            */
 /****************************************************************************/
-int CEnvironment::parse_sway_stat(int ID) {
+int CEnvironment::parse_auto_ctrl() {
 
+	//###################
 	//角周波数
 	if (stWorkCraneStat.mh_l > 1.0) {	//ロープ長下限
 		stWorkCraneStat.w = sqrt(GA / stWorkCraneStat.mh_l);
@@ -200,6 +216,43 @@ int CEnvironment::parse_sway_stat(int ID) {
 
 	//周期
 	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
+	//###################
+	//半自動目標設定値更新（PB長押しで現在位置に更新）
+	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
+		//PB ON時間カウント
+		if (pPLC_IO->ui.PBsemiauto[i] == false) stWorkCraneStat.semi_auto_pb_count[i] = 0;
+		else stWorkCraneStat.semi_auto_pb_count[i]++;
+
+		if (stWorkCraneStat.semi_auto_pb_count[i] == 10) {//半自動目標位置更新
+			for (int j = 0;j < MOTION_ID_MAX;j++)
+				stWorkCraneStat.semi_auto_setting_target[i][j] = pPLC_IO->status.pos[j];
+		}
+	}
+
+	if (pPLC_IO->ui.PB[ID_PB_AUTO_START] == false) stWorkCraneStat.auto_start_pb_count = 0;
+	else stWorkCraneStat.auto_start_pb_count++;
+
+
+	//半自動設定更新
+	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
+		//PB ON時間カウント
+		if (pPLC_IO->ui.PBsemiauto[i] == false) stWorkCraneStat.semi_auto_pb_count[i] = 0;
+		else stWorkCraneStat.semi_auto_pb_count[i]++;
+
+		//目標位置更新
+		if (stWorkCraneStat.semi_auto_pb_count[i] == 100) {//半自動目標位置更新
+			for (int j = 0;j < NUM_OF_AS_AXIS;j++)
+				stWorkCraneStat.semi_auto_setting_target[i][j] = pPLC_IO->status.pos[j];
+		}
+
+		//目標設定
+		if (stWorkCraneStat.semi_auto_pb_count[i] == 40) {//半自動目標設定
+			if (i == stWorkCraneStat.semi_auto_selected - 1)//設定中のボタンを押したら解除
+				stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
+			else
+				stWorkCraneStat.semi_auto_selected = i + 1;
+		}
+	}
 
 	return 0;
 }
@@ -221,35 +274,19 @@ int CEnvironment::mode_set() {
 
 
 	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == true) {
-		stWorkCraneStat.anti_sway_mode |= BITSEL_COMMON | BITSEL_BOOM_H | BITSEL_SLEW;
+		stWorkCraneStat.auto_mode[ID_HOIST] = true;
+		stWorkCraneStat.auto_mode[ID_GANTRY] = true;
+		stWorkCraneStat.auto_mode[ID_TROLLY] = true;
+		stWorkCraneStat.auto_mode[ID_SLEW] = true;
+		stWorkCraneStat.auto_mode[ID_BOOM_H] = true;
 	}
-	else {
-		stWorkCraneStat.anti_sway_mode &= ~(BITSEL_COMMON | BITSEL_BOOM_H | BITSEL_SLEW);
+	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF] == true) {
+		stWorkCraneStat.auto_mode[ID_HOIST] = false;
+		stWorkCraneStat.auto_mode[ID_GANTRY] = false;
+		stWorkCraneStat.auto_mode[ID_TROLLY] = false;
+		stWorkCraneStat.auto_mode[ID_SLEW] = false;
+		stWorkCraneStat.auto_mode[ID_BOOM_H] = false;
 	}
-
-	bool is_0_notch;
-	if ((pPLC_IO->ui.notch_pos[ID_SLEW] == 0) && (pPLC_IO->ui.notch_pos[ID_BOOM_H] == 0)){
-		is_0_notch = true;
-	}
-	else {
-		is_0_notch = false;
-	}
-
-	if ((is_0_notch == false) || (stWorkCraneStat.anti_sway_mode == 0)) {
-		stWorkCraneStat.auto_mode = MANUAL_MODE;
-	}
-	else if ((stWorkCraneStat.auto_mode == AUTO_ACTIVE)&&(pCSInf->n_job_standby == 0)) {
-			stWorkCraneStat.auto_mode = ANTI_SWAY_MODE;
-	}
-	else if((stWorkCraneStat.auto_mode == ANTI_SWAY_MODE)&&(pCSInf->n_job_standby != 0)){
-		stWorkCraneStat.auto_mode = AUTO_ACTIVE;
-	}
-	else if (stWorkCraneStat.auto_mode == MANUAL_MODE) {
-		if ((stWorkCraneStat.auto_mode) && (pCSInf->n_job_standby != 0))	stWorkCraneStat.auto_mode = AUTO_ACTIVE;
-		else if (stWorkCraneStat.auto_mode)stWorkCraneStat.auto_mode = ANTI_SWAY_MODE;
-		else;
-	}
-	else;
 
 	return 0;
 
@@ -346,12 +383,9 @@ void CEnvironment::chk_subproc() {
 /****************************************************************************/
 void CEnvironment::tweet_update() {
 
-	if (pCraneStat->anti_sway_mode) wostrs << L" # AS:ON";
+	if (pCraneStat->auto_mode[ID_SLEW]) wostrs << L" # AS:ON";
 	else  wostrs << L" # AS:OFF";
 
-	if (pCraneStat->auto_mode == ANTI_SWAY_MODE) wostrs << L" # MODE:ASWAY";
-	else if (pCraneStat->auto_mode == AUTO_ACTIVE) wostrs << L" # MODE:AUTO";
-	else  wostrs << L" # MODE:MANU";
 
 #if 0
 	//PLC
