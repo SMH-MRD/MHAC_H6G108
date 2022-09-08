@@ -34,6 +34,8 @@
 
 #define RAD2DEG         57.29578
 #define DEG2RAD         0.0174533
+#define RAD2DEG2        3282.6
+#define DEG2RAD2        0.00030462
 
 /*** É}ÉNÉç ***/
 #ifndef MIN

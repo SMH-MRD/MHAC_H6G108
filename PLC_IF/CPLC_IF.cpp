@@ -133,9 +133,8 @@ int CPLC_IF::parse() {
     
 
     //運転室操作内容 
-    parse_ope_com();
-    //デバッグモード時は、操作パネルウィンドウの内容を上書き 
     if (is_debug_mode()) set_debug_status();
+    else parse_ope_com();
 
     //### センサ検出内容取込
     parse_sensor_fb();

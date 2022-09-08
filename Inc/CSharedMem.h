@@ -240,8 +240,7 @@ typedef struct StCraneStatus {
 	ST_SPEC spec;															//クレーン仕様
 	WORD operation_mode;													//運転モード　機上,リモート
 
-	bool auto_mode[MOTION_ID_MAX];											//手動,自動(軸毎)
-	WORD auto_standby;														//半自動,自動(ビットセット）
+	int	 auto_standby;														//自動モード
 	double semi_auto_setting_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];	//半自動設定目標位置
 	int	 semi_auto_selected;												//半自動選択ID
 	int	 semi_auto_pb_count[SEMI_AUTO_TARGET_MAX];							//半自動PB　ONカウント
@@ -260,20 +259,19 @@ typedef struct StCraneStatus {
 	double mh_l;								//ロープ長
 	double T;									//振周期		s
 	double w;									//振角周波数	/s
-
-
-
+	double w2;									//振角周波数の2乗
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
-#define SEMI_AUTO_TG_CLR	0
-#define SEMI_AUTO_TG1		1
-#define SEMI_AUTO_TG2		2
-#define SEMI_AUTO_TG3		3
-#define SEMI_AUTO_TG4		4
-#define SEMI_AUTO_TG5		5
-#define SEMI_AUTO_TG6		6
-#define SEMI_AUTO_TG7		7
-#define SEMI_AUTO_TG8		8
+
+#define SEMI_AUTO_TG_CLR	8
+#define SEMI_AUTO_TG1		0
+#define SEMI_AUTO_TG2		1
+#define SEMI_AUTO_TG3		2
+#define SEMI_AUTO_TG4		3
+#define SEMI_AUTO_TG5		4
+#define SEMI_AUTO_TG6		5
+#define SEMI_AUTO_TG7		6
+#define SEMI_AUTO_TG8		7
 
 /************************************************************************************/
 /*   作業内容（JOB)定義構造体                                 　     　　　　　　	*/
@@ -283,7 +281,6 @@ typedef struct StCraneStatus {
 /* 　JOB	:From-Toの搬送作業													*/
 /************************************************************************************/
 #define COM_STEP_MAX		10					//　JOBを構成するコマンド最大数
-#define COM_TARGET_MAX		MOTION_ID_MAX		//　コマンド毎の目標最大数
 #define JOB_TYPE_HANDLING	0x00000001
 
 //Recipe
@@ -293,10 +290,11 @@ typedef struct StCraneStatus {
 #define JOB_STEP_TYPE_PARK	3
 
 typedef struct _stJobRecipe {
+	SYSTEMTIME time_start_planed;				//予定開始時間
 	int n_step;									//ステップ数
 	int step_type[COM_STEP_MAX];				//各ステップのタイプ
-	double target[COM_STEP_MAX][COM_TARGET_MAX];//各STEP毎　各軸目標
-	int option[COM_STEP_MAX][COM_TARGET_MAX];	//各軸STEP毎　オプション条件
+	double target[COM_STEP_MAX][MOTION_ID_MAX];//各STEP毎　各軸目標
+	int option[COM_STEP_MAX][MOTION_ID_MAX];	//各軸STEP毎　オプション条件
 }ST_JOB_RECIPE, * LPST_JOB_RECIPE;
 
 #define JOB_STAT_STANDBY			0x0001
@@ -315,7 +313,9 @@ typedef struct stJobStat {						//JOB実行状態
 	int status;									//完了コード　異常完了時エラーコード
 	int current_step;							//実行中ステップ
 	int step_status[COM_STEP_MAX];				//step実行状況
-	double step_elapsed[COM_STEP_MAX];			//step経過時間
+	DWORD step_elapsed[COM_STEP_MAX];			//step経過時間ms
+	SYSTEMTIME time_start;
+	SYSTEMTIME time_end;
 
 }ST_JOB_STAT, * LPST_JOB_STAT;
 
@@ -386,28 +386,23 @@ typedef struct stMotionStat {
 	int error_code;								//エラーコード　異常完了時
 }ST_MOTION_STAT, * LPST_MOTION_STAT;
 
-//Set
-typedef struct stMotionSet {
-	ST_MOTION_RECIPE recipe;					//動作内容定義
-	ST_MOTION_STAT status;						//動作実行状態 
-}ST_MOTION_SET, * LPST_MOTION_SET;
-
-
 /********************************************************************************/
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
 
 //Recipe
-typedef struct stCommandRecipe {				//運転要素
+typedef struct stCommandRecipe {				
 	bool is_required_motion[MOTION_ID_MAX];		//動作対象軸
 	ST_MOTION_RECIPE motions[MOTION_ID_MAX];
 }ST_COMMAND_RECIPE, * LPST_COMMAND_RECIPE;
 
 //Status
-typedef struct stCommandStat {				//運転要素
-	int status;								//エラーコード　異常完了時
-	int status_code;						//エラーコード　
+typedef struct stCommandStat {	
+	DWORD time_start;						//開始時の時間msec
+	DWORD time_end;							//終了時の時間msec
+	int status;								//実行状態　
+	int status_code;						//エラーコード等（異常完了時）　
 	int motion_status[MOTION_ID_MAX];		//コマンド実行状況
 	int motion_elapsed[MOTION_ID_MAX];		//経過時間
 }ST_COMMAND_STAT, * LPST_COMMAND_STAT;
@@ -418,8 +413,8 @@ typedef struct stCommandSet {
 	int type;								//コマンド種別
 	int job_id;
 	int job_step;
-	ST_COMMAND_RECIPE	recipe;				//コマンド種別
-	ST_COMMAND_STAT		status;				//ID No.
+	ST_COMMAND_RECIPE	recipe;				
+	ST_COMMAND_STAT		status;				
 }ST_COMMAND_SET, * LPST_COMMAND_SET;
 
 
@@ -436,7 +431,6 @@ typedef struct stCommandSet {
 
 #define JOB_HOLD_MAX			10					//	保持可能JOB最大数
 
-
 typedef struct stCSInfo {
 
 	int n_job_standby;
@@ -449,24 +443,15 @@ typedef struct stCSInfo {
 
 }ST_CS_INFO, * LPST_CS_INFO;
 
-
-
-
-#define POLICY_AUTO_OFF		0x00000000		//自動OFF
-#define POLICY_SEMI_AUTO_ON	0x00000001		//半自動MODE
-
-#define POLICY_ANTISWAY_OFF	0x00000000		//振れ止めOFF
-#define POLICY_ANTISWAY_ON	0x00000001		//振れ止めON
-
 /****************************************************************************/
 /*   Policy	情報定義構造体                                   　			  　*/
 /* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
 /****************************************************************************/
 typedef struct stPolicyInfo {
 
-	WORD pc_ctrl_mode; //PCからの指令で動作させる軸の指定
-
-	int i_current_command;
+	int i_jobcom;							//現在のコマンドINDEX
+	int i_com;								//現在のコマンドINDEX
+	ST_COMMAND_SET job_com[COM_STEP_MAX];
 	ST_COMMAND_SET com[COM_STEP_MAX];
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;
@@ -476,25 +461,26 @@ typedef struct stPolicyInfo {
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
 
-#define AUTO_TYPE_AS	0x01
-#define AUTO_TYPE_SEMI	0x11
-#define AUTO_TYPE_JOB	0x21
-#define AUTO_TYPE_MANU	0x00
+#define AUTO_TYPE_ANTI_SWAY	0x01
+#define AUTO_TYPE_SEMI_AUTO	0x11
+#define AUTO_TYPE_JOB		0x21
+#define AUTO_TYPE_MANUAL	0x00
 
 typedef struct stAgentInfo {
 
-	//for CRANE
+	WORD pc_ctrl_mode; //PCからの指令で動作させる軸の指定
 	double v_ref[MOTION_ID_MAX];
 	int PLC_PB_com[N_PLC_PB];
 	int PLC_LAMP_com[N_PLC_LAMP];
 	int PLC_LAMP_semiauto_com[SEMI_AUTO_TARGET_MAX];
+	int auto_on_going;								//実行中の自動
 	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中(軸毎)
 	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
 	double positioning_target[MOTION_ID_MAX];		//位置決め目標位置
 	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め速度FB条件
-
-	//for PLC_IO
-
+	double gap_from_target[MOTION_ID_MAX];			//目標位置からのずれ
+	double gap2_from_target[MOTION_ID_MAX];			//目標位置からのずれ2乗
+	double sway_amp2m[MOTION_ID_MAX];				//振れ振幅の2乗m2
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

@@ -45,7 +45,7 @@ private:
 
     int parse_notch_com();          //ノッチ信号を速度指令に変換セット
     int mode_set();                 //モード状態セット
-    int parse_auto_ctrl();      //振れ周期,振れ止め目標,ノッチ状態計算
+    int parse_for_auto_ctrl();      //振れ周期,振れ止め目標,ノッチ状態計算
     int pos_set();                  //位置情報セット
     void chk_subproc();             //サブプロセス状態チェック
 

@@ -67,7 +67,7 @@ typedef struct st_thread_info {
 	int				thread_com=0;					//スレッド制御フラグ 　0:繰り返し　1:中断　それ以外：逐次処理:
 
 	//-スレッドモニタ情報
-	DWORD			start_time=0;						//現スキャンのスレッド開始時間
+	DWORD			start_time=0;					//現スキャンのスレッド開始時間
 	DWORD			act_time=0;						//1スキャンのスレッド実処理時間
 	DWORD			period=0;						//スレッドループ周期実績
 	DWORD			act_count=0;					//スレッドループカウンタ

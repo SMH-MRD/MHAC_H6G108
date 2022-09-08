@@ -78,18 +78,6 @@ static DWORD PLC_Dbg_last_input = 0;
 
 void CClientService::main_proc() {
 
-	//振れ止めモード要求
-	if ((pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == TRUE) && (PLC_PBs_last[ID_PB_ANTISWAY_ON] == FALSE)) {
-		pPolicy->update_control(POLICY_REQ_ANTISWAY, NULL);
-	}
-	PLC_PBs_last[ID_PB_ANTISWAY_ON] = pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON];
-
-	//デバッグモード要求
-	if ((pPLC_IO->mode & PLC_IF_PC_DBG_MODE) != PLC_Dbg_last_input) {
-		pPolicy->update_control(POLICY_REQ_DEBUG, NULL);
-	}
-	PLC_Dbg_last_input = pPLC_IO->mode & PLC_IF_PC_DBG_MODE;
-
 	return;
 
 }

@@ -31,28 +31,32 @@ public:
 private:
     
     LPST_POLICY_INFO pPolicyInf;
+    LPST_CS_INFO pCSInf;
     LPST_AGENT_INFO pAgentInf;
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;
-
- 
+    LPST_SWAY_IO pSway_IO;
 
     ST_AGENT_INFO   AgentInf_workbuf;
 
-    void input();               //外部データ取り込み
-    void main_proc();           //処理内容
-    void set_lamp();            //ランプの状態セット
+    bool is_auto_trigger_enable();
+    bool can_auto_complete();
+    LPST_COMMAND_SET pCom;
 
-    void output();              //出力データ更新
-    int set_ref_mh();           //巻速度指令値出力
-    int set_ref_gt();           //走行速度指令値出力
-    int set_ref_slew();         //旋回速度指令値出力
-    int set_ref_bh();           //引込速度指令値出力
-    void update_pb_lamp_com();
+    void input();                       //外部データ取り込み
+    void main_proc();                   //処理内容
+ 
+    void output();                      //出力データ更新
+    int set_pc_control();               //PC選択指令軸設定
+    int set_ref_mh();                   //巻速度指令値出力
+    int set_ref_gt();                   //走行速度指令値出力
+    int set_ref_slew();                 //旋回速度指令値出力
+    int set_ref_bh();                   //引込速度指令値出力
+    void update_pb_lamp_com();          //ランプ表示出力
 
-    int set_position_target();  //位置決め目標位置セット
-    int set_auto_status();
-    UCHAR is_auto_active();
+    int parse_indata();             //入力信号の分析
+    int update_auto_setting();       //自動条件の更新
+    void set_auto_active(int type); //各軸のauto_activeフラグセット
 
     //タブパネルのStaticテキストを設定
     void set_panel_tip_txt();

@@ -22,6 +22,7 @@ CPolicy::CPolicy() {
 	pPLC_IO = NULL;
 	pCraneStat = NULL;
 	pRemoteIO = NULL;
+	pSway_IO = NULL;
 }
 
 CPolicy::~CPolicy() {
@@ -39,10 +40,12 @@ void CPolicy::init_task(void* pobj) {
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
+	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
+	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 
 	set_panel_tip_txt();
 
-	pPolicyInf->i_current_command = 0;
+	pPolicyInf->i_com = 0;
 
 	inf.is_init_complete = true;
 	return;
@@ -75,78 +78,104 @@ void CPolicy::main_proc() {
 //定周期処理手順3　信号出力処理
 void CPolicy::output() {
 	
-
-
-	wostrs << L", CTRL:" << hex << pPolicyInf->pc_ctrl_mode;
-
 	wostrs << L" --Scan " << dec << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 
 };
-/****************************************************************************/
-/*　　CSタスクからのリクエスト処理								            */
-/****************************************************************************/
-int CPolicy::update_control(DWORD code, LPVOID optlp) {
 
-	WORD req = LOWORD(code);
-	WORD com = HIWORD(code);
+int CPolicy::set_pp_th0() {
+	pp_th0[ID_BOOM_H][ACC] = pCraneStat->spec.accdec[ID_BOOM_H][FWD][ACC] / pCraneStat->w2;
+	pp_th0[ID_BOOM_H][DEC] = pCraneStat->spec.accdec[ID_BOOM_H][FWD][DEC] / pCraneStat->w2;
 
-	switch (req) {
-	case POLICY_REQ_REMOTE:
-		break;
-
-	case POLICY_REQ_DEBUG: {
-		set_pc_control(BITSEL_COMMON);
-	}break;
-	case POLICY_REQ_JOB:
-		break;
-	}
-
+	double r = pPLC_IO->status.pos[ID_BOOM_H];
+	pp_th0[ID_SLEW][ACC] = r * pCraneStat->spec.accdec[ID_SLEW][FWD][ACC] / pCraneStat->w2;
+	pp_th0[ID_SLEW][DEC] = r * pCraneStat->spec.accdec[ID_SLEW][FWD][DEC] / pCraneStat->w2;
 	return 0;
-};
-
-/****************************************************************************/
-/*　　PC制御選択セット処理								            */
-/****************************************************************************/
-DWORD CPolicy::set_pc_control(DWORD dw_axis) {
-
-	if (dw_axis == BITSEL_COMMON) {
-		if (pPolicyInf->pc_ctrl_mode == 0)
-			pPolicyInf->pc_ctrl_mode |= (BITSEL_HOIST | BITSEL_GANTRY | BITSEL_BOOM_H | BITSEL_SLEW);
-		else pPolicyInf->pc_ctrl_mode = 0;
-	}
-	else {
-		
-	}
-	return pPolicyInf->pc_ctrl_mode;
 }
 
+
 /****************************************************************************/
-/*　　COMMAND セット処理													*/
+/*　　COMMAND 処理															*/
 /****************************************************************************/
-//JOB用処理
-LPST_COMMAND_SET CPolicy::cal_command_recipe(int type, double* ptarget_pos) {
+// Command バッファのインデックス更新
+int CPolicy::next_command(int type) {
+	if (type == POLICY_TYPE_JOB) {
+		pPolicyInf->i_jobcom++;
+		if (pPolicyInf->i_jobcom >= COM_STEP_MAX) pPolicyInf->i_jobcom = 0;
+		return pPolicyInf->i_jobcom;
+	}
+	else {
+		pPolicyInf->i_com++;
+		if (pPolicyInf->i_com >= COM_STEP_MAX) pPolicyInf->i_com = 0;
+		return pPolicyInf->i_com;
+	}
+	return	0;
+};
+
+// Command生成更新
+LPST_COMMAND_SET CPolicy::generate_command(int type, double* ptarget_pos) {
+
 	double tg_pos[NUM_OF_AS_AXIS];
 
-	pPolicyInf->i_current_command++;
-	if (pPolicyInf->i_current_command >= COM_STEP_MAX) pPolicyInf->i_current_command = 0;
+	next_command(type);
+	set_pp_th0();	//位相平面の回転中心計算
 
 	if (type == POLICY_TYPE_SEMI) {
 		for(int i=0; i< NUM_OF_AS_AXIS;i++)
 			*(ptarget_pos + i)= tg_pos[i] = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][i];
+	
+		return &(pPolicyInf->com[pPolicyInf->i_com]);
 	}
 	else if (type == POLICY_TYPE_JOB) {
 		for (int i = 0; i < NUM_OF_AS_AXIS;i++)
 			*(ptarget_pos + i) = tg_pos[i] = pPLC_IO->status.pos[i];
+
+		return &(pPolicyInf->job_com[pPolicyInf->i_jobcom]);
 	}
 	else {
 		for (int i = 0; i < NUM_OF_AS_AXIS;i++)
-			*(ptarget_pos + i) = tg_pos[i] = pPLC_IO->status.pos[i];
+			*(ptarget_pos + i) = tg_pos[i] = pPLC_IO->status.pos[i] + pAgentInf->dist_for_stop[i];
+
+		return &(pPolicyInf->com[pPolicyInf->i_com]);
 	}
 	
-	return &(pPolicyInf->com[pPolicyInf->i_current_command]);
+	return NULL;
 }
+
+int  CPolicy::update_com_status(LPST_COMMAND_SET pcom, LPST_COMMAND_STAT presult) {
+
+	if (pcom->type == POLICY_TYPE_AS) {
+		pcom->status = *presult;
+	}
+	else if (pcom->type == POLICY_TYPE_SEMI) {
+		;
+	}
+	else if (pcom->type == POLICY_TYPE_JOB) {
+		pcom->status = *presult;
+	}
+	else;
+
+	return 0;
+}
+
+int CPolicy::select_as_ptn(int motion) {
+	int ptn= AS_PTN_0;
+
+	if (motion == ID_BOOM_H) {
+	}
+	else if (motion == ID_SLEW) {
+	}
+	else;
+
+	return ptn; 
+}
+int CPolicy::set_recipe0(LPST_MOTION_RECIPE precipe, int motion) { return 0; };
+int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) { return 0; };
+int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) { return 0; };
+int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) { return 0; };
+int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) { return 0; };
+int CPolicy::set_recipe3step(LPST_MOTION_RECIPE precipe, int motion) { return 0; };
 
 
 /****************************************************************************/

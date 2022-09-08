@@ -56,7 +56,7 @@ void CEnvironment::init_task(void* pobj) {
 	for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++)
 		for (int j = 0;j < MOTION_ID_MAX;j++)
 			stWorkCraneStat.semi_auto_setting_target[i][j] = spec.semi_target[i][j];
-
+	stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
 	set_panel_tip_txt();
 
 	inf.is_init_complete = true;
@@ -127,7 +127,7 @@ void CEnvironment::main_proc() {
 	pos_set();
 	
 	//自動情報セット
-	parse_auto_ctrl();
+	parse_for_auto_ctrl();
 
 	return;
 }
@@ -172,66 +172,29 @@ int CEnvironment::parse_notch_com() {
 		}
 	}
 
-/*
-	//ノッチ位置配列のポインタセット
-	if (pPLC_IO->ui.notch_pos[ID_HOIST] == NOTCH_0) {
-		stWorkCraneStat.is_notch_0[ID_HOIST] = true;
-		stWorkCraneStat.notch_spd_ref[ID_HOIST] = 0.0;
-	}
-	else {
-		stWorkCraneStat.is_notch_0[ID_HOIST] = false;
-		if (pPLC_IO->ui.notch_pos[ID_HOIST] < 0) stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_r[ID_HOIST][iABS(p_notch[ID_HOIST])];
-		else stWorkCraneStat.notch_spd_ref[ID_HOIST] = stWorkCraneStat.spec.notch_spd_f[ID_HOIST][iABS(p_notch[ID_HOIST])];
-	}
-
-
-
-	if (pPLC_IO->ui.notch_pos[ID_GANTRY] < 0) stWorkCraneStat.notch_spd_ref[ID_GANTRY] = stWorkCraneStat.spec.notch_spd_r[ID_GANTRY][iABS(p_notch[ID_GANTRY])];
-	else stWorkCraneStat.notch_spd_ref[ID_GANTRY] = stWorkCraneStat.spec.notch_spd_f[ID_GANTRY][iABS(p_notch[ID_GANTRY])];
-
-
-	if (pPLC_IO->ui.notch_pos[ID_BOOM_H] < 0) stWorkCraneStat.notch_spd_ref[ID_BOOM_H] = stWorkCraneStat.spec.notch_spd_r[ID_BOOM_H][iABS(p_notch[ID_BOOM_H])];
-	else stWorkCraneStat.notch_spd_ref[ID_BOOM_H] = stWorkCraneStat.spec.notch_spd_f[ID_BOOM_H][iABS(p_notch[ID_BOOM_H])];
-
-
-	if (pPLC_IO->ui.notch_pos[ID_SLEW] < 0) stWorkCraneStat.notch_spd_ref[ID_SLEW] = stWorkCraneStat.spec.notch_spd_r[ID_SLEW][iABS(p_notch[ID_SLEW])];
-	else stWorkCraneStat.notch_spd_ref[ID_SLEW] = stWorkCraneStat.spec.notch_spd_f[ID_SLEW][iABS(p_notch[ID_SLEW])];
-*/
 	return 0;
 
 };
 /****************************************************************************/
 /*　 自動制御設定											            */
 /****************************************************************************/
-int CEnvironment::parse_auto_ctrl() {
+int CEnvironment::parse_for_auto_ctrl() {
 
 	//###################
 	//角周波数
 	if (stWorkCraneStat.mh_l > 1.0) {	//ロープ長下限
-		stWorkCraneStat.w = sqrt(GA / stWorkCraneStat.mh_l);
+		stWorkCraneStat.w2 = GA / stWorkCraneStat.mh_l;
+		stWorkCraneStat.w = sqrt(stWorkCraneStat.w2);
 	}
 	else {
-		stWorkCraneStat.w = 3.13;//1mロープ長時の角周波数
+		stWorkCraneStat.w2 = GA;
+		stWorkCraneStat.w = sqrt(stWorkCraneStat.w2);
 	}
 
 	//周期
 	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
+
 	//###################
-	//半自動目標設定値更新（PB長押しで現在位置に更新）
-	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
-		//PB ON時間カウント
-		if (pPLC_IO->ui.PBsemiauto[i] == false) stWorkCraneStat.semi_auto_pb_count[i] = 0;
-		else stWorkCraneStat.semi_auto_pb_count[i]++;
-
-		if (stWorkCraneStat.semi_auto_pb_count[i] == 10) {//半自動目標位置更新
-			for (int j = 0;j < MOTION_ID_MAX;j++)
-				stWorkCraneStat.semi_auto_setting_target[i][j] = pPLC_IO->status.pos[j];
-		}
-	}
-
-	if (pPLC_IO->ui.PB[ID_PB_AUTO_START] == false) stWorkCraneStat.auto_start_pb_count = 0;
-	else stWorkCraneStat.auto_start_pb_count++;
-
 
 	//半自動設定更新
 	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
@@ -247,12 +210,16 @@ int CEnvironment::parse_auto_ctrl() {
 
 		//目標設定
 		if (stWorkCraneStat.semi_auto_pb_count[i] == 40) {//半自動目標設定
-			if (i == stWorkCraneStat.semi_auto_selected - 1)//設定中のボタンを押したら解除
+			if (i == stWorkCraneStat.semi_auto_selected)//設定中のボタンを押したら解除
 				stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
 			else
-				stWorkCraneStat.semi_auto_selected = i + 1;
+				stWorkCraneStat.semi_auto_selected = i;
 		}
 	}
+	//自動開始PB
+	if (pPLC_IO->ui.PB[ID_PB_AUTO_START])stWorkCraneStat.auto_start_pb_count++;
+	else stWorkCraneStat.auto_start_pb_count = 0;
+
 
 	return 0;
 }
@@ -274,18 +241,10 @@ int CEnvironment::mode_set() {
 
 
 	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == true) {
-		stWorkCraneStat.auto_mode[ID_HOIST] = true;
-		stWorkCraneStat.auto_mode[ID_GANTRY] = true;
-		stWorkCraneStat.auto_mode[ID_TROLLY] = true;
-		stWorkCraneStat.auto_mode[ID_SLEW] = true;
-		stWorkCraneStat.auto_mode[ID_BOOM_H] = true;
+		stWorkCraneStat.auto_standby = true;
 	}
 	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF] == true) {
-		stWorkCraneStat.auto_mode[ID_HOIST] = false;
-		stWorkCraneStat.auto_mode[ID_GANTRY] = false;
-		stWorkCraneStat.auto_mode[ID_TROLLY] = false;
-		stWorkCraneStat.auto_mode[ID_SLEW] = false;
-		stWorkCraneStat.auto_mode[ID_BOOM_H] = false;
+		stWorkCraneStat.auto_standby = false;
 	}
 
 	return 0;
@@ -383,10 +342,12 @@ void CEnvironment::chk_subproc() {
 /****************************************************************************/
 void CEnvironment::tweet_update() {
 
-	if (pCraneStat->auto_mode[ID_SLEW]) wostrs << L" # AS:ON";
+	if (pCraneStat->auto_standby) wostrs << L" # AS:ON";
 	else  wostrs << L" # AS:OFF";
 
+	wostrs << L" #Semi: " << stWorkCraneStat.semi_auto_selected;
 
+	wostrs << L" #PB Auto: " << stWorkCraneStat.auto_start_pb_count;
 #if 0
 	//PLC
 	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {
