@@ -338,10 +338,39 @@ typedef struct stJobSet {
 /* 　加速、定速、減速等の一連の動作は、この要素の組み合わせで構成します。   */
 /****************************************************************************/
 #define MOTHION_OPT_V_MAX	0
-#define MOTHION_OPT_V_MIN	1
-#define MOTHION_OPT_PHASE1	2
-#define MOTHION_OPT_PHASE2	3
+#define MOTHION_OPT_V_MIN		0
+#define MOTHION_OPT_PHASE_F		1
+#define MOTHION_OPT_PHASE_R		2
+#define MOTHION_OPT_WAIT_POS	3
 
+#define MOTHION_OPT_AS_TYPE		0
+
+
+
+// Control Type
+#define CTR_TYPE_TIME_WAIT					0x0000  //待機（時間経過待ち）
+#define CTR_TYPE_SINGLE_PHASE_WAIT			0x0001  //位相待ち１カ所
+#define CTR_TYPE_DOUBLE_PHASE_WAIT			0x0002  //位相待ち２カ所
+#define CTR_TYPE_OTHER_POS_WAIT				0x0003	//他軸位置到達待ち
+
+#define CTR_TYPE_TIME_WAIT_2PP				0x0007  //Keep condition for specified time
+#define CTR_TYPE_CONST_V_TIME				0x0100  //定速固定時間出力
+#define CTR_TYPE_CONST_V_ACC_STEP			0x0101  //定速出力 加速中
+#define CTR_TYPE_CONST_V_DEC_STEP			0x0102  //定速出力 減速中
+#define CTR_TYPE_CONST_V_TOP_STEP			0x0103  //定速出力 トップ速度
+#define CTR_TYPE_ACC_TIME					0x0200  //Specified time acceleration
+#define CTR_TYPE_ACC_V						0x0201  //Toward specified speed acceleration
+#define CTR_TYPE_ACC_TIME_OR_V				0x0202  //Specified time acceleration or reach specified speed
+#define CTR_TYPE_ACC_AS						0x0203	//振れ止め加速
+#define CTR_TYPE_ACC_AS_2PN					0x0204	//Toward specified speed acceleration for inching antisway
+#define CTR_TYPE_DEC_TIME					0x0300  //Specified time deceleration
+#define CTR_TYPE_DEC_V						0x0301  //Toward specified speed deceleration
+#define CTR_TYPE_DEC_TIME_OR_V				0x0302  //Specified time acceleration or reach specified speed
+#define CTR_TYPE_DEC_AS_2PN					0x0303  //Toward specified speed deceleration
+
+#define PTN_CONFIRMATION_TIME				0.1		//パターン出力調整時間
+#define PTN_ERROR_CHECK_TIME				60		//パターン出力調整時間
+#define PTN_HOIST_ADJUST_TIME				0.15	//パターン出力調整時間
 
 typedef struct stMotionElement {	//運動要素
 	int type;				//制御種別
@@ -377,6 +406,11 @@ typedef struct stMotionRecipe {					//移動パターン
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
 //Status
+#define MOTION_STAT_NA		0
+#define MOTION_STAT_STANDBY	1
+#define MOTION_STAT_ACTIVE	2
+
+
 typedef struct stMotionStat {
 	DWORD id;									//ID No. HIWORD:軸コード LOWORD:シリアルNo 
 	int status;									//動作実行状況
@@ -390,31 +424,22 @@ typedef struct stMotionStat {
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
-
-//Recipe
-typedef struct stCommandRecipe {				
-	bool is_required_motion[MOTION_ID_MAX];		//動作対象軸
-	ST_MOTION_RECIPE motions[MOTION_ID_MAX];
-}ST_COMMAND_RECIPE, * LPST_COMMAND_RECIPE;
-
-//Status
-typedef struct stCommandStat {	
-	DWORD time_start;						//開始時の時間msec
-	DWORD time_end;							//終了時の時間msec
-	int status;								//実行状態　
-	int status_code;						//エラーコード等（異常完了時）　
-	int motion_status[MOTION_ID_MAX];		//コマンド実行状況
-	int motion_elapsed[MOTION_ID_MAX];		//経過時間
-}ST_COMMAND_STAT, * LPST_COMMAND_STAT;
-
-//Set
 typedef struct stCommandSet {
+	//POLICY SET
 	int id;									//コマンドID
 	int type;								//コマンド種別
 	int job_id;
 	int job_step;
-	ST_COMMAND_RECIPE	recipe;				
-	ST_COMMAND_STAT		status;				
+	bool is_required_motion[MOTION_ID_MAX];		//動作対象軸
+	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
+
+	//AGENT SET
+	DWORD time_start;						//開始時の時間msec
+	DWORD time_end;							//終了時の時間msec
+	int com_status;								//実行状態　
+	int status_code;						//エラーコード等（異常完了時）　
+	ST_MOTION_STAT	motion_stat[MOTION_ID_MAX];
+
 }ST_COMMAND_SET, * LPST_COMMAND_SET;
 
 
@@ -453,6 +478,7 @@ typedef struct stPolicyInfo {
 	int i_com;								//現在のコマンドINDEX
 	ST_COMMAND_SET job_com[COM_STEP_MAX];
 	ST_COMMAND_SET com[COM_STEP_MAX];
+	int auto_ctrl_ptn[MOTION_ID_MAX];
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;
 
@@ -476,7 +502,7 @@ typedef struct stAgentInfo {
 	int auto_on_going;								//実行中の自動
 	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中(軸毎)
 	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
-	double positioning_target[MOTION_ID_MAX];		//位置決め目標位置
+	double pos_target[MOTION_ID_MAX];				//位置決め目標位置
 	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め速度FB条件
 	double gap_from_target[MOTION_ID_MAX];			//目標位置からのずれ
 	double gap2_from_target[MOTION_ID_MAX];			//目標位置からのずれ2乗

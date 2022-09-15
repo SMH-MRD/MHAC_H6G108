@@ -148,8 +148,8 @@ int CAgent::parse_indata() {
 	double k = pCraneStat->mh_l * pCraneStat->mh_l;
 	AgentInf_workbuf.sway_amp2m[ID_BOOM_H] = k * pSway_IO->amp2[ID_BOOM_H];
 	AgentInf_workbuf.sway_amp2m[ID_SLEW] = k * pSway_IO->amp2[ID_SLEW];
-	AgentInf_workbuf.gap_from_target[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] - AgentInf_workbuf.positioning_target[ID_BOOM_H];
-	AgentInf_workbuf.gap_from_target[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] - AgentInf_workbuf.positioning_target[ID_SLEW];
+	AgentInf_workbuf.gap_from_target[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] - AgentInf_workbuf.pos_target[ID_BOOM_H];
+	AgentInf_workbuf.gap_from_target[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] - AgentInf_workbuf.pos_target[ID_SLEW];
 	AgentInf_workbuf.gap2_from_target[ID_BOOM_H] = AgentInf_workbuf.gap_from_target[ID_BOOM_H] * AgentInf_workbuf.gap_from_target[ID_BOOM_H];
 	AgentInf_workbuf.gap2_from_target[ID_SLEW] = AgentInf_workbuf.gap_from_target[ID_SLEW]* AgentInf_workbuf.gap_from_target[ID_SLEW];
 
@@ -333,13 +333,13 @@ int CAgent::update_auto_setting() {
 	
 	//é©ìÆãNìÆèàóù
 	if (pCraneStat->auto_standby == false) {//é©ìÆÉÇÅ[Éh
-		for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.positioning_target[i] = pPLC_IO->status.pos[i];
+		for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.pos_target[i] = pPLC_IO->status.pos[i];
 		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 		set_auto_active(AUTO_TYPE_MANUAL);
 	}
 	else if(is_auto_trigger_enable()) {
 		if ((pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR)&&(pCraneStat->auto_start_pb_count > 10)) {
-			pCom = pPolicy->generate_command(AUTO_TYPE_SEMI_AUTO, AgentInf_workbuf.positioning_target);
+			pCom = pPolicy->generate_command(AUTO_TYPE_SEMI_AUTO, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_SEMI_AUTO;
 				set_auto_active(AUTO_TYPE_SEMI_AUTO);
@@ -350,7 +350,7 @@ int CAgent::update_auto_setting() {
 			}
 		}
 		else if ((pCSInf->n_job_standby > 0) && (pCraneStat->auto_start_pb_count > 10)) {
-			pCom = pPolicy->generate_command(AUTO_TYPE_JOB, AgentInf_workbuf.positioning_target);
+			pCom = pPolicy->generate_command(AUTO_TYPE_JOB, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_JOB;
 				set_auto_active(AUTO_TYPE_JOB);
@@ -360,7 +360,7 @@ int CAgent::update_auto_setting() {
 			}
 		}
 		else {
-			pCom = pPolicy->generate_command(AUTO_TYPE_ANTI_SWAY, AgentInf_workbuf.positioning_target);
+			pCom = pPolicy->generate_command(AUTO_TYPE_ANTI_SWAY, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_ANTI_SWAY;
 				set_auto_active(AUTO_TYPE_ANTI_SWAY);
