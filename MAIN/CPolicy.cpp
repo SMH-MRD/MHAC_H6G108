@@ -106,17 +106,21 @@ int CPolicy::set_pp_th0(int motion) {
 /****************************************************************************/
 // Command バッファのインデックス更新
 LPST_COMMAND_SET CPolicy::next_command(int type) {
-	if (type == POLICY_TYPE_JOB) {
+	if (type == POLICY_TYPE_JOB) {		//JOB用コマンドバッファ
 		pPolicyInf->i_jobcom++;
 		if (pPolicyInf->i_jobcom >= COM_STEP_MAX) pPolicyInf->i_jobcom = 0;
+		command_id++;
+		(pPolicyInf->job_com + pPolicyInf->i_jobcom)->id = command_id;
 		return (pPolicyInf->job_com + pPolicyInf->i_jobcom);
 	}
-	else {
+	else {								//半自動,振れ止め用コマンドバッファ
 		pPolicyInf->i_com++;
 		if (pPolicyInf->i_com >= COM_STEP_MAX) pPolicyInf->i_com = 0;
+		command_id++;
+		(pPolicyInf->com + pPolicyInf->i_com)->id = command_id;
 		return (pPolicyInf->com + pPolicyInf->i_com);
 	}
-	return	0;
+	return	NULL;
 };
 
 // Command生成更新
@@ -138,7 +142,7 @@ LPST_COMMAND_SET CPolicy::generate_command(int type, double* ptarget_pos) {
 	if(AS_PTN_NG == set_recipe(lp_com, ID_SLEW  , pPolicyInf->auto_ctrl_ptn[ID_SLEW]  ))
 		return NULL;
 
-	if (lp_com != NULL) {		//Command Set OKで　AGENTの目標位置更新
+	if (lp_com != NULL) {//Command Set OKでAGENTの目標位置更新
 		*(ptarget_pos + ID_BOOM_H) = st_work.pos_target[ID_BOOM_H];
 		*(ptarget_pos + ID_SLEW) = st_work.pos_target[ID_SLEW];
 	}
@@ -215,7 +219,6 @@ int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 	return 0;
 }
 
-
 /****************************************************************************/
 /*　　1STEP,2STEP振れ止めパターンのゲイン（加速時間(角度）計算				*/
 /****************************************************************************/
@@ -227,8 +230,8 @@ void CPolicy::set_as_gain(int motion, int as_type) {
 	r = st_work.r[motion];	//振幅評価値
 	r0 = st_work.pp_th0[motion][ACC];	//加速時振中心
 	w = pCraneStat->w;
-	a = st_work.a[motion];
-	vmax = st_work.vmax[motion];
+	a = st_work.a[motion];			//ここの加速度はSLEWはrad/s2で良い　振れ中心は半径考慮済
+	vmax = st_work.vmax[motion];	//ここの加速度はSLEWはrad/sで良い
 	acc_time2Vmax = st_work.acc_time2Vmax[motion];
 	l = pCraneStat->mh_l;
 
@@ -286,7 +289,7 @@ void CPolicy::set_as_gain(int motion, int as_type) {
 }
 
 /****************************************************************************/
-/*　　自動（振れ止め）の移動パターンタイプの判定							*/
+/*　　自動（振れ止め）の動作パターンタイプの判定							*/
 /****************************************************************************/
 int CPolicy::judge_auto_ctrl_ptn(int auto_type, int motion) {
 	
@@ -321,7 +324,7 @@ int CPolicy::judge_auto_ctrl_ptn(int auto_type, int motion) {
 /****************************************************************************/
 int CPolicy::set_recipe(LPST_COMMAND_SET pcom, int motion, int ptn) {
 	//動作初期化
-	pcom->motion_stat[motion].status = MOTION_STAT_STANDBY;
+	pcom->motion_stat[motion].status = COMMAND_STAT_STANDBY;
 	pcom->motion_stat[motion].iAct = 0;
 	
 	LPST_MOTION_RECIPE precipe = &(pcom->recipe[motion]);
@@ -338,7 +341,7 @@ int CPolicy::set_recipe(LPST_COMMAND_SET pcom, int motion, int ptn) {
 /****************************************************************************/
 int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) { 
 	
-	LPST_MOTION_ELEMENT pelement;
+	LPST_MOTION_STEP pelement;
 
 	st_work.motion_dir[motion] = POLICY_UNKNOWN;										//移動方向不定(移動方向が実行時に決まる）
 	set_as_gain(motion, AS_PTN_1STEP);													//振れ止めゲイン計算
@@ -346,7 +349,7 @@ int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) {
 	precipe->motion_type = AS_PTN_1STEP;
 		
 	//Step 1　位相待ち
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DOUBLE_PHASE_WAIT;									// 2POINT 早く到達する方を待つ
 		pelement->_p = st_work.pos[motion];												// 目標位置(開始時位置）
 		pelement->_t = 2.0*st_work.T;													// 予定時間(２周期以内）
@@ -356,21 +359,21 @@ int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) {
 
 	}
 	//Step 2　加速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_ACC_AS;												// 振れ止め加速
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = st_work.a[motion] * pelement->_t;								// 目標変化速度
 	}
 	//Step 3　減速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為			
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = st_work.v[motion];												// 開始時速度
 	}
 	//Step 4　動作停止待機
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為
 		pelement->_t = PTN_CONFIRMATION_TIME;											// パターン出力調整時間
@@ -379,8 +382,8 @@ int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) {
 
 	//予定時間をAGENTのスキャンカウント値に変換,パターンタイプセット
 	for (int i = 0; i < precipe->n_step; i++) {
-		precipe->motion[i].time_count = (int)(precipe->motion[i]._t * 1000) / (int)st_work.agent_scan_ms;
-		precipe->motion[i].opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_1STEP;					//パターン出力時判定用
+		precipe->steps[i].time_count = (int)(precipe->steps[i]._t * 1000) / (int)st_work.agent_scan_ms;
+		precipe->steps[i].opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_1STEP;					//パターン出力時判定用
 	}
 
 	return AS_PTN_OK; 
@@ -391,7 +394,7 @@ int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) {
 /****************************************************************************/
 int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 
-	LPST_MOTION_ELEMENT pelement;
+	LPST_MOTION_STEP pelement;
 
 	st_work.motion_dir[motion] = POLICY_UNKNOWN;										//移動方向不定(移動方向が実行時に決まる）
 	set_as_gain(motion, AS_PTN_2PN);													//振れ止めゲイン計算
@@ -399,7 +402,7 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 	precipe->motion_type = AS_PTN_2PN;
 
 	//Step 1　位相待ち(振れ振幅維持）
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DOUBLE_PHASE_WAIT;									// 2POINT 早く到達する方を待つ
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）
 		pelement->_t = 2.0 * st_work.T;													// 予定時間(２周期以内）
@@ -418,21 +421,21 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->opt_d[MOTHION_OPT_PHASE_R] = -PI180 + start_phase;					//マイナス加速用位相
 	}
 	//Step 2　加速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_ACC_AS;												// 振れ止め加速
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = st_work.a[motion] * pelement->_t;								// 目標変化速度
 	}
 	//Step 3　減速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為			
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = st_work.v[motion];												// 開始時速度
 	}
 	//Step 4　位相待ち(振れ振幅減衰）
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DOUBLE_PHASE_WAIT;									// 開始時と反対方向の位相を待つ
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為
 		pelement->_t = 2.0 * st_work.T;													// 予定時間(２周期以内）
@@ -442,21 +445,21 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->opt_d[MOTHION_OPT_PHASE_R] = PI180;									// マイナス加速用位相
 	}
 	//Step 5　加速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_ACC_AS;												// 振れ止め加速
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
-		pelement->_v = st_work.a[motion] * precipe->motion[1]._t;						// 目標変化速度
+		pelement->_v = st_work.a[motion] * precipe->steps[1]._t;						// 目標変化速度
 	}
 	//Step 6　減速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_p = st_work.pos_target[motion];										// 開始時位置			
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = st_work.v[motion];												// 開始時速度
 	}
 	//Step 7　動作停止待機
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 開始時位置
 		pelement->_t = PTN_CONFIRMATION_TIME;											// パターン出力調整時間
@@ -465,8 +468,8 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 
 	//予定時間をAGENTのスキャンカウント値に変換,パターンタイプセット
 	for (int i = 0; i < precipe->n_step; i++) {
-		precipe->motion[i].time_count = (int)(precipe->motion[i]._t * 1000) / (int)st_work.agent_scan_ms;
-		precipe->motion[i].opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_2PN;						//パターン出力時判定用
+		precipe->steps[i].time_count = (int)(precipe->steps[i]._t * 1000) / (int)st_work.agent_scan_ms;
+		precipe->steps[i].opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_2PN;						//パターン出力時判定用
 	}
 
 	return AS_PTN_OK;
@@ -478,7 +481,7 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 /****************************************************************************/
 int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 
-	LPST_MOTION_ELEMENT pelement;
+	LPST_MOTION_STEP pelement;
 	double dir;
 
 	//移動方向セット
@@ -500,7 +503,7 @@ int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 	precipe->motion_type = AS_PTN_2PP;
 
 	//Step 1　位相待ち(振れ振幅維持）
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_SINGLE_PHASE_WAIT;									// 位相待ち
 		pelement->_p = st_work.pos[motion];												// 現在位置
 		pelement->_t = 2.0 * st_work.T;													// 予定時間(２周期以内）
@@ -519,21 +522,21 @@ int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->opt_d[MOTHION_OPT_PHASE_R] = -PI180 + start_phase;					// マイナス加速用位相
 	}
 	//Step 2　加速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_ACC_AS;												// 振れ止め加速
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = dir * st_work.a[motion] * pelement->_t;							// 目標変化速度
 		pelement->_p = (pelement-1)->_p + 0.5 * pelement->_v * pelement->_t;			// 目標位置
 	}
 	//Step 3　減速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = 0.0;																// 目標現在速度
 		pelement->_p = (pelement - 1)->_p + 0.5 * (pelement-1)->_v * pelement->_t;		// 目標位置
 	}
 	//Step 4　位相待ち
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DOUBLE_PHASE_WAIT;									// 2POINT 早く到達する方を待つ
 		pelement->_p = (pelement - 1)->_p;												// 目標位置(現在位置がセットされる）
 		pelement->_t = 2.0 * st_work.T;													// 予定時間(２周期以内）
@@ -543,21 +546,21 @@ int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->opt_d[MOTHION_OPT_PHASE_R] = PI180;									//phase2 マイナス加速用位相
 	}
 	//Step 5　加速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_ACC_AS;												// 振れ止め加速
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = dir * st_work.a[motion] * pelement->_t;							// 目標変化速度
 		pelement->_p = (pelement - 1)->_p + 0.5 * pelement->_v * pelement->_t;			// 目標位置
 	}
 	//Step 6　減速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = 0.0;																// 目標現在速度
 		pelement->_p = (pelement - 1)->_p + 0.5 * (pelement - 1)->_v * pelement->_t;	// 目標位置
 	}
 	//Step 7　動作停止待機
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
 		pelement->_t = PTN_CONFIRMATION_TIME;											// パターン出力調整時間
@@ -566,7 +569,7 @@ int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 
 	//予定時間をAGENTのスキャンカウント値に変換,パターンタイプセット
 	for (int i = 0; i < precipe->n_step; i++) {
-		pelement->time_count = (int)(precipe->motion[i]._t * 1000) / (int)st_work.agent_scan_ms;
+		pelement->time_count = (int)(precipe->steps[i]._t * 1000) / (int)st_work.agent_scan_ms;
 		pelement->opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_2PP;			//パターン出力時判定用
 	}
 
@@ -577,7 +580,7 @@ int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 /*　　振れ止めパターン　2段加減速											*/
 /****************************************************************************/
 int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
-	LPST_MOTION_ELEMENT pelement;
+	LPST_MOTION_STEP pelement;
 	double T = pCraneStat->T;
 	double a = st_work.a[motion];
 	double v_top = pCraneStat->spec.notch_spd_f[motion][NOTCH_5];
@@ -614,7 +617,7 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 	precipe->motion_type = AS_PTN_2ACCDEC;
 
 	//Step 1　他軸位置待ち
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->_p = st_work.pos[motion];												// 現在位置
 		pelement->_t = 0.0;																// 予定時間
 		pelement->_v = 0.0;
@@ -671,21 +674,21 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 	}
 
 	//Step 2　加速中定速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_ACC_STEP;										// 加速中定速出力
 		pelement->_t = ta_half + tc_half;												// ハーフ速度出力時間
 		pelement->_v = dir * v_half;													// ハーフ速度
 		pelement->_p = (pelement - 1)->_p + dir * v_half * ( 0.5 * ta_half + tc_half);	// 目標位置
 	}
 	//Step 3　定速TOP速度
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_TOP_STEP;										// TOP速度定速出力
 		pelement->_t = ta_half + (d - dmin) / v_top;									// トップ速度出力時間
 		pelement->_v = dir * v_top;														// トップ速度
 		pelement->_p = st_work.pos_target[motion] - dir * (0.5 * v_top *  ta + v_half * tc_half);	// 目標位置
 	}
 	//Step 4　減速中定速
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_DEC_STEP;										// 加速中定速出力
 		pelement->_t = ta_half + tc_half;												// ハーフ速度出力時間
 		pelement->_v = dir * v_half;													// ハーフ速度
@@ -693,14 +696,14 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 	}
 
 	//Step 5　停止
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_t = ta_half;															// 減速時間
 		pelement->_v = 0.0;																// 目標現在速度
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
 	}
 	//Step 6　動作停止待機
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
 		pelement->_t = PTN_CONFIRMATION_TIME;											// パターン出力調整時間
@@ -709,7 +712,7 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 
 	//予定時間をAGENTのスキャンカウント値に変換,パターンタイプセット
 	for (int i = 0; i < precipe->n_step; i++) {
-		pelement->time_count = (int)(precipe->motion[i]._t * 1000) / (int)st_work.agent_scan_ms;
+		pelement->time_count = (int)(precipe->steps[i]._t * 1000) / (int)st_work.agent_scan_ms;
 		pelement->opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_2ACCDEC;			//パターン出力時判定用
 	}
 	return AS_PTN_OK;
@@ -718,10 +721,16 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 /*　　振れ止めパターン　台形												*/
 /****************************************************************************/
 int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
-	LPST_MOTION_ELEMENT pelement;
+	LPST_MOTION_STEP pelement;
 	double T = pCraneStat->T;
+	double w = pCraneStat->w;
 	double a = st_work.a[motion];
-	double v_top = pCraneStat->spec.notch_spd_f[motion][NOTCH_5];
+	double v_top; //１周期以上の移動時間となるTop速度設定
+	for (int i = 0; i < MOTION_ID_MAX; i++) {
+		v_top = pCraneStat->spec.notch_spd_f[motion][(MOTION_ID_MAX -1) - i];
+		if((v_top * (T + v_top / a) < st_work.dist_for_target[motion]))
+			break;
+	}
 	double ta = v_top / a;
 	double dmin = v_top * ta;
 	double d = st_work.dist_for_target[motion];	//移動距離
@@ -747,24 +756,24 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 	precipe->motion_type = AS_PTN_1ACCDEC;
 
 	//Step 1　他軸位置待ち
-	{	pelement = &(precipe->motion[precipe->n_step++]);
-		pelement->_p = st_work.pos[motion];												// 現在位置
-		pelement->_t = 0.0;																// 予定時間
-		pelement->_v = 0.0;
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->_p = st_work.pos[motion];												// 現在位置
+	pelement->_t = 0.0;																// 予定時間
+	pelement->_v = 0.0;
 
-		//待ち位置(目標までの距離）計算
-		double ta_other, a_other, v_other, d_max_other;
-		bool is_slew_first;
-		if (st_work.pos_target[ID_BOOM_H] > st_work.pos[ID_BOOM_H] + 1.0) {
-			is_slew_first = true;
-		}
+	//待ち位置(目標までの距離）計算
+	double ta_other, a_other, v_other, d_max_other;
+	bool is_slew_first = false;
+	if (st_work.pos_target[ID_BOOM_H] > st_work.pos[ID_BOOM_H] + 1.0) {
+		is_slew_first = true;
+	}
 
-		if (motion == ID_BOOM_H) {
-			pelement->type = CTR_TYPE_OTHER_POS_WAIT;
-			a_other = pCraneStat->spec.accdec[ID_SLEW][FWD][ACC];
-			v_other = pCraneStat->spec.notch_spd_f[ID_SLEW][NOTCH_5];
-			ta_other = v_other / a_other;
-			d_max_other = PI360;
+	if (motion == ID_BOOM_H) {
+		pelement->type = CTR_TYPE_OTHER_POS_WAIT;
+		a_other = pCraneStat->spec.accdec[ID_SLEW][FWD][ACC];
+		v_other = pCraneStat->spec.notch_spd_f[ID_SLEW][NOTCH_5];
+		ta_other = v_other / a_other;
+		d_max_other = PI360;
 
 		if (is_slew_first) {
 			if (ta_other > t_expected)		//所要時間が相手軸の加速時間より短い
@@ -804,30 +813,30 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 	}
 
 	//Step 2　定速TOP速度
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_TOP_STEP;										// TOP速度定速出力
 		pelement->_t = ta + (d - dmin) / v_top;											// トップ速度出力時間
 		pelement->_v = dir * v_top;														// トップ速度
 		pelement->_p = st_work.pos_target[motion] - dir * 0.5 * ta * v_top;				// 目標位置
 	}
 	//Step 3　停止
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_t = ta;																// 減速時間
 		pelement->_v = 0.0;																// 目標現在速度
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
 	}
 	//Step 4　動作停止待機
-	{	pelement = &(precipe->motion[precipe->n_step++]);
+	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
 		pelement->_t = PTN_CONFIRMATION_TIME;											// パターン出力調整時間
-	pelement->_v = 0.0;																// 
+		pelement->_v = 0.0;																// 
 	}
 
 	//予定時間をAGENTのスキャンカウント値に変換,パターンタイプセット
 	for (int i = 0; i < precipe->n_step; i++) {
-		pelement->time_count = (int)(precipe->motion[i]._t * 1000) / (int)st_work.agent_scan_ms;
+		pelement->time_count = (int)(precipe->steps[i]._t * 1000) / (int)st_work.agent_scan_ms;
 		pelement->opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_2ACCDEC;			//パターン出力時判定用
 	}
 	return AS_PTN_OK;
@@ -837,7 +846,6 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 /*　　振れ止めパターン　3STEP												*/
 /****************************************************************************/
 int CPolicy::set_recipe3step(LPST_MOTION_RECIPE precipe, int motion) { return AS_PTN_NG; };
-
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */

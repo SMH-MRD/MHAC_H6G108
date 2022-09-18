@@ -101,6 +101,7 @@ private:
    void set_panel_pb_txt();
 
    ST_POLICY_WORK   st_work;
+   int command_id = 0;
     
    const double param_auto[NUM_OF_AS_AXIS][N_AUTO_PARAM] =
    { 

@@ -98,11 +98,11 @@ int CSwayIF::parse() {
 
 #ifdef _DVELOPMENT_MODE
     if (pSimStat->mode & SIM_ACTIVE_MODE) {
-        set_sim_status(&sway_io_workbuf);
-        parse_sway_stat(SID_SIM);
+        set_sim_status(&sway_io_workbuf);   //　振れセンサ受信バッファの値をSIMからSWAY_IFのバッファにコピー
+        parse_sway_stat(SID_SIM);           //　シミュレータの受信バッファを解析（カメラ座標での振れ検出値）
     }
     else {
-        parse_sway_stat(SID_CAM1);
+        parse_sway_stat(SID_CAM1);          //　実センサからの受信バッファを解析
     }
 #else
     parse_sway_stat(SWAY_SENSOR1);

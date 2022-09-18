@@ -372,6 +372,12 @@ typedef struct stJobSet {
 #define PTN_ERROR_CHECK_TIME				60		//パターン出力調整時間
 #define PTN_HOIST_ADJUST_TIME				0.15	//パターン出力調整時間
 
+#define PTN_STEP_STANDBY					0
+#define PTN_STEP_FIN						1
+#define PTN_STEP_ON_GOING					2
+#define PTN_STEP_ERROR						-1
+#define PTN_STEP_TIME_OVER					-2
+
 typedef struct stMotionElement {	//運動要素
 	int type;				//制御種別
 	int status;				//制御状態
@@ -380,21 +386,15 @@ typedef struct stMotionElement {	//運動要素
 	double _v;				//目標速度
 	double _p;				//目標位置
 	double _t;				//継続時間
-/*/
-	double v_max;			//速度制限High
-	double v_min;			//速度制限Low
-	double phase1;			//起動位相１
-	double phase2;			//起動位相 2
-*/
 	double opt_d[8];		//オプションdouble
 	int opt_i[8];			//オプションint
-}ST_MOTION_ELEMENT, * LPST_MOTION_ELEMENT;
+}ST_MOTION_STEP, * LPST_MOTION_STEP;
 
 /****************************************************************************/
 /*   動作内容定義構造体（単軸）												*/
 /* 　単軸の目標状態に移行する動作パターンを運動要素の組み合わせで実現します */
 /****************************************************************************/
-#define M_ELEMENT_MAX	32
+#define M_STEP_MAX	32
 
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン
@@ -402,28 +402,33 @@ typedef struct stMotionRecipe {					//移動パターン
 	int n_step;									//動作構成要素数
 	DWORD opt_dw;								//オプション条件
 	int time_limit;								//タイムオーバー判定値
-	ST_MOTION_ELEMENT motion[M_ELEMENT_MAX];	//動作定義要素配列
+	ST_MOTION_STEP steps[M_STEP_MAX];	//動作定義要素配列
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
 //Status
-#define MOTION_STAT_NA		0
-#define MOTION_STAT_STANDBY	1
-#define MOTION_STAT_ACTIVE	2
-
+#define COMMAND_STAT_ERROR		-1
+#define COMMAND_STAT_STANDBY	0
+#define COMMAND_STAT_ACTIVE		1
+#define COMMAND_STAT_PAUSE		2
+#define COMMAND_STAT_ABORT		3
+#define COMMAND_STAT_END		4
 
 typedef struct stMotionStat {
-	DWORD id;									//ID No. HIWORD:軸コード LOWORD:シリアルNo 
 	int status;									//動作実行状況
 	int iAct;									//実行中要素配列index -1で完了
-	int act_count;								//実行中要素の実行カウント数
+	int step_act_count;							//実行中要素の実行カウント数
 	int elapsed;								//MOTION開始後経過時間
 	int error_code;								//エラーコード　異常完了時
+	int direction;								//動作方向
 }ST_MOTION_STAT, * LPST_MOTION_STAT;
 
 /********************************************************************************/
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
+
+
+
 typedef struct stCommandSet {
 	//POLICY SET
 	int id;									//コマンドID
@@ -434,9 +439,9 @@ typedef struct stCommandSet {
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
 
 	//AGENT SET
-	DWORD time_start;						//開始時の時間msec
-	DWORD time_end;							//終了時の時間msec
-	int com_status;								//実行状態　
+	SYSTEMTIME time_start;					//開始時の時間 SYSTEMTIME
+	SYSTEMTIME time_end;					//終了時の時間 SYSTEMTIME
+	int com_status;							//実行状態　
 	int status_code;						//エラーコード等（異常完了時）　
 	ST_MOTION_STAT	motion_stat[MOTION_ID_MAX];
 
