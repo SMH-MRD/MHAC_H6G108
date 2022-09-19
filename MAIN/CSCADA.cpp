@@ -124,6 +124,7 @@ void CSCADA::main_proc() {
 void CSCADA::output() {
 
 	wostrs << L" V: mh " << ((LPST_PLC_IO)pPLCioObj->get_pMap())->status.v_fb[ID_HOIST];
+	wostrs << L" ph: slew " << pSway_IO->ph[ID_SLEW]*180/3.14;
 	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
@@ -591,21 +592,23 @@ int CSCADA::set_chart_data(int iptn) {
 
 	//Chart2
 		//Graph1
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pSway_IO->ph[ID_SLEW]), PI180);
 		//Graph2
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->ph[ID_BOOM_H]), PI180);
 		//Graph3
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH3, false, &(pSway_IO->th[ID_SLEW]), PI15);
+	//	set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH3, false, &(pSway_IO->th[ID_SLEW]), PI15);
 		//Graph4
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH4, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
+	//	set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH4, false, &(pSway_IO->th[ID_BOOM_H]), PI15);
 
 
 	//Window2 Scatter
 	//Chart2
 		//Graph1
 		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH1, true, &(pSway_IO->th[ID_SLEW]), PI15);
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH1, false, &(pSway_IO->dth[ID_SLEW]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART1, MK_GRAPH1, false, &(pSway_IO->dthw[ID_SLEW]), PI15);
 		//Graph2
 		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH2, true, &(pSway_IO->th[ID_BOOM_H]), PI15);
-		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->dth[ID_BOOM_H]), PI15);
+		set_graph_double(MK_WND_TYPE_SCATTER, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->dthw[ID_BOOM_H]), PI15);
 
 	}
 	else if (iptn == SCAD_CHART_PTN2) {

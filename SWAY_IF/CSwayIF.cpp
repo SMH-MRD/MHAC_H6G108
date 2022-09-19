@@ -182,9 +182,9 @@ int CSwayIF::parse_sway_stat(int ID) {
     if (sway_io_workbuf.th[ID_SLEW] > 0.00001) {
         sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]);
     }
-    else if (sway_io_workbuf.th[ID_SLEW] > -0.00001) { // atan()ˆø”‚Ì0Š„‰ñ”ð
-        if (sway_io_workbuf.dth[ID_SLEW] >= 0.0) sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]) - PI180;
-        else                                    sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]) + PI180;
+    else if (sway_io_workbuf.th[ID_SLEW] < -0.00001) { // atan()ˆø”‚Ì0Š„‰ñ”ð
+        if (sway_io_workbuf.dth[ID_SLEW] >= 0.0) sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]) + PI180;
+        else                                    sway_io_workbuf.ph[ID_SLEW] = atan(sway_io_workbuf.dthw[ID_SLEW] / sway_io_workbuf.th[ID_SLEW]) - PI180;
     }
     else{ //ˆÊ‘Š‚Í-ƒÎ`ƒÎ‚Ì”ÍˆÍ‚Å•\Œ»
         if (sway_io_workbuf.dth[ID_SLEW] >= 0.0) sway_io_workbuf.ph[ID_SLEW] = PI90;
@@ -195,13 +195,13 @@ int CSwayIF::parse_sway_stat(int ID) {
     if (sway_io_workbuf.th[ID_BOOM_H] > 0.00001) {
         sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]);
     }
-    else if (sway_io_workbuf.th[ID_BOOM_H] > -0.00001) { // atan()ˆø”‚Ì0Š„‰ñ”ð
-        if (sway_io_workbuf.dth[ID_BOOM_H] >= 0.0) sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]) - PI180;
-        else                                    sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]) + PI180;
+    else if (sway_io_workbuf.th[ID_BOOM_H] < -0.00001) { // atan()ˆø”‚Ì0Š„‰ñ”ð
+        if (sway_io_workbuf.dth[ID_BOOM_H] >= 0.0) sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]) + PI180;
+        else                                    sway_io_workbuf.ph[ID_BOOM_H] = atan(sway_io_workbuf.dthw[ID_BOOM_H] / sway_io_workbuf.th[ID_BOOM_H]) - PI180;
     }
     else { //ˆÊ‘Š‚Í-ƒÎ`ƒÎ‚Ì”ÍˆÍ‚Å•\Œ»
-        if (sway_io_workbuf.dth[ID_SLEW] >= 0.0) sway_io_workbuf.ph[ID_SLEW] = PI90;
-        else                                    sway_io_workbuf.ph[ID_SLEW] = -PI90;
+        if (sway_io_workbuf.dth[ID_BOOM_H] >= 0.0) sway_io_workbuf.ph[ID_BOOM_H] = PI90;
+        else                                    sway_io_workbuf.ph[ID_BOOM_H] = -PI90;
     }
     
 	return 0;

@@ -194,6 +194,11 @@ int CEnvironment::parse_for_auto_ctrl() {
 	//üŠú
 	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
 
+	//‰Á‘¬U‚ê—Ê
+	stWorkCraneStat.r0[ID_SLEW] = spec.accdec[ID_SLEW][FWD][ACC]/ stWorkCraneStat.w2;
+	stWorkCraneStat.r0[ID_BOOM_H] = spec.accdec[ID_BOOM_H][FWD][ACC] / stWorkCraneStat.w2;
+
+
 	//###################
 
 	//”¼©“®İ’èXV

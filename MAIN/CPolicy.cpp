@@ -324,8 +324,6 @@ int CPolicy::judge_auto_ctrl_ptn(int auto_type, int motion) {
 /****************************************************************************/
 int CPolicy::set_recipe(LPST_COMMAND_SET pcom, int motion, int ptn) {
 	//動作初期化
-	pcom->motion_stat[motion].status = COMMAND_STAT_STANDBY;
-	pcom->motion_stat[motion].iAct = 0;
 	
 	LPST_MOTION_RECIPE precipe = &(pcom->recipe[motion]);
 	if (ptn == AS_PTN_2ACCDEC)		return set_recipe2ad(precipe, motion);
@@ -343,7 +341,7 @@ int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) {
 	
 	LPST_MOTION_STEP pelement;
 
-	st_work.motion_dir[motion] = POLICY_UNKNOWN;										//移動方向不定(移動方向が実行時に決まる）
+	st_work.motion_dir[motion] = POLICY_NA;										//移動方向不定(移動方向が実行時に決まる）
 	set_as_gain(motion, AS_PTN_1STEP);													//振れ止めゲイン計算
 	precipe->n_step = 0;																//ステップ数初期化
 	precipe->motion_type = AS_PTN_1STEP;
@@ -396,10 +394,11 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 
 	LPST_MOTION_STEP pelement;
 
-	st_work.motion_dir[motion] = POLICY_UNKNOWN;										//移動方向不定(移動方向が実行時に決まる）
+	st_work.motion_dir[motion] = POLICY_NA;												//移動方向不定(移動方向が実行時に決まる）
 	set_as_gain(motion, AS_PTN_2PN);													//振れ止めゲイン計算
 	precipe->n_step = 0;																//ステップ数
 	precipe->motion_type = AS_PTN_2PN;
+	st_work.motion_dir[motion] = POLICY_NA;											//移動方向不定
 
 	//Step 1　位相待ち(振れ振幅維持）
 	{	pelement = &(precipe->steps[precipe->n_step++]);
@@ -410,8 +409,8 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 
 		//起動位相
 		double temp_d;
-		if (st_work.r[motion] < st_work.r0[motion])										//初期振れが加速振れより小（予定）
-			temp_d = st_work.r[motion] / st_work.r0[motion] * (cos(st_work.as_gain_phase[motion]) - 1);
+		if (st_work.r[motion] < pCraneStat->r0[motion])										//初期振れが加速振れより小（予定）
+			temp_d = st_work.r[motion] / pCraneStat->r0[motion] * (cos(st_work.as_gain_phase[motion]) - 1);
 		else																			//初期振れが加速振れより小（予定外）
 			temp_d = cos(st_work.as_gain_phase[motion]) - 1;
 
@@ -436,7 +435,7 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 	}
 	//Step 4　位相待ち(振れ振幅減衰）
 	{	pelement = &(precipe->steps[precipe->n_step++]);
-		pelement->type = CTR_TYPE_DOUBLE_PHASE_WAIT;									// 開始時と反対方向の位相を待つ
+		pelement->type = CTR_TYPE_SINGLE_PHASE_WAIT;									// 開始時と反対方向の位相を待つ
 		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為
 		pelement->_t = 2.0 * st_work.T;													// 予定時間(２周期以内）
 		pelement->_v = 0.0;
@@ -458,7 +457,14 @@ int CPolicy::set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->_t = st_work.as_gain_time[motion];									// 振れ止めゲイン
 		pelement->_v = st_work.v[motion];												// 開始時速度
 	}
-	//Step 7　動作停止待機
+	//Step 7　微小位置合わせ
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_FINE_POSITION;											// 微小移動
+	pelement->_p = st_work.pos_target[motion];											// 開始時位置
+	pelement->_t = PTN_FINE_POS_LIMIT_TIME;												// パターン出力調整時間
+	pelement->_v = pCraneStat->spec.notch_spd_f[motion][NOTCH_1];						// １ノッチ速度														// 
+	}
+	//Step 8　動作停止待機
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 開始時位置
@@ -511,8 +517,8 @@ int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 
 		//起動位相
 		double temp_d;
-		if (st_work.r[motion] < st_work.r0[motion])										// 初期振れが加速振れより小（予定）
-			temp_d = st_work.r[motion] / st_work.r0[motion] * (cos(st_work.as_gain_phase[motion]) - 1);
+		if (st_work.r[motion] < pCraneStat->r0[motion])										// 初期振れが加速振れより小（予定）
+			temp_d = st_work.r[motion] / pCraneStat->r0[motion] * (cos(st_work.as_gain_phase[motion]) - 1);
 		else																			// 初期振れが加速振れより小（予定外）
 			temp_d = cos(st_work.as_gain_phase[motion]) - 1;
 
@@ -559,7 +565,14 @@ int CPolicy::set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->_v = 0.0;																// 目標現在速度
 		pelement->_p = (pelement - 1)->_p + 0.5 * (pelement - 1)->_v * pelement->_t;	// 目標位置
 	}
-	//Step 7　動作停止待機
+	//Step 7　微小位置合わせ
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_FINE_POSITION;											// 微小移動
+	pelement->_p = st_work.pos_target[motion];											// 開始時位置
+	pelement->_t = PTN_FINE_POS_LIMIT_TIME;												// パターン出力調整時間
+	pelement->_v = pCraneStat->spec.notch_spd_f[motion][NOTCH_1];						// １ノッチ速度	
+	}
+	//Step 8　動作停止待機
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
@@ -624,9 +637,10 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 
 		//待ち位置(目標までの距離）計算
 		double ta_other, a_other, v_other, d_max_other;
-		bool is_slew_first;
+		bool is_slew_first=false;
+
 		if (st_work.pos_target[ID_BOOM_H] > st_work.pos[ID_BOOM_H] + 1.0) {
-			is_slew_first = true;
+			is_slew_first = true;	//引出時は、半径が小さいうちに先に旋回を掛ける
 		}
 
 		if (motion == ID_BOOM_H) {
@@ -651,7 +665,7 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 			v_other = pCraneStat->spec.notch_spd_f[ID_BOOM_H][NOTCH_5];
 			ta_other = v_other / a_other;
 			d_max_other = pCraneStat->spec.boom_pos_max;
-			if (is_slew_first) {
+			if (is_slew_first==true) {
 				pelement->opt_d[MOTHION_OPT_WAIT_POS] = d_max_other;	//待ち無しとなる
 			}
 			else {
@@ -668,26 +682,29 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 			ta_other = v_other / a_other;
 			d_max_other = 0.0;
 		}
-
-		//起動位相（初期振れが大きいときに加速を開始する位相）
-
 	}
-
-	//Step 2　加速中定速
+	//Step 2　起動調整（初期振れが大きいとき加速開始タイミングを調整）
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+		pelement->type = CTR_TYPE_ADJUST_MOTION_TRIGGER;								// TOP速度定速出力
+		pelement->_t = pCraneStat->T;													// 最大１周期待機
+		pelement->_v = 0.0;																// トップ速度
+		pelement->_p = st_work.pos[motion];												// 目標位置
+	}
+	//Step 3　加速中定速
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_ACC_STEP;										// 加速中定速出力
 		pelement->_t = ta_half + tc_half;												// ハーフ速度出力時間
 		pelement->_v = dir * v_half;													// ハーフ速度
 		pelement->_p = (pelement - 1)->_p + dir * v_half * ( 0.5 * ta_half + tc_half);	// 目標位置
 	}
-	//Step 3　定速TOP速度
+	//Step 4　定速TOP速度
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_TOP_STEP;										// TOP速度定速出力
 		pelement->_t = ta_half + (d - dmin) / v_top;									// トップ速度出力時間
 		pelement->_v = dir * v_top;														// トップ速度
 		pelement->_p = st_work.pos_target[motion] - dir * (0.5 * v_top *  ta + v_half * tc_half);	// 目標位置
 	}
-	//Step 4　減速中定速
+	//Step 5　減速中定速
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_DEC_STEP;										// 加速中定速出力
 		pelement->_t = ta_half + tc_half;												// ハーフ速度出力時間
@@ -695,14 +712,14 @@ int CPolicy::set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->_p = st_work.pos_target[motion] - dir * v_half * 0.5 * ta_half;		// 目標位置
 	}
 
-	//Step 5　停止
+	//Step 6　停止
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_t = ta_half;															// 減速時間
 		pelement->_v = 0.0;																// 目標現在速度
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
 	}
-	//Step 6　動作停止待機
+	//Step 7　動作停止待機
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
@@ -725,9 +742,11 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 	double T = pCraneStat->T;
 	double w = pCraneStat->w;
 	double a = st_work.a[motion];
-	double v_top; //１周期以上の移動時間となるTop速度設定
-	for (int i = 0; i < MOTION_ID_MAX; i++) {
-		v_top = pCraneStat->spec.notch_spd_f[motion][(MOTION_ID_MAX -1) - i];
+	double v_top = pCraneStat->spec.notch_spd_f[motion][NOTCH_5]; 
+	//１周期以上の移動時間となるTop速度設定
+	for (int i = 0; i < NOTCH_MAX; i++) {
+		int k = (NOTCH_MAX - i) - 1;
+		v_top = pCraneStat->spec.notch_spd_f[motion][k];
 		if((v_top * (T + v_top / a) < st_work.dist_for_target[motion]))
 			break;
 	}
@@ -738,6 +757,7 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 	double t_expected = 2.0 * ta ;	//予定移動時間
 	if (st_work.dist_for_target[motion] > dmin) t_expected += (st_work.dist_for_target[motion] - dmin) / v_top;
 	double dir;
+
 	//移動方向セット
 	if (st_work.pos[motion] < st_work.pos_target[motion]) {
 		st_work.motion_dir[motion] = POLICY_FWD;
@@ -757,18 +777,18 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 
 	//Step 1　他軸位置待ち
 	{	pelement = &(precipe->steps[precipe->n_step++]);
-	pelement->_p = st_work.pos[motion];												// 現在位置
-	pelement->_t = 0.0;																// 予定時間
-	pelement->_v = 0.0;
+		pelement->_p = st_work.pos[motion];												// 現在位置
+		pelement->_t = 0.0;																// 予定時間
+		pelement->_v = 0.0;
 
-	//待ち位置(目標までの距離）計算
-	double ta_other, a_other, v_other, d_max_other;
-	bool is_slew_first = false;
-	if (st_work.pos_target[ID_BOOM_H] > st_work.pos[ID_BOOM_H] + 1.0) {
-		is_slew_first = true;
-	}
+		//待ち位置(目標までの距離）計算
+		double ta_other, a_other, v_other, d_max_other;
+		bool is_slew_first = false;
+		if (st_work.pos_target[ID_BOOM_H] > st_work.pos[ID_BOOM_H] + 1.0) {
+			is_slew_first = true;	//引出時は、半径が小さいうちに先に旋回を掛ける
+		}
 
-	if (motion == ID_BOOM_H) {
+		if (motion == ID_BOOM_H) {
 		pelement->type = CTR_TYPE_OTHER_POS_WAIT;
 		a_other = pCraneStat->spec.accdec[ID_SLEW][FWD][ACC];
 		v_other = pCraneStat->spec.notch_spd_f[ID_SLEW][NOTCH_5];
@@ -784,7 +804,7 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 		else 	pelement->opt_d[MOTHION_OPT_WAIT_POS] = d_max_other;	//待ち無しとなる
 
 	}
-	else if (motion == ID_SLEW) {
+		else if (motion == ID_SLEW) {
 		pelement->type = CTR_TYPE_OTHER_POS_WAIT;
 		a_other = pCraneStat->spec.accdec[ID_BOOM_H][FWD][ACC];
 		v_other = pCraneStat->spec.notch_spd_f[ID_BOOM_H][NOTCH_5];
@@ -800,33 +820,37 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 				pelement->opt_d[MOTHION_OPT_WAIT_POS] = 0.5 * ta_other * ta_other + v_other * (ta_other - t_expected);
 		}
 	}
-	else {
+		else {
 		pelement->type = CTR_TYPE_TIME_WAIT;
 		a_other = 1.0;
 		v_other = 0.0;
 		ta_other = v_other / a_other;
 		d_max_other = 0.0;
 	}
-
-	//起動位相（初期振れが大きいときに加速を開始する位相）
-
+	}
+	//Step 2　起動調整（初期振れが大きいとき加速開始タイミングを調整）
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+		pelement->type = CTR_TYPE_ADJUST_MOTION_TRIGGER;								// TOP速度定速出力
+		pelement->_t = pCraneStat->T;													// 最大１周期待機
+		pelement->_v = 0.0;																// トップ速度
+		pelement->_p = st_work.pos[motion];												// 目標位置
 	}
 
-	//Step 2　定速TOP速度
+	//Step 3　定速TOP速度
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_CONST_V_TOP_STEP;										// TOP速度定速出力
 		pelement->_t = ta + (d - dmin) / v_top;											// トップ速度出力時間
 		pelement->_v = dir * v_top;														// トップ速度
 		pelement->_p = st_work.pos_target[motion] - dir * 0.5 * ta * v_top;				// 目標位置
 	}
-	//Step 3　停止
+	//Step 4　停止
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
 		pelement->_t = ta;																// 減速時間
 		pelement->_v = 0.0;																// 目標現在速度
 		pelement->_p = st_work.pos_target[motion];										// 目標位置
 	}
-	//Step 4　動作停止待機
+	//Step 5　動作停止待機
 	{	pelement = &(precipe->steps[precipe->n_step++]);
 		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
 		pelement->_p = st_work.pos_target[motion];										// 目標位置

@@ -150,8 +150,10 @@ int CAgent::parse_indata() {
 	double k = pCraneStat->mh_l * pCraneStat->mh_l;
 	AgentInf_workbuf.sway_amp2m[ID_BOOM_H] = k * pSway_IO->amp2[ID_BOOM_H];
 	AgentInf_workbuf.sway_amp2m[ID_SLEW] = k * pSway_IO->amp2[ID_SLEW];
-	AgentInf_workbuf.gap_from_target[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] - AgentInf_workbuf.pos_target[ID_BOOM_H];
-	AgentInf_workbuf.gap_from_target[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] - AgentInf_workbuf.pos_target[ID_SLEW];
+
+	for(int i=0;i<MOTION_ID_MAX;i++) //目標位置までの距離
+		AgentInf_workbuf.gap_from_target[i] = AgentInf_workbuf.pos_target[i] - pPLC_IO->status.pos[i];
+
 	AgentInf_workbuf.gap2_from_target[ID_BOOM_H] = AgentInf_workbuf.gap_from_target[ID_BOOM_H] * AgentInf_workbuf.gap_from_target[ID_BOOM_H];
 	AgentInf_workbuf.gap2_from_target[ID_SLEW] = AgentInf_workbuf.gap_from_target[ID_SLEW]* AgentInf_workbuf.gap_from_target[ID_SLEW];
 
@@ -303,13 +305,11 @@ int CAgent::cleanup_command(LPST_COMMAND_SET pcom) {
 		pcom->motion_stat[i].iAct = 0;
 		pcom->motion_stat[i].step_act_count = 0;
 		pcom->motion_stat[i].direction = AGENT_STOP;
-		for (int j = 0; j < M_STEP_MAX; j++) {
-			pcom->motion_stat[i].status = COMMAND_STAT_STANDBY;
-			pcom->motion_stat[i].elapsed = 0;
-			pcom->motion_stat[i].error_code = 0;
+		for (int j = 0; j < MOTION_STAT_FLG_N; j++) {
+			pcom->motion_stat[i].flg[j] = L_OFF;
 		}
-		GetLocalTime(&(pcom->time_start));	//開始時間セット
 	}
+	GetLocalTime(&(pcom->time_start));	//開始時間セット
 	return 0;
 }
 
@@ -322,8 +322,6 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 
 	LPST_MOTION_RECIPE precipe = &pCom->recipe[motion];
 	LPST_MOTION_STAT pstat = &pCom->motion_stat[motion];
-
-
 	LPST_MOTION_STEP pStep = &precipe->steps[pstat->iAct];
 
 	if (pStep->status == COMMAND_STAT_STANDBY) {
@@ -332,12 +330,22 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	}
 	else	pstat->step_act_count++;	//ステップ実行カウントインクリメント
 
+	pStep->status = PTN_STEP_ON_GOING;
+
 	switch (pStep->type) {
+		//#	時間待機
+	case CTR_TYPE_TIME_WAIT: {
+		pstat->direction = AGENT_STOP;
+		if (pstat->step_act_count > pStep->time_count) {
+			pStep->status = PTN_STEP_FIN;
+		}
+		v_out = pStep->_v;
+		return v_out;
+	}break;
+		//#	振れ位相待ち２方向
 	case CTR_TYPE_DOUBLE_PHASE_WAIT: {
-
-		pStep->status = PTN_STEP_ON_GOING;
+		pstat->direction = AGENT_NA;	//完了まで移動方向未定
 		bool is_step_end = false;
-
 		v_out = pStep->_v;
 
 		//異常完了判定
@@ -403,60 +411,213 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		}
 
 	}break;
+	//#	振れ位相待ち1方向
+	case CTR_TYPE_SINGLE_PHASE_WAIT: {
 
-	case CTR_TYPE_TIME_WAIT: {
-		if (pstat->step_act_count > pStep->time_count) {
-			pStep->status = PTN_STEP_FIN;
-		}
+		bool is_step_end = false;
 		v_out = pStep->_v;
-		return v_out;
+
+		//異常完了判定
+		if ((pStep->opt_d[MOTHION_OPT_PHASE_F] > PI180) || (pStep->opt_d[MOTHION_OPT_PHASE_F] < -PI180)) {//指定範囲外　-π～π
+			pStep->status = PTN_STEP_ERROR;is_step_end = true;
+		}
+		if ((pStep->opt_d[MOTHION_OPT_PHASE_R] > PI180) || (pStep->opt_d[MOTHION_OPT_PHASE_R] < -PI180)) {//指定範囲外　-π～π
+			pStep->status = PTN_STEP_ERROR;is_step_end = true;
+		}
+		if (pstat->step_act_count > pStep->time_count) {
+			pStep->status = PTN_STEP_TIME_OVER;is_step_end = true;
+		}
+		if (pstat->step_act_count > pStep->time_count) {
+			pStep->status = PTN_STEP_TIME_OVER;is_step_end = true;
+		}
+		if (pSway_IO->amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {
+			pStep->status = PTN_STEP_FIN;is_step_end = true;
+		}
+		if (is_step_end) {
+			pstat->direction = AGENT_STOP;
+			v_out = 0.0;
+			break;
+		}
+
+		//メイン判定
+		double chk_ph = PI360;
+		if (pAgentInf->gap_from_target[motion] > 0.0) {	//目標位置よりも現在位置が手前
+			//正転開始用位相判定
+
+			if ((pStep->opt_d[MOTHION_OPT_PHASE_F] <= 0) && (pSway_IO->ph[motion] >= 0)) {	//目標が負　現在値が正
+				chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_F] - PI180;	//+で現在値が目標追い越し
+			}
+			else if ((pStep->opt_d[MOTHION_OPT_PHASE_F] >= 0) && (pSway_IO->ph[motion] <= 0)) {	//目標が正　現在値が負
+				chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion] - PI180;	//+で現在値が目標追い越し
+			}
+			else {
+				double chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion];	//+で現在値が目標追い越し
+			}
+			if (chk_ph < 0)chk_ph *= -1.0;			//角度差絶対値
+			if (chk_ph >= PI180) chk_ph -= PI360;	//小さい方の角度差
+
+			if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
+				pStep->status = PTN_STEP_FIN;
+				pstat->direction = AGENT_FWD;
+				break;
+			}
+		}
+		else {
+			//逆転開始用位相判定
+
+			if ((pStep->opt_d[MOTHION_OPT_PHASE_R] <= 0) && (pSway_IO->ph[motion] >= 0)) {	//目標が負　現在値が正
+				chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_R] - PI180;	//+で現在値が目標追い越し
+			}
+			else if ((pStep->opt_d[MOTHION_OPT_PHASE_R] >= 0) && (pSway_IO->ph[motion] <= 0)) {	//目標が正　現在値が負
+				chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion] - PI180;	//+で現在値が目標追い越し
+			}
+			else {
+				double chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion];	//+で現在値が目標追い越し
+			}
+			if (chk_ph < 0)chk_ph *= -1.0;			//角度差絶対値
+			if (chk_ph >= PI180) chk_ph -= PI360;	//小さい方の角度差
+			if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
+				pStep->status = PTN_STEP_FIN;
+				pstat->direction = AGENT_REW;
+				break;
+			}
+		}
 
 	}break;
+	//#	振れ止め移動起動タイミング調整
+	case CTR_TYPE_ADJUST_MOTION_TRIGGER: {
+		v_out = 0.0;
+		if (sqrt(pSway_IO->amp2[motion]) > pCraneStat->r0[motion]) {
+			if (AgentInf_workbuf.gap_from_target[motion] > 0) {//目標位置より現在位置が手前→進行方向＋
+				if ((pSway_IO->ph[motion] < PI180) && (pSway_IO->ph[motion] > PI90))
+					pStep->status = PTN_STEP_FIN;
+			}
+			else {
+				if ((pSway_IO->ph[motion] < 0.0) && (pSway_IO->ph[motion] > -PI90))
+					pStep->status = PTN_STEP_FIN;
+			}
+			pstat->flg[MOTION_ACC_STEP_BYPASS] = L_ON;
+		}
+		else if (AgentInf_workbuf.sway_amp2m[motion] > AGENT_CHECK_LARGE_SWAY_m2) {
+			if (AgentInf_workbuf.gap_from_target[motion] > 0) {//目標位置より現在位置が手前→進行方向＋
+				if ((pSway_IO->ph[motion] < PI90) && (pSway_IO->ph[motion] > 0.0))
+					pStep->status = PTN_STEP_FIN;
+			}
+			else {
+				if ((pSway_IO->ph[motion] < -PI90) && (pSway_IO->ph[motion] > -PI180))
+					pStep->status = PTN_STEP_FIN;
+			}
+			pstat->flg[MOTION_ACC_STEP_BYPASS] = L_ON;
+		}
+		else {
+			pStep->status = PTN_STEP_FIN;
+			pstat->flg[MOTION_ACC_STEP_BYPASS] = L_OFF;
+		}
+		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+	}break;
+	//#	振れ止め加速
+	case CTR_TYPE_ACC_AS: {
+		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+		v_out = (double)pstat->direction * pStep->_v;
+
+	}break;
+	//#	減速
+	case  CTR_TYPE_DEC_V: {
+		if (pStep->_v < 0.0) {
+			if (pPLC_IO->status.v_fb[motion] >= pStep->_v) pStep->status = PTN_STEP_FIN;
+		}
+		else if (pStep->_v > 0.0) {
+			if (pPLC_IO->status.v_fb[motion] <= pStep->_v) pStep->status = PTN_STEP_FIN;
+		}
+		else;
+		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+		v_out = (double)pstat->direction * pStep->_v;
+
+	}break;
+	//#	定速（加減速→定速）
+	case CTR_TYPE_CONST_V_TIME: {
+		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+		v_out = (double)pstat->direction * pStep->_v;
+	}break;
+	//#	定速（加減速→定速）
+	case CTR_TYPE_CONST_V_ACC_STEP:
+	{
+		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+		if(pstat->flg[MOTION_ACC_STEP_BYPASS] == L_ON )	//初期振れが大きいとき1回の加速にするフラグ
+			pStep->status = PTN_STEP_FIN;
+		v_out = (double)pstat->direction * pStep->_v;
+	}break;
+	case CTR_TYPE_CONST_V_DEC_STEP:
+	{
+		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+		if (pstat->flg[MOTION_DEC_STEP_BYPASS] == L_ON)	//初期振れが大きいとき1回の減速にするフラグ
+			pStep->status = PTN_STEP_FIN;
+		v_out = (double)pstat->direction * pStep->_v;
+	}break;
+
+	//#	定速（加減速→定速）
+	case CTR_TYPE_CONST_V_TOP_STEP:
+	{
+		double chk_d = pStep->_p - pPLC_IO->status.pos[motion];
+		if (chk_d < 0.0) chk_d *= -1.0; //STEP目標位置までの距離
+
+		if ((pStep->_v >= 0.0) && (pPLC_IO->status.pos[motion] >= pStep->_p)) {
+			pStep->status = PTN_STEP_FIN;
+			pstat->flg[MOTION_DEC_STEP_BYPASS] = L_OFF;
+		}
+		else if ((pStep->_v <= 0.0) && (pPLC_IO->status.pos[motion] <= pStep->_p)) {
+			pStep->status = PTN_STEP_FIN;
+			pstat->flg[MOTION_DEC_STEP_BYPASS] = L_OFF;
+		}
+		else if (chk_d < AgentInf_workbuf.dist_for_stop[motion]) { // STEP目標位置までの距離が減速距離以下
+			if (sqrt(pSway_IO->amp2[motion]) > pCraneStat->r0[motion]) {
+				if (AgentInf_workbuf.gap_from_target[motion] > 0) {//目標位置より現在位置が手前→進行方向＋
+					if ((pSway_IO->ph[motion] < PI180) && (pSway_IO->ph[motion] > PI90))
+						pStep->status = PTN_STEP_FIN;
+				}
+				else {
+					if ((pSway_IO->ph[motion] < 0.0) && (pSway_IO->ph[motion] > -PI90))
+						pStep->status = PTN_STEP_FIN;
+				}
+				pstat->flg[MOTION_DEC_STEP_BYPASS] = L_ON;
+			}
+			else if (AgentInf_workbuf.sway_amp2m[motion] > AGENT_CHECK_LARGE_SWAY_m2) {
+				if (AgentInf_workbuf.gap_from_target[motion] > 0) {//目標位置より現在位置が手前→進行方向＋
+					if ((pSway_IO->ph[motion] < PI90) && (pSway_IO->ph[motion] > 0.0))
+						pStep->status = PTN_STEP_FIN;
+				}
+				else {
+					if ((pSway_IO->ph[motion] < -PI90) && (pSway_IO->ph[motion] > -PI180))
+						pStep->status = PTN_STEP_FIN;
+				}
+				pstat->flg[MOTION_DEC_STEP_BYPASS] = L_ON;
+			}
+			else;
+		}
+		else {
+			if (pstat->step_act_count >= pStep->time_count) {
+				pStep->status = PTN_STEP_FIN;
+				pstat->flg[MOTION_DEC_STEP_BYPASS] = L_OFF;
+			}
+		}
+
+		v_out = (double)pstat->direction * pStep->_v;
+	}break;
+
+	//#	定速（加減速→定速）
+	case CTR_TYPE_FINE_POSITION: {
+		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+		if (pAgentInf->gap2_from_target[motion] < pCraneStat->spec.as_pos2_level[motion][ID_LV_COMPLE])
+			pStep->status = PTN_STEP_FIN;
+
+		v_out = (double)pstat->direction * pStep->_v;
+	}break;
 	}
-	/*
-case CTR_TYPE_TIME_WAIT_2PN: {
-	output_v = pStep->_v;
-}break;
-case CTR_TYPE_TIME_WAIT_2PP: {
-	output_v = pStep->_v;
-}break;
-case CTR_TYPE_SINGLE_PHASE_WAIT: {
-	output_v = pStep->_v;
-}break;
-case CTR_TYPE_DOUBLE_PHASE_WAIT: {
-	output_v = pStep->_v;
-}break;
-case CTR_TYPE_ACC_AS: {
-	output_v = (double)pIO_Table->auto_ctrl.as_out_dir[AS_SLEW_ID] * pStep->_v;
-}break;
-case CTR_TYPE_ACC_AS_2PN: {
-	output_v = (double)pIO_Table->auto_ctrl.as_out_dir[AS_SLEW_ID]
-		* (pStep->_v + (double)(pStep->opt_i1 * inf.cycle_ms / 1000) * g_spec.bh_acc[FWD_ACC]);
 
-}break;
-case CTR_TYPE_DEC_V: {
-	output_v = pStep->_v;
-}break;
-case CTR_TYPE_DEC_AS_2PN: {
-	output_v = pStep->_v;
-} break;
-case CTR_TYPE_CONST_V_TIME: {
-	output_v = pStep->_v;
-}break;
-case CTR_TYPE_BH_WAIT:
-case CTR_TYPE_SLEW_WAIT:
-case CTR_TYPE_MH_WAIT:
-case CTR_TYPE_ACC_TIME:
-case CTR_TYPE_ACC_V:
-case CTR_TYPE_ACC_TIME_OR_V:
-case CTR_TYPE_DEC_TIME:
-default: {
-	return 0.0;
-}
-}
-
-*/
-	if (pStep->status = PTN_STEP_FIN) pstat->iAct++;
+	if (pStep->status == PTN_STEP_FIN) {
+		pstat->iAct++;
+		pstat->step_act_count = 0;
+	}
 	return v_out;
 }
 
@@ -499,7 +660,9 @@ int CAgent::receipt_ope_com(int type, int target) {
 bool CAgent::can_auto_trigger()
 {
 	if ((pPolicyInf->com[pPolicyInf->i_com].com_status != COMMAND_STAT_ACTIVE) &&
-		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_ACTIVE)) {
+		(pPolicyInf->com[pPolicyInf->i_com].com_status != COMMAND_STAT_STANDBY) &&
+		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_ACTIVE)&&
+		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_STANDBY)) {
 
 		if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
 			//引込,旋回の0速確認で起動可
@@ -613,7 +776,8 @@ int CAgent::update_auto_setting() {
 		set_auto_active(AUTO_TYPE_MANUAL);
 	}
 	else if(can_auto_trigger()) {
-		if ((pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR)&&(pCraneStat->auto_start_pb_count > 10)) {
+		if ((pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR)
+			&&(pCraneStat->auto_start_pb_count > AGENT_AUTO_TRIG_ACK_COUNT)) {
 			pCom = pPolicy->generate_command(AUTO_TYPE_SEMI_AUTO, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_SEMI_AUTO;
@@ -624,7 +788,8 @@ int CAgent::update_auto_setting() {
 				set_auto_active(AUTO_TYPE_MANUAL);
 			}
 		}
-		else if ((pCSInf->n_job_standby > 0) && (pCraneStat->auto_start_pb_count > 10)) {
+		else if ((pCSInf->n_job_standby > 0) 
+			&& (pCraneStat->auto_start_pb_count > AGENT_AUTO_TRIG_ACK_COUNT)) {
 			pCom = pPolicy->generate_command(AUTO_TYPE_JOB, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_JOB;

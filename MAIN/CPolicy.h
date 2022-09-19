@@ -28,7 +28,7 @@
 #define POLICY_FWD              1
 #define POLICY_REW              2
 #define POLICY_STOP             0
-#define POLICY_UNKNOWN          0
+#define POLICY_NA               0
 
 typedef struct stPolicyWork {
     double T;                                   //ŽüŠú
@@ -37,7 +37,7 @@ typedef struct stPolicyWork {
     double r[MOTION_ID_MAX];	                //U••]‰¿’l
     double pos[MOTION_ID_MAX];	                //U••]‰¿’l
     double v[MOTION_ID_MAX];	                //U••]‰¿’l
-    double r0[MOTION_ID_MAX];	                //‰Á‘¬ŽžU’†S
+    //double r0[MOTION_ID_MAX];	                //‰Á‘¬ŽžU’†S
     double a[MOTION_ID_MAX];	                //‰Á‘¬“x
     double vmax[MOTION_ID_MAX];                 //Å‘å‘¬“x
     double acc_time2Vmax[MOTION_ID_MAX];        //Å‘å‰Á‘¬ŽžŠÔ

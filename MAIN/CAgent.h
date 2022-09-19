@@ -10,10 +10,14 @@
 #define AGENT_LAMP_ON               PLC_IO_LAMP_FLICKER_CHANGE    //LAMP ON出力カウント値
 #define AGENT_LAMP_OFF              0                             //LAMP OFF出力カウント値
 
-#define PHASE_CHECK_RANGE       0.02  // レシピ出力　位相到達判定範囲　rad :1deg = 0.017 rad
-#define AGENT_FWD               1
-#define AGENT_REW               -1
-#define AGENT_STOP              0
+#define PHASE_CHECK_RANGE           0.02  // レシピ出力　位相到達判定範囲　rad :1deg = 0.017 rad
+#define AGENT_FWD                   1
+#define AGENT_REW                   -1
+#define AGENT_STOP                  0
+#define AGENT_NA                    0
+
+#define AGENT_AUTO_TRIG_ACK_COUNT   10
+#define AGENT_CHECK_LARGE_SWAY_m2   1.0     //起動時に初期振れ大とみなす振れ量mの2乗
 
 class CAgent:public CTaskObj
 {
