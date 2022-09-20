@@ -772,12 +772,24 @@ int CAgent::update_auto_setting() {
 	//自動起動処理
 	if (pCraneStat->auto_standby == false) {//自動モード
 		for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.pos_target[i] = pPLC_IO->status.pos[i];
-		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-		set_auto_active(AUTO_TYPE_MANUAL);
+		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
+			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+			set_auto_active(AUTO_TYPE_MANUAL);
+			pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_END;
+			pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_END;
+		}
+	}
+	else if ((pCraneStat->is_notch_0[ID_SLEW] == false || pCraneStat->is_notch_0[ID_BOOM_H]) == false) {
+		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
+			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+			set_auto_active(AUTO_TYPE_MANUAL);
+			if (pPolicyInf->com[pPolicyInf->i_com].com_status != COMMAND_STAT_END) pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_ABORT;
+			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_END) pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_ABORT;
+		}
 	}
 	else if(can_auto_trigger()) {
 		if ((pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR)
-			&&(pCraneStat->auto_start_pb_count > AGENT_AUTO_TRIG_ACK_COUNT)) {
+			&&(pCraneStat->auto_start_pb_count > AGENT_AUTO_TRIG_ACK_COUNT)) {	//半自動設定有で自動開始PB ON
 			pCom = pPolicy->generate_command(AUTO_TYPE_SEMI_AUTO, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_SEMI_AUTO;

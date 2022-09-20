@@ -53,6 +53,15 @@ void CPolicy::init_task(void* pobj) {
 	set_panel_tip_txt();
 
 	pPolicyInf->i_com = 0;
+	pPolicyInf->i_jobcom = 0;
+
+	for (int i = 0; i < COM_STEP_MAX;i++) {
+		pPolicyInf->com[i].com_status = COMMAND_STAT_END;
+		pPolicyInf->job_com[i].com_status = COMMAND_STAT_END;
+	}
+
+
+
 
 	inf.is_init_complete = true;
 	return;

@@ -407,11 +407,11 @@ typedef struct stMotionRecipe {					//à⁄ìÆÉpÉ^Å[Éì
 
 //Status
 #define COMMAND_STAT_ERROR		-1
-#define COMMAND_STAT_STANDBY	0
-#define COMMAND_STAT_ACTIVE		1
-#define COMMAND_STAT_PAUSE		2
-#define COMMAND_STAT_ABORT		3
-#define COMMAND_STAT_END		4
+#define COMMAND_STAT_END		0
+#define COMMAND_STAT_STANDBY	1
+#define COMMAND_STAT_ACTIVE		2
+#define COMMAND_STAT_PAUSE		3
+#define COMMAND_STAT_ABORT		4
 
 #define MOTION_STAT_FLG_N		4 
 #define MOTION_ACC_STEP_BYPASS	0 
