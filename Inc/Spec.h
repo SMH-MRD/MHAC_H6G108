@@ -82,7 +82,7 @@ typedef struct StSpec {
 	double accdec[MOTION_ID_MAX][DIRECTION_MAX][ACCDEC_MAX] = {	//# äeìÆçÏâ¡å∏ë¨ìx
 	{{ 0.387,	-0.387},	{-0.387,		0.387 }},				//[ID_HOIST]	m/s2
 	{{ 0.0812,	-0.0812},	{-0.0812,	0.0812 }},				//[ID_GANTRY]	m/s2
-	{{ 0.0,		0.0},		{0.0,		0.0 }},					//[ID_TROLLY]	m/s2
+	{{ 1.0,		-1.0},		{-1.0,		1.0 }},					//[ID_TROLLY]	m/s2
 	{{ 0.333,	-0.333},	{	-0.333,	0.333 }},				//[ID_BOOM_H]	m/s2
 	{{ 0.00875,	-0.00875},	{-0.00875,	0.00875 }},			//[ID_SLEW]		rad/s2;
 	{{ 0.0125,	-0.0125},	{-0.0125,	0.0125 }},				//[ID_OP_ROOM]	m/s2
@@ -112,31 +112,31 @@ typedef struct StSpec {
 #define ID_LV_LIMIT				2	//êßå¿
 	double as_rad_level[NUM_OF_AS_AXIS][NUM_OF_SWAY_LEVEL] = {	//# êUÇÍé~ÇﬂîªíËÅ@êUÇÍäpÉåÉxÉã(rad)
 	{ 0.0,	0.0, 0.0},											//[ID_HOIST]
-	{ 0.003, 0.006, 0.020 },									//[ID_GANTRY]
-	{ 0.003, 0.006, 0.020 },									//[ID_TROLLY]
-	{ 0.003, 0.006, 0.020 },									//[ID_BOOM_H]
-	{ 0.003, 0.006, 0.020 },									//[ID_SLEW]	
+	{ 0.005, 0.01, 0.020 },									//[ID_GANTRY]
+	{ 0.005, 0.01, 0.020 },									//[ID_TROLLY]
+	{ 0.005, 0.01, 0.020 },									//[ID_BOOM_H]
+	{ 0.005, 0.01, 0.020 },									//[ID_SLEW]	
 	};
 	double as_rad2_level[NUM_OF_AS_AXIS][NUM_OF_SWAY_LEVEL] = {	//# êUÇÍé~ÇﬂîªíËÅ@êUÇÍêUïùÉåÉxÉã(rad^2)
 	{ 0.0,	0.0, 0.0},											//[ID_HOIST]
-	{ 0.000009, 0.000036, 0.0004 },								//[ID_GANTRY]
-	{ 0.000009, 0.000036, 0.0004 },								//[ID_TROLLY]
-	{ 0.000009, 0.000036, 0.0004 },								//[ID_BOOM_H]
-	{ 0.000009, 0.000036, 0.0004 },								//[ID_SLEW]
+	{ 0.000025, 0.0001, 0.0004 },								//[ID_GANTRY]
+	{ 0.000025, 0.0001, 0.0004 },								//[ID_TROLLY]
+	{ 0.000025, 0.0001, 0.0004 },								//[ID_BOOM_H]
+	{ 0.000025, 0.0001, 0.0004 },								//[ID_SLEW]
 	};
 	double as_m_level[NUM_OF_AS_AXIS][NUM_OF_SWAY_LEVEL] = {	//# êUÇÍé~ÇﬂîªíËÅ@êUÇÍäpÉåÉxÉã(m)
 	{ 0.0,	0.0, 0.0},											//[ID_HOIST]
-	{ 0.05, 0.2, 2.00 },										//[ID_GANTRY]
-	{ 0.05, 0.2, 2.00 },										//[ID_TROLLY]
-	{ 0.05, 0.2, 2.00 },										//[ID_BOOM_H]
-	{ 0.05, 0.2, 2.00 },										//[ID_SLEW]	
+	{ 0.1, 0.2, 2.00 },										//[ID_GANTRY]
+	{ 0.1, 0.2, 2.00 },										//[ID_TROLLY]
+	{ 0.1, 0.2, 2.00 },										//[ID_BOOM_H]
+	{ 0.1, 0.2, 2.00 },										//[ID_SLEW]	
 	};
 	double as_m2_level[NUM_OF_AS_AXIS][NUM_OF_SWAY_LEVEL] = {	//# êUÇÍé~ÇﬂîªíËÅ@êUÇÍêUïùÉåÉxÉã(m^2)
 	{ 0.0,	0.0, 0.0},											//[ID_HOIST]
-	{ 0.025, 0.004, 4.0 },										//[ID_GANTRY]
-	{ 0.025, 0.004, 4.0 },										//[ID_TROLLY]
-	{ 0.025, 0.004, 4.0 },										//[ID_BOOM_H]
-	{ 0.025, 0.004, 4.0 },										//[ID_SLEW]
+	{ 0.01, 0.04, 4.0 },										//[ID_GANTRY]
+	{ 0.01, 0.04, 4.0 },										//[ID_TROLLY]
+	{ 0.01, 0.04, 4.0 },										//[ID_BOOM_H]
+	{ 0.01, 0.04, 4.0 },										//[ID_SLEW]
 	};
 	double as_pos_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# à íuåàÇﬂîªíËÅ@à íuÇ∏ÇÍÉåÉxÉã(m) 
 	{ 0.03, 0.06, 0.020 },										//m[ID_HOIST]
@@ -146,10 +146,10 @@ typedef struct StSpec {
 	{ 0.005, 0.01, 0.1 }										//rad[ID_SLEW]
 	};
 	double as_pos2_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# à íuåàÇﬂîªíËÅ@à íuÇ∏ÇÍÉåÉxÉã(m) 
-	{ 0.009, 0.006, 0.020 },										//m[ID_HOIST]
-	{ 0.009, 0.006, 0.020 },										//m[ID_GANTRY]
-	{ 0.009, 0.006, 0.020 },										//m[ID_TROLLY]
-	{ 0.009, 0.006, 0.020 },										//m[ID_BOOM_H]
+	{ 0.009, 0.036, 0.020 },										//m[ID_HOIST]
+	{ 0.009, 0.036, 0.020 },										//m[ID_GANTRY]
+	{ 0.009, 0.036, 0.020 },										//m[ID_TROLLY]
+	{ 0.009, 0.036, 0.020 },										//m[ID_BOOM_H]
 	{ 0.000025, 0.0001, 0.01 }										//rad[ID_SLEW]
 	};
 

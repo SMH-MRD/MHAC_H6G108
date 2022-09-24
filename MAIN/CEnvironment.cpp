@@ -155,8 +155,10 @@ int CEnvironment::parse_notch_com() {
 
 	//ノッチ位置配列のポインタセット
 	int* p_notch;
-	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) p_notch = pRemoteIO->PLCui.notch_pos;
-	else p_notch = pPLC_IO->ui.notch_pos;
+	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) 
+		p_notch = pRemoteIO->PLCui.notch_pos;
+	else 
+		p_notch = pPLC_IO->ui.notch_pos;
 
 	for (int i = 0;i < MOTION_ID_MAX;i++) {
 		if (*(p_notch+i) == NOTCH_0) {

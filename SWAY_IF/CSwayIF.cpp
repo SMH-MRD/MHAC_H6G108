@@ -172,8 +172,8 @@ int CSwayIF::parse_sway_stat(int ID) {
     sway_io_workbuf.dthw[ID_SLEW] = sway_io_workbuf.dth[ID_SLEW] / w;
     sway_io_workbuf.dthw[ID_BOOM_H] = sway_io_workbuf.dth[ID_BOOM_H] / w;
 
-    sway_io_workbuf.amp2[ID_SLEW] = sway_io_workbuf.th[ID_SLEW] * sway_io_workbuf.th[ID_SLEW] + sway_io_workbuf.dth[ID_SLEW] * sway_io_workbuf.dth[ID_SLEW];
-    sway_io_workbuf.amp2[ID_BOOM_H] = sway_io_workbuf.th[ID_BOOM_H] * sway_io_workbuf.th[ID_BOOM_H] + sway_io_workbuf.dth[ID_BOOM_H] * sway_io_workbuf.dth[ID_BOOM_H];
+    sway_io_workbuf.amp2[ID_SLEW] = sway_io_workbuf.th[ID_SLEW] * sway_io_workbuf.th[ID_SLEW] + sway_io_workbuf.dthw[ID_SLEW] * sway_io_workbuf.dthw[ID_SLEW];
+    sway_io_workbuf.amp2[ID_BOOM_H] = sway_io_workbuf.th[ID_BOOM_H] * sway_io_workbuf.th[ID_BOOM_H] + sway_io_workbuf.dthw[ID_BOOM_H] * sway_io_workbuf.dthw[ID_BOOM_H];
 
     //çáê¨êUïù  
     sway_io_workbuf.amp2[ID_COMMON] = sway_io_workbuf.amp2[ID_SLEW] + sway_io_workbuf.amp2[ID_BOOM_H];

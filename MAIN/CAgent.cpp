@@ -157,6 +157,10 @@ int CAgent::parse_indata() {
 	AgentInf_workbuf.gap2_from_target[ID_BOOM_H] = AgentInf_workbuf.gap_from_target[ID_BOOM_H] * AgentInf_workbuf.gap_from_target[ID_BOOM_H];
 	AgentInf_workbuf.gap2_from_target[ID_SLEW] = AgentInf_workbuf.gap_from_target[ID_SLEW]* AgentInf_workbuf.gap_from_target[ID_SLEW];
 
+	//起動開始位相判定範囲（起動遅れ時間補正）
+	ph_chk_range[ID_BOOM_H] = pCraneStat->w * pCraneStat->spec.delay_time[ID_BOOM_H][ID_DELAY_0START];
+	ph_chk_range[ID_SLEW] = pCraneStat->w * pCraneStat->spec.delay_time[ID_SLEW][ID_DELAY_0START];
+	
 	return 0;
 }
 
@@ -309,6 +313,7 @@ int CAgent::cleanup_command(LPST_COMMAND_SET pcom) {
 			pcom->motion_stat[i].flg[j] = L_OFF;
 		}
 	}
+	pcom->com_status = COMMAND_STAT_ACTIVE;
 	GetLocalTime(&(pcom->time_start));	//開始時間セット
 	return 0;
 }
@@ -324,7 +329,10 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	LPST_MOTION_STAT pstat = &pCom->motion_stat[motion];
 	LPST_MOTION_STEP pStep = &precipe->steps[pstat->iAct];
 
-	if (pStep->status == COMMAND_STAT_STANDBY) {
+	if (pstat->status == COMMAND_STAT_END) {
+		return 0.0;
+	}
+	else if (pStep->status == COMMAND_STAT_STANDBY) {
 		pstat->step_act_count= 1;
 		pStep->status = COMMAND_STAT_ACTIVE;
 	}
@@ -340,7 +348,6 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pStep->status = PTN_STEP_FIN;
 		}
 		v_out = pStep->_v;
-		return v_out;
 	}break;
 		//#	振れ位相待ち２方向
 	case CTR_TYPE_DOUBLE_PHASE_WAIT: {
@@ -374,16 +381,19 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		//正転開始用位相判定
 		double chk_ph = PI360;
 		if ((pStep->opt_d[MOTHION_OPT_PHASE_F] <= 0) && (pSway_IO->ph[motion] >= 0)) {	//目標が負　現在値が正
-			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_F] - PI180;	//+で現在値が目標追い越し
+			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_F];
+			if (chk_ph >= PI180) chk_ph = PI360 - chk_ph;	//小さい方の角度差
 		}
 		else if ((pStep->opt_d[MOTHION_OPT_PHASE_F] >= 0) && (pSway_IO->ph[motion] <= 0)) {	//目標が正　現在値が負
-			chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion] - PI180;	//+で現在値が目標追い越し
+			chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion];
+			if (chk_ph >= PI180) chk_ph = PI360 - chk_ph;	//小さい方の角度差
+		}
+		else if (pStep->opt_d[MOTHION_OPT_PHASE_F] > pSway_IO->ph[motion]) {
+			chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion];
 		}
 		else {
-			double chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion];	//+で現在値が目標追い越し
+			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_R];
 		}
-		if (chk_ph < 0)chk_ph *= -1.0;			//角度差絶対値
-		if (chk_ph >= PI180) chk_ph -= PI360;	//小さい方の角度差
 
 		if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
 			pStep->status = PTN_STEP_FIN;
@@ -392,18 +402,21 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		}
 
 		//逆転開始用位相判定
-
+		chk_ph = PI360;
 		if ((pStep->opt_d[MOTHION_OPT_PHASE_R] <= 0) && (pSway_IO->ph[motion] >= 0)) {	//目標が負　現在値が正
-			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_R] - PI180;	//+で現在値が目標追い越し
+			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_R];
+			if (chk_ph >= PI180) chk_ph = PI360 - chk_ph;	//小さい方の角度差
 		}
 		else if ((pStep->opt_d[MOTHION_OPT_PHASE_R] >= 0) && (pSway_IO->ph[motion] <= 0)) {	//目標が正　現在値が負
-			chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion] - PI180;	//+で現在値が目標追い越し
+			chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion];	
+			if (chk_ph >= PI180) chk_ph = PI360 - chk_ph;	//小さい方の角度差
+		}
+		else if(pStep->opt_d[MOTHION_OPT_PHASE_R] > pSway_IO->ph[motion]){
+			chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion];
 		}
 		else {
-			double chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion];	//+で現在値が目標追い越し
+			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_R];
 		}
-		if (chk_ph < 0)chk_ph *= -1.0;			//角度差絶対値
-		if (chk_ph >= PI180) chk_ph -= PI360;	//小さい方の角度差
 		if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
 			pStep->status = PTN_STEP_FIN;
 			pstat->direction = AGENT_REW;
@@ -439,48 +452,41 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			break;
 		}
 
+
 		//メイン判定
-		double chk_ph = PI360;
-		if (pAgentInf->gap_from_target[motion] > 0.0) {	//目標位置よりも現在位置が手前
-			//正転開始用位相判定
+		//正転開始用位相判定
+		int dir;
+		double target_ph;
 
-			if ((pStep->opt_d[MOTHION_OPT_PHASE_F] <= 0) && (pSway_IO->ph[motion] >= 0)) {	//目標が負　現在値が正
-				chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_F] - PI180;	//+で現在値が目標追い越し
-			}
-			else if ((pStep->opt_d[MOTHION_OPT_PHASE_F] >= 0) && (pSway_IO->ph[motion] <= 0)) {	//目標が正　現在値が負
-				chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion] - PI180;	//+で現在値が目標追い越し
-			}
-			else {
-				double chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion];	//+で現在値が目標追い越し
-			}
-			if (chk_ph < 0)chk_ph *= -1.0;			//角度差絶対値
-			if (chk_ph >= PI180) chk_ph -= PI360;	//小さい方の角度差
-
-			if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
-				pStep->status = PTN_STEP_FIN;
-				pstat->direction = AGENT_FWD;
-				break;
-			}
+		if (pPLC_IO->status.pos[motion] < pAgentInf->pos_target[motion]) {//目標位置より手前
+			dir = AGENT_FWD;
+			target_ph = pStep->opt_d[MOTHION_OPT_PHASE_F];
 		}
 		else {
-			//逆転開始用位相判定
+			dir = AGENT_REW;
+			target_ph = pStep->opt_d[MOTHION_OPT_PHASE_R];
+		}
 
-			if ((pStep->opt_d[MOTHION_OPT_PHASE_R] <= 0) && (pSway_IO->ph[motion] >= 0)) {	//目標が負　現在値が正
-				chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_R] - PI180;	//+で現在値が目標追い越し
-			}
-			else if ((pStep->opt_d[MOTHION_OPT_PHASE_R] >= 0) && (pSway_IO->ph[motion] <= 0)) {	//目標が正　現在値が負
-				chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion] - PI180;	//+で現在値が目標追い越し
-			}
-			else {
-				double chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_R] - pSway_IO->ph[motion];	//+で現在値が目標追い越し
-			}
-			if (chk_ph < 0)chk_ph *= -1.0;			//角度差絶対値
-			if (chk_ph >= PI180) chk_ph -= PI360;	//小さい方の角度差
-			if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
-				pStep->status = PTN_STEP_FIN;
-				pstat->direction = AGENT_REW;
-				break;
-			}
+		double chk_ph = PI360;
+		if ((target_ph <= 0) && (pSway_IO->ph[motion] >= 0)) {	//目標が負　現在値が正
+			chk_ph = pSway_IO->ph[motion] - target_ph;
+			if (chk_ph >= PI180) chk_ph = PI360 - chk_ph;	//小さい方の角度差
+		}
+		else if ((target_ph >= 0) && (pSway_IO->ph[motion] <= 0)) {	//目標が正　現在値が負
+			chk_ph = target_ph - pSway_IO->ph[motion];
+			if (chk_ph >= PI180) chk_ph = PI360 - chk_ph;	//小さい方の角度差
+		}
+		else if (target_ph > pSway_IO->ph[motion]) {
+			chk_ph = target_ph - pSway_IO->ph[motion];
+		}
+		else {
+			chk_ph = pSway_IO->ph[motion] - target_ph;
+		}
+
+		if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
+			pStep->status = PTN_STEP_FIN;
+			pstat->direction = dir;
+			break;
 		}
 
 	}break;
@@ -617,6 +623,8 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	if (pStep->status == PTN_STEP_FIN) {
 		pstat->iAct++;
 		pstat->step_act_count = 0;
+		if (pstat->iAct >= precipe->n_step)
+			pstat->status = COMMAND_STAT_END;
 	}
 	return v_out;
 }
@@ -667,7 +675,12 @@ bool CAgent::can_auto_trigger()
 		if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
 			//引込,旋回の0速確認で起動可
 			if (AgentInf_workbuf.is_spdfb_0[ID_SLEW] && AgentInf_workbuf.is_spdfb_0[ID_BOOM_H]) {
-				return true;
+				if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] > pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_TRIGGER])
+					|| (AgentInf_workbuf.sway_amp2m[ID_SLEW] > pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_TRIGGER])
+					|| (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] > pCraneStat->spec.as_pos2_level[ID_BOOM_H][ID_LV_TRIGGER])
+					|| (AgentInf_workbuf.gap2_from_target[ID_SLEW] > pCraneStat->spec.as_pos2_level[ID_SLEW][ID_LV_TRIGGER])){
+					return true;
+				}
 			}
 		}
 		else return true;
@@ -683,16 +696,16 @@ bool CAgent::can_auto_trigger()
 /*  自動完了判定															*/
 /****************************************************************************/
 bool CAgent::can_auto_complete() {
-
+		
 	//実行中または実行待ちコマンド有
 	if ((pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_ACTIVE) ||
 		(pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_STANDBY) ||
 		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_ACTIVE) ||
-		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_STANDBY))
+		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_STANDBY)){ 
 		return false;
-	
+	}
 	//振れ止めは振れ振幅小かつ目標位置到着で完了
-	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_ANTI_SWAY) {
+	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_ANTI_SWAY) {
 		if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
 			&& (AgentInf_workbuf.sway_amp2m[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE])
 			&& (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
@@ -713,9 +726,7 @@ bool CAgent::can_auto_complete() {
 		else 
 			return false;
 	}
-	else;
-
-	return true;
+	else return false;
 }
 
 /****************************************************************************/
@@ -779,7 +790,13 @@ int CAgent::update_auto_setting() {
 			pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_END;
 		}
 	}
-	else if ((pCraneStat->is_notch_0[ID_SLEW] == false || pCraneStat->is_notch_0[ID_BOOM_H]) == false) {
+	else if (can_auto_complete()) {
+		pCom->com_status = COMMAND_STAT_END;
+		pCom = NULL;
+		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+		set_auto_active(AUTO_TYPE_MANUAL);
+	}
+	else if ((pCraneStat->is_notch_0[ID_SLEW] == false) || (pCraneStat->is_notch_0[ID_BOOM_H]) == false) {
 		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
 			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 			set_auto_active(AUTO_TYPE_MANUAL);
@@ -871,14 +888,6 @@ int CAgent::update_auto_setting() {
 			pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_END;
 	}
 
-	//自動完了判定
-	if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
-		if (can_auto_complete()) {
-			pCom = NULL;
-			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-			set_auto_active(AUTO_TYPE_MANUAL);
-		}
-	}
 	return 0;
 };
 

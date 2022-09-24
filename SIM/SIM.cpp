@@ -29,8 +29,8 @@ CSharedMem*  pCSInfObj;
 CSharedMem* pPolicyInfObj;
 CSharedMem* pAgentInfObj;
 
-
-//# ステータスバーのウィンドウのハンドル
+double sim_dt = SYSTEM_TICK_ms * 0.001;
+//# ステータスバーのウィンドウのハン ドル
 static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
 static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
 
@@ -327,7 +327,8 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
     count_last = count_now;
 
     if (time > 1.0 || time < -0.0) { time = 1.0; }
-    pProcObj->set_dt(time);     //サンプリング時間セット
+    //pProcObj->set_dt(time);     //サンプリング時間セット
+    pProcObj->set_dt(sim_dt);     //サンプリング時間セット
     pProcObj->input();          //入力
     pProcObj->parse();          //データ解析処理
     pProcObj->output();         //出力

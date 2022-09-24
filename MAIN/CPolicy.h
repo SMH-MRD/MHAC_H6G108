@@ -9,9 +9,9 @@
 #define POLICY_REQ_JOB          0x00000004
 #define POLICY_REQ_DEBUG        0x00000008
 
-#define POLICY_TYPE_AS          0
-#define POLICY_TYPE_SEMI        1
-#define POLICY_TYPE_JOB         2
+//#define POLICY_TYPE_AS          0
+//#define POLICY_TYPE_SEMI        1
+//#define POLICY_TYPE_JOB         2
 
 #define N_AS_PTN                8
 #define AS_PTN_0                0
