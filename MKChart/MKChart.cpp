@@ -240,7 +240,7 @@ int CMKChart::init_chart(int chartID) {
 	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH1] = hpens[MK_CHART_RED];
 	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH2] = hpens[MK_CHART_GREEN];
 	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH3] = hpens[MK_CHART_BLUE];
-	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH4] = hpens[MK_CHART_YELLOW];
+	mkchartset[chartID].hpen[MK_CHART2][MK_GRAPH4] = hpens[MK_CHART_MAGENDA];
 
 	mkchartset[chartID].hbrush[MK_CHART1][MK_GRAPH1] = hbrushes[MK_CHART_RED];
 	mkchartset[chartID].hbrush[MK_CHART1][MK_GRAPH2] = hbrushes[MK_CHART_GREEN];
@@ -249,7 +249,7 @@ int CMKChart::init_chart(int chartID) {
 	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH1] = hbrushes[MK_CHART_RED];
 	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH2] = hbrushes[MK_CHART_GREEN];
 	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH3] = hbrushes[MK_CHART_BLUE];
-	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH4] = hbrushes[MK_CHART_YELLOW];
+	mkchartset[chartID].hbrush[MK_CHART2][MK_GRAPH4] = hbrushes[MK_CHART_MAGENDA];
 
 
 

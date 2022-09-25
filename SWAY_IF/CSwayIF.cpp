@@ -163,10 +163,10 @@ int CSwayIF::parse_sway_stat(int ID) {
 
     //振角　振角速度　振幅　位相　
 	//    カメラ位置からの振れ角＝カメラ検出角＋取付オフセット  
-    sway_io_workbuf.th[ID_SLEW] = psix + offset_thx;
+    sway_io_workbuf.th[ID_SLEW] = (psix + offset_thx);//接線方向は、旋回速度＋方向が+
     sway_io_workbuf.th[ID_BOOM_H] = psiy + offset_thy;
 
-    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].dth_x) / dx;  // radに変換
+    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].dth_x) / dx;  // radに変換　接線方向は、旋回速度＋方向が+
     sway_io_workbuf.dth[ID_BOOM_H] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].dth_y) / dy;// radに変換
 
     sway_io_workbuf.dthw[ID_SLEW] = sway_io_workbuf.dth[ID_SLEW] / w;

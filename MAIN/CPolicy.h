@@ -94,6 +94,7 @@ private:
     int set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion);
     int set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion);
     int set_recipe3step(LPST_MOTION_RECIPE precipe, int motion);
+    int set_recipe0step(LPST_MOTION_RECIPE precipe, int motion);
      
    //タブパネルのStaticテキストを設定
    void set_panel_tip_txt();

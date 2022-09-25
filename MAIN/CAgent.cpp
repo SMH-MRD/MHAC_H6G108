@@ -246,13 +246,13 @@ int CAgent::set_ref_slew(){
 				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
 			}
 
-			AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
+		//	AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
 		} 
 	}
 	else {
 		AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
 	}
-	
+
 	return 0;
 }
 /****************************************************************************/
@@ -377,6 +377,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			break;
 		}
 
+
 		//メイン判定
 		//正転開始用位相判定
 		double chk_ph = PI360;
@@ -392,12 +393,14 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			chk_ph = pStep->opt_d[MOTHION_OPT_PHASE_F] - pSway_IO->ph[motion];
 		}
 		else {
-			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_R];
+			chk_ph = pSway_IO->ph[motion] - pStep->opt_d[MOTHION_OPT_PHASE_F];
 		}
 
 		if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
 			pStep->status = PTN_STEP_FIN;
 			pstat->direction = AGENT_FWD;
+			if (motion == ID_SLEW)
+				v_out += 0.0;
 			break;
 		}
 
@@ -420,6 +423,8 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		if (chk_ph < ph_chk_range[motion]) {	//目標位相に到達
 			pStep->status = PTN_STEP_FIN;
 			pstat->direction = AGENT_REW;
+			if (motion == ID_SLEW)
+				v_out += 0.0;
 			break;
 		}
 
@@ -454,7 +459,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 
 
 		//メイン判定
-		//正転開始用位相判定
+		//開始用位相判定
 		int dir;
 		double target_ph;
 
@@ -523,7 +528,9 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	}break;
 	//#	振れ止め加速
 	case CTR_TYPE_ACC_AS: {
-		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+		if (pstat->step_act_count >= pStep->time_count) {
+			pStep->status = PTN_STEP_FIN;
+		}
 		v_out = (double)pstat->direction * pStep->_v;
 
 	}break;
@@ -626,6 +633,13 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		if (pstat->iAct >= precipe->n_step)
 			pstat->status = COMMAND_STAT_END;
 	}
+	if ((pStep->status == PTN_STEP_ERROR)||(pStep->status == PTN_STEP_TIME_OVER)) {
+		pstat->iAct++;
+		pstat->step_act_count = 0;
+		if (pstat->iAct >= precipe->n_step)
+			pstat->status = COMMAND_STAT_END;
+	}
+
 	return v_out;
 }
 
@@ -776,7 +790,7 @@ void CAgent::set_auto_active(int type) {
 }
 
 /****************************************************************************/
-/*  実行自動タイプ（全体）セット,　自動レシピセット											*/
+/*  実行自動タイプ（全体）セット,　手動時目標位置セット,自動レシピセット	*/
 /****************************************************************************/
 int CAgent::update_auto_setting() {
 	
@@ -847,6 +861,11 @@ int CAgent::update_auto_setting() {
 	if (pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_ACTIVE) {
 		bool is_active_motion_there = false;
 		for (int i = 0; i < MOTION_ID_MAX;i++) {
+			
+			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_END) {
+				AgentInf_workbuf.auto_active[i] = AUTO_TYPE_MANUAL; //軸モードをマニュアルに
+			}
+
 			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_ERROR)
 				pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_ERROR;
 			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_ABORT)
@@ -855,20 +874,22 @@ int CAgent::update_auto_setting() {
 				pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_PAUSE;
 			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_ACTIVE) {
 				is_active_motion_there = true;
-				break;
 			}
 			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_STANDBY) {
 				is_active_motion_there = true;
-				break;
 			}
 		}
 		if (is_active_motion_there == false)
 			pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_END;
+
 	}
 
 	if (pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_ACTIVE) {
 		bool is_active_motion_there = false;
 		for (int i = 0; i < MOTION_ID_MAX;i++) {
+			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_END) {
+				AgentInf_workbuf.auto_active[i] = AUTO_TYPE_MANUAL; //軸モードをマニュアルに
+			}
 			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_ERROR)
 				pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_ERROR;
 			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_ABORT)
@@ -877,11 +898,9 @@ int CAgent::update_auto_setting() {
 				pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_PAUSE;
 			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_ACTIVE) {
 				is_active_motion_there = true;
-				break;
 			}
 			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_STANDBY) {
 				is_active_motion_there = true;
-				break;
 			}
 		}
 		if (is_active_motion_there == false)

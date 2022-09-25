@@ -178,6 +178,7 @@ int  CPolicy::update_com_status(LPST_COMMAND_SET pcom) {
 
 /****************************************************************************/
 /*　　パターン計算用の素材データ計算,セット									*/
+/*　　目標位置,目標までの距離,最大速度,加速度,加速時間,加速振れ中心,振れ振幅*/
 /****************************************************************************/
 int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 
@@ -206,12 +207,9 @@ int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 	st_work.acc_time2Vmax[motion] = st_work.vmax[motion] / st_work.a[motion];
 
 	//加速時振れ中心
-	//st_work.pp_th0[motion][ACC] = pCraneStat->spec.accdec[motion][FWD][ACC] / pCraneStat->w2;
-	//st_work.pp_th0[motion][DEC] = pCraneStat->spec.accdec[motion][FWD][DEC] / pCraneStat->w2;
-
 	st_work.pp_th0[motion][ACC] = pCraneStat->spec.accdec[motion][FWD][ACC] / GA;
 	st_work.pp_th0[motion][DEC] = pCraneStat->spec.accdec[motion][FWD][DEC] / GA;
-	if (motion == ID_SLEW) { //旋回の加速度はRθで計算
+	if (motion == ID_SLEW) { //旋回の加速度はRθで計算 取り敢えず半径は変化は無い前提とする
 		double R = pPLC_IO->status.pos[ID_BOOM_H];
 		st_work.pp_th0[motion][ACC] *= R;
 		st_work.pp_th0[motion][DEC] *= R;
@@ -244,17 +242,20 @@ void CPolicy::set_as_gain(int motion, int as_type) {
 	r = st_work.r[motion];	//振幅評価値
 	r0 = st_work.pp_th0[motion][ACC];	//加速時振中心
 	w = pCraneStat->w;
-	a = st_work.a[motion];			//ここの加速度はSLEWはrad/s2で良い　振れ中心は半径考慮済
-	vmax = st_work.vmax[motion];	//ここの加速度はSLEWはrad/sで良い
-	acc_time2Vmax = st_work.acc_time2Vmax[motion];
+	a = st_work.a[motion];							//ここの加速度SLEWはrad/s2で良い（半径未考慮）　r0振れ中心は半径考慮済
+	vmax = st_work.vmax[motion];					//ここの速度SLEWはrad/sで良い（半径未考慮）
+	acc_time2Vmax = st_work.acc_time2Vmax[motion];	//加速時間最大値
 	l = pCraneStat->mh_l;
 
 	if (as_type == AS_PTN_1STEP) {	// 1STEP
-		max_th_of_as = r0 * 4.0; //1 STEPのロジックで制御可能な振れ振幅限界値　4r0
+		max_th_of_as = r0 * 2.0; //1 STEPのロジックで制御可能な振れ振幅限界値　2r0
 		//ゲイン計算用R0を設定（上限リミット）
-		if (r > max_th_of_as) r = max_th_of_as;
-		if (r > acc_time2Vmax * w) r = acc_time2Vmax * w; //ωtmax
-		st_work.as_gain_phase[motion] = acos(1 - 0.5 * r / r0);
+		if (r >= max_th_of_as) {
+			st_work.as_gain_phase[motion] = PI180;
+		}
+		else {
+			st_work.as_gain_phase[motion] = acos(1 - 0.5 * r / r0);
+		}
 		st_work.as_gain_time[motion] = st_work.as_gain_phase[motion] / w;
 		//最大速度による加速時間制限
 		if (st_work.as_gain_time[motion] > acc_time2Vmax) {
@@ -352,6 +353,27 @@ int CPolicy::set_recipe(LPST_COMMAND_SET pcom, int motion, int ptn) {
 /****************************************************************************/
 /*　　振れ止めパターン　１stepタイプの計算,セット							*/
 /****************************************************************************/
+int CPolicy::set_recipe0step(LPST_MOTION_RECIPE precipe, int motion) {
+
+	LPST_MOTION_STEP pelement;
+
+	st_work.motion_dir[motion] = POLICY_NA;												//移動方向不定(移動方向が実行時に決まる）
+	set_as_gain(motion, AS_PTN_1STEP);													//振れ止めゲイン計算
+	precipe->n_step = 0;																//ステップ数初期化
+	precipe->motion_type = AS_PTN_0;
+
+	//Step 1　動作停止待機
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
+		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為
+		pelement->_t = 0.0;																// パターン出力調整時間
+		pelement->_v = 0.0;																// 開始時速度 
+	}
+	return AS_PTN_OK;
+}
+/****************************************************************************/
+/*　　振れ止めパターン　１stepタイプの計算,セット							*/
+/****************************************************************************/
 int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) { 
 	
 	LPST_MOTION_STEP pelement;
@@ -363,19 +385,50 @@ int CPolicy::set_recipe1step(LPST_MOTION_RECIPE precipe, int motion) {
 		
 	//Step 1　位相待ち
 	{	pelement = &(precipe->steps[precipe->n_step++]);
-		pelement->type = CTR_TYPE_DOUBLE_PHASE_WAIT;									// 2POINT 早く到達する方を待つ
-		pelement->_p = st_work.pos[motion];												// 目標位置(開始時位置）
-		pelement->_t = 2.0*st_work.T;													// 予定時間(２周期以内）
+		pelement->type = CTR_TYPE_SINGLE_PHASE_WAIT;										// 目標に向かう方向の位相を待つ
+		pelement->_p = st_work.pos[motion];													// 目標位置(開始時位置）
+		pelement->_t = 2.0*st_work.T;														// 予定時間(２周期以内）
 		pelement->_v = 0.0;
-		if (st_work.as_gain_phase[motion] > PI180) {
-			pelement->opt_d[MOTHION_OPT_PHASE_F] = st_work.as_gain_phase[motion] - PI360;	// プラス加速用位相
-			pelement->opt_d[MOTHION_OPT_PHASE_R] = st_work.as_gain_phase[motion] - PI180;	// マイナス加速用位相
+		if (motion == ID_SLEW) {															//旋回は、振れ方向と移動方向の向きが逆
+			if (st_work.as_gain_phase[motion] > PI180) {
+				pelement->opt_d[MOTHION_OPT_PHASE_F] = 0;									// プラス加速用位相
+				pelement->opt_d[MOTHION_OPT_PHASE_R] = PI180;								// マイナス加速用位相
+			}
+			else {
+				pelement->opt_d[MOTHION_OPT_PHASE_F] = st_work.as_gain_phase[motion]-PI180;	// プラス加速用位相
+				pelement->opt_d[MOTHION_OPT_PHASE_R] = st_work.as_gain_phase[motion];		// マイナス加速用位相
+			}
 		}
 		else {
-			pelement->opt_d[MOTHION_OPT_PHASE_F] = st_work.as_gain_phase[motion];			// プラス加速用位相
-			pelement->opt_d[MOTHION_OPT_PHASE_R] = st_work.as_gain_phase[motion] - PI180;	// マイナス加速用位相
+			if (st_work.as_gain_phase[motion] > PI180) {
+				pelement->opt_d[MOTHION_OPT_PHASE_F] = PI180;								// プラス加速用位相
+				pelement->opt_d[MOTHION_OPT_PHASE_R] = 0;									// マイナス加速用位相
+			}
+			else {
+				pelement->opt_d[MOTHION_OPT_PHASE_F] = st_work.as_gain_phase[motion];		// プラス加速用位相
+				pelement->opt_d[MOTHION_OPT_PHASE_R] = st_work.as_gain_phase[motion] - PI180;	// マイナス加速用位相
+			}
 		}
 
+
+/*
+		double ph = w * acc_time2Vmax;
+		if (ph < PI180) {
+			double sin2ph = sin(ph) * sin(ph);
+			double r0_R = r0 / r;
+			double costh = r0_R * sin2ph;
+			if (ph < PI90) {
+				costh += sqrt((1 - sin2ph) * (1 - r0_R * r0_R * sin2ph));
+			}
+			else {
+				costh -= sqrt((1 - sin2ph) * (1 - r0_R * r0_R * sin2ph));
+			}
+			st_work.as_gain_phase[motion] = acos(costh);
+		}
+		else {
+			st_work.as_gain_phase[motion] = PI180;
+		}
+*/
 	}
 	//Step 2　加速
 	{	pelement = &(precipe->steps[precipe->n_step++]);

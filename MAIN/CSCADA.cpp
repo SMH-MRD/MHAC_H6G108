@@ -595,7 +595,7 @@ int CSCADA::set_chart_data(int iptn) {
 		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH1, false, &(pSway_IO->amp2[ID_SLEW]), 25 * PI1DEG * PI1DEG);
 
 		//Graph3
-		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH3, false, &(pSway_IO->th[ID_SLEW]), PI15);
+		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH2, false, &(pSway_IO->th[ID_SLEW]), PI15);
 
 		//Graph3
 		set_graph_double(MK_WND_TYPE_TIME_GRAPH, MK_CHART2, MK_GRAPH3, false, &(pAgentInf->v_ref[ID_SLEW]), pCraneStat->spec.notch_spd_f[ID_SLEW][NOTCH_5]);
