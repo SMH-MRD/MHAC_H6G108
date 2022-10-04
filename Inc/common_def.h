@@ -22,9 +22,11 @@
 #define PI360           6.2832      //2ƒÎ
 #define PI330           5.7596   
 #define PI315           5.4978
-#define PI300           5.2360 
-#define PI270           4.7124      
 #define PI180           3.1416      //ƒÎ
+#define PI165           2.8798
+#define PI150           2.6180
+#define PI135           2.3562
+#define PI120           2.0944
 #define PI90            1.5708
 #define PI60            1.0472
 #define PI45            0.7854

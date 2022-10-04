@@ -6,8 +6,10 @@
 #include "CSwayIF.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
+#include <winsock2.h>
 #include <windowsx.h>       //# コモンコントロール用
 #include <commctrl.h>       //# コモンコントロール用
+
 
 #define MAX_LOADSTRING 100
 
@@ -22,12 +24,22 @@ DWORD* psource_proc_counter = NULL;             //メインプロセスのヘル
 
 CSwayIF* pProcObj;          //メイン処理オブジェクト:
 
+WSADATA wsaData;
+SOCKET s;
+SOCKADDR_IN addrin;
+SOCKADDR_IN from;
+int fromlen;
+int nRtn;
+u_short port;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+int sock_init();
+int sock_close();
 
 //# ウィンドウにステータスバーを追加
 HWND CreateStatusbarMain(HWND hWnd);
@@ -45,7 +57,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: ここにコードを挿入してください。
-
+ 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_SWAYIF, szWindowClass, MAX_LOADSTRING);
@@ -136,6 +148,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
    SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
 
+   //通信ソケット初期化
+   sock_init();
+   
    // タスクループ処理起動マルチメディアタイマ起動
    {
        // --マルチメディアタイマ精度設定
@@ -315,6 +330,8 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
     pProcObj->parse();      //データ解析処理
     pProcObj->output();    //出力
 
+  
+
     //Statusバーにメインプロセスのカウンタ表示
     if (psource_proc_counter != NULL) {
         if (knl_manage_set.sys_counter % 40 == 0) {// 1000msec毎
@@ -325,4 +342,35 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
 
     return;
 }
+
+int sock_init() {
+    //WinSockの初期化
+    if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) 
+        return -1;
+    //ソケットをオープン
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s < 0) {
+        WSACleanup();
+        return -2;
+    }
+    memset(&addrin, 0, sizeof(addrin));
+    addrin.sin_port = htons(port);
+    addrin.sin_family = AF_INET;
+    addrin.sin_addr.s_addr = htonl(INADDR_ANY);
+    //ソケットに名前を付ける
+    nRtn = bind(s, (LPSOCKADDR)&addrin, (int)sizeof(addrin));
+    if (nRtn == SOCKET_ERROR) {
+        closesocket(s);
+        WSACleanup();
+        return -3;
+    }
+    return 0;
+
+}
+int sock_close() {
+    closesocket(s);
+    WSACleanup();
+    return 0;
+}
+
 

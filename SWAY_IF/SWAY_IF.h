@@ -20,6 +20,8 @@
 #define IDC_PB_EXIT					2302
 #define IDC_PB_DEBUG				2303
 
+#define MSG_SENSOR_SOCK				2310	//WinSockイベントメッセージ
+
 
 //メインウィンドウ管理構造体
 typedef struct stMainWndTag {

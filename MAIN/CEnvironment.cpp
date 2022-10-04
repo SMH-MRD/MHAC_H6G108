@@ -211,12 +211,12 @@ int CEnvironment::parse_for_auto_ctrl() {
 
 		//目標位置更新
 		if (stWorkCraneStat.semi_auto_pb_count[i] == 100) {//半自動目標位置更新
-			for (int j = 0;j < NUM_OF_AS_AXIS;j++)
-				stWorkCraneStat.semi_auto_setting_target[i][j] = pPLC_IO->status.pos[j];
+//デバッグ時解除			for (int j = 0;j < NUM_OF_AS_AXIS;j++)
+//								stWorkCraneStat.semi_auto_setting_target[i][j] = pPLC_IO->status.pos[j];
 		}
 
 		//目標設定
-		if (stWorkCraneStat.semi_auto_pb_count[i] == 40) {//半自動目標設定
+		if (stWorkCraneStat.semi_auto_pb_count[i] == 20) {//半自動目標設定
 			if (i == stWorkCraneStat.semi_auto_selected)//設定中のボタンを押したら解除
 				stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
 			else

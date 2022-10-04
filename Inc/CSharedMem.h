@@ -240,7 +240,7 @@ typedef struct StCraneStatus {
 	ST_SPEC spec;															//クレーン仕様
 	WORD operation_mode;													//運転モード　機上,リモート
 
-	int	 auto_standby;														//自動モード
+	bool	auto_standby;													//自動モード
 	double semi_auto_setting_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];	//半自動設定目標位置
 	int	 semi_auto_selected;												//半自動選択ID
 	int	 semi_auto_pb_count[SEMI_AUTO_TARGET_MAX];							//半自動PB　ONカウント
@@ -349,23 +349,23 @@ typedef struct stJobSet {
 
 
 // Control Type
-#define CTR_TYPE_TIME_WAIT					0x0000  //待機（時間経過待ち）
-#define CTR_TYPE_SINGLE_PHASE_WAIT			0x0001  //位相待ち１カ所(振れ止め用）
-#define CTR_TYPE_DOUBLE_PHASE_WAIT			0x0002  //位相待ち２カ所(振れ止め用）
-#define CTR_TYPE_OTHER_POS_WAIT				0x0003	//他軸位置到達待ち
-#define CTR_TYPE_ADJUST_MOTION_TRIGGER		0x0004	//動作起動調整(振れ止め移動用）
+#define CTR_TYPE_TIME_WAIT					1  //待機（時間経過待ち）
+#define CTR_TYPE_SINGLE_PHASE_WAIT			2  //位相待ち１カ所(振れ止め用）
+#define CTR_TYPE_DOUBLE_PHASE_WAIT			3  //位相待ち２カ所(振れ止め用）
+#define CTR_TYPE_OTHER_POS_WAIT				4	//他軸位置到達待ち
+#define CTR_TYPE_ADJUST_MOTION_TRIGGER		5	//動作起動調整(振れ止め移動用）
 
-#define CTR_TYPE_CONST_V_TIME				0x0100  //定速固定時間出力
-#define CTR_TYPE_CONST_V_ACC_STEP			0x0101  //定速出力 加速中
-#define CTR_TYPE_CONST_V_DEC_STEP			0x0102  //定速出力 減速中
-#define CTR_TYPE_CONST_V_TOP_STEP			0x0103  //定速出力 トップ速度
-#define CTR_TYPE_FINE_POSITION				0x0104	//微小位置合わせ
+#define CTR_TYPE_CONST_V_TIME				10  //定速固定時間出力
+#define CTR_TYPE_CONST_V_ACC_STEP			11  //定速出力 加速中
+#define CTR_TYPE_CONST_V_DEC_STEP			12  //定速出力 減速中
+#define CTR_TYPE_CONST_V_TOP_STEP			13  //定速出力 トップ速度
+#define CTR_TYPE_FINE_POSITION				14	//微小位置合わせ
 
-#define CTR_TYPE_ACC_TIME					0x0200  //Specified time acceleration
-#define CTR_TYPE_ACC_V						0x0201  //Toward specified speed acceleration
-#define CTR_TYPE_ACC_AS						0x0203	//振れ止め加速
-#define CTR_TYPE_DEC_TIME					0x0300  //Specified time deceleration
-#define CTR_TYPE_DEC_V						0x0301  //Toward specified speed deceleration
+#define CTR_TYPE_ACC_TIME					20  //Specified time acceleration
+#define CTR_TYPE_ACC_V						21  //Toward specified speed acceleration
+#define CTR_TYPE_ACC_AS						23	//振れ止め加速
+#define CTR_TYPE_DEC_TIME					30  //Specified time deceleration
+#define CTR_TYPE_DEC_V						31  //Toward specified speed deceleration
 
 
 #define PTN_CONFIRMATION_TIME				0.1		//パターン出力調整時間
@@ -512,6 +512,7 @@ typedef struct stAgentInfo {
 	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
 	double pos_target[MOTION_ID_MAX];				//位置決め目標位置
 	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め速度FB条件
+	bool be_hold_target[MOTION_ID_MAX];			//振れ止め速度FB条件
 	double gap_from_target[MOTION_ID_MAX];			//目標位置からのずれ
 	double gap2_from_target[MOTION_ID_MAX];			//目標位置からのずれ2乗
 	double sway_amp2m[MOTION_ID_MAX];				//振れ振幅の2乗m2

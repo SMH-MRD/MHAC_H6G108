@@ -171,7 +171,7 @@ typedef struct StSpec {
 	//構造寸法
 	double boom_high = 25.0, wheel_span = 20.0, leg_span = 15.0;// ブーム高さ,ホイルスパン,脚間スパン
 	//極限
-	double hoist_pos_min = -10.0, hoist_pos_max = 20.0, boom_pos_min = 5.0, boom_pos_max = 20.0, gantry_pos_min = 0.0, gantry_pos_max = 300.0;
+	double hoist_pos_min = -10.0, hoist_pos_max = 20.0, boom_pos_min = 5.0, boom_pos_max = 28.0, gantry_pos_min = 0.0, gantry_pos_max = 300.0;
 	//吊具荷重
 	double m_loard0 = 1000;	//吊具質量kg
 	//振れセンサ
@@ -205,13 +205,13 @@ typedef struct StSpec {
 	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX]{//半自動デフォルト目標位置
 	//	HST,	GNT,	TRY,	BH,		SLW,	OPR,	ASSY,	COM
 		{10.0,	0.0,	0.0,	8.0,	0.0,	0.0,	0.0,	0.0},
-		{5.0,	0.0,	0.0,	20.0,	PI30,	0.0,	0.0,	0.0},
-		{18.0,	0.0,	0.0,	21.0,	PI90,	0.0,	0.0,	0.0},
-		{20.0,	0.0,	0.0,	27.0,	PI180,	0.0,	0.0,	0.0},
-		{3.0,	0.0,	0.0,	15.0,	-PI45,	0.0,	0.0,	0.0},
+		{5.0,	0.0,	0.0,	25.0,	0.0,	0.0,	0.0,	0.0},
+		{18.0,	0.0,	0.0,	25.0,	PI180,	0.0,	0.0,	0.0},
+		{20.0,	0.0,	0.0,	25.0,	-PI90,	0.0,	0.0,	0.0},
+		{3.0,	0.0,	0.0,	5.0,	-PI90,	0.0,	0.0,	0.0},
 		{15.0,	0.0,	0.0,	18.0,	-PI60,	0.0,	0.0,	0.0},
 		{-3.0,	0.0,	0.0,	10.0,	-PI90,	0.0,	0.0,	0.0},
-		{-5.0,	0.0,	0.0,	15.0,	-PI270,	0.0,	0.0,	0.0}
+		{-5.0,	0.0,	0.0,	15.0,	-PI150,	0.0,	0.0,	0.0}
 	};
 
 }ST_SPEC, * LPST_SPEC;

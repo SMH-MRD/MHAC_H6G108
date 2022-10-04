@@ -16,6 +16,7 @@
 #define N_AS_PTN                8
 #define AS_PTN_0                0
 #define AS_PTN_1STEP            1
+#define AS_PTN_2STEP            2
 #define AS_PTN_2PP              2
 #define AS_PTN_2PN              3
 #define AS_PTN_2ACCDEC          4
