@@ -64,10 +64,17 @@ typedef struct st_PLCwriteW_tag {
 #define MELSEC_NET_CODE_SD          14  //デバイスコード
 #define MELSEC_NET_CODE_SW          14  //デバイスコード
 
-#define N_PLC_W_OUT_WORD        128   //PLC LINK PLC出力WORD数
-#define N_PLC_B_OUT_WORD        16    //PLC LINK PLC出力WORD数
-#define N_PC_W_OUT_WORD         80   //PLC LINK PLC出力WORD数
-#define N_PC_B_OUT_WORD         16    //PLC LINK PLC出力WORD数
+#define N_PLC_W_OUT_WORD            128   //PLC LINK PLC出力WORD数
+#define N_PLC_B_OUT_WORD            16    //PLC LINK PLC出力WORD数
+#define N_PC_W_OUT_WORD             80   //PLC LINK PLC出力WORD数
+#define N_PC_B_OUT_WORD             16    //PLC LINK PLC出力WORD数
+
+#define MEL_FORCE_PLC_B             0    //IO強制セットID
+#define MEL_FORCE_PLC_W             1    //IO強制セットID
+#define MEL_FORCE_PC_B              2    //IO強制セットID
+#define MEL_FORCE_PC_W              3    //IO強制セットID
+#define MEL_FORCE_RESET             4    //IO強制セットID
+
 
 typedef struct st_MelsecNet_tag {
     short chan=0;                         //通信回線のチャネルNo.
@@ -84,13 +91,17 @@ typedef struct st_MelsecNet_tag {
 
     long read_size_w;                   //PLC LW書き込みサイズ
     long read_size_b;                   //PLC LB書き込みサイズ
-    INT16 plc_w_out[N_PLC_W_OUT_WORD];  //PC書込バッファW
-    INT16 plc_b_out[N_PLC_B_OUT_WORD];  //PC書込バッファB
+    INT16 plc_w_out[N_PLC_W_OUT_WORD];  //PLC書込バッファW
+    INT16 plc_b_out[N_PLC_B_OUT_WORD];  //PLC書込バッファB
   
     ST_PLC_OUT_BMAP plc_b_map;          //PLC LB書き込みバッファMAP情報
     ST_PLC_OUT_WMAP plc_w_map;          //PLC LW書き込みバッファMAP情報
     ST_PC_OUT_BMAP  pc_b_map;           //PC LB書き込みバッファMAP情報
     ST_PC_OUT_WMAP  pc_w_map;           //PC LW書き込みバッファMAP情報
+
+    bool is_force_set_active[4];        //IO強制セットフラグ
+    WORD forced_dat[4];                 //強制セット値
+    int forced_index[4];                 //強制セット値
 
 }ST_MELSEC_NET, * LPST_MELSEC_NET;
 
@@ -114,13 +125,18 @@ public:
     int set_debug_status(); //デバッグモード時にデバッグパネルウィンドウからの入力で出力内容を上書き
     int set_sim_status();   //デバッグモード時にSimulatorからの入力で出力内容を上書き
     int closeIF();
-    
+ 
+    ST_MELSEC_NET   melnet;
+
+    LPST_MELSEC_NET get_melnet() { return &melnet; }
+
     void set_debug_mode(int id) {
         if (id) mode |= PLC_IF_PC_DBG_MODE;
         else    mode &= ~PLC_IF_PC_DBG_MODE;
     }
 
     int is_debug_mode() { return(mode & PLC_IF_PC_DBG_MODE); }
+    int mel_set_force(int id, bool bset, int index, WORD value);
 
 private:
     //# 出力用共有メモリオブジェクトポインタ:
@@ -130,7 +146,7 @@ private:
     CSharedMem* pSimulationStatusObj;
     CSharedMem* pAgentInfObj;
 
-    ST_MELSEC_NET   melnet;
+ 
     ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ
 
     LPST_SIMULATION_STATUS pSim;    //シミュレータステータス

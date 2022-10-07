@@ -19,6 +19,7 @@
 #define IDC_STATIC_0				2201
 #define IDC_PB_EXIT					2202
 #define IDC_PB_DEBUG				2203
+#define IDC_CHK_IOCHK				2204
 
 
 //メインウィンドウ管理構造体
@@ -27,8 +28,10 @@ typedef struct stMainWndTag {
 	HWND h_static0 = NULL;			//スタティックオブジェクトのハンドル
 	HWND h_pb_exit = NULL;			//ボタンオブジェクトのハンドル
 	HWND h_pb_debug = NULL;			//ボタンオブジェクトのハンドル
+	HWND h_chk_IO = NULL;			//ボタンオブジェクトのハンドル
 
 	HWND hWorkWnd = NULL;			//ワークウィンドウのハンドル
+	HWND hIOWnd = NULL;				//IO Checkウィンドウのハンドル
 
 }ST_MAIN_WND, * LPST_MAIN_WND;
 

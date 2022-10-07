@@ -184,6 +184,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 中止メッセージを表示して戻る
 //
 //
+
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -205,6 +207,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             30, 40, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+
+        stMainWnd.h_chk_IO = CreateWindow(L"BUTTON", L"IO CHECK", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+            150, 40, 100, 30, hWnd, (HMENU)IDC_CHK_IOCHK, hInst, NULL);
     }
     break;
     case WM_COMMAND:
@@ -221,22 +226,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case IDC_PB_DEBUG:
-                if (!(pProcObj->mode & PLC_IF_PC_DBG_MODE)) {
+                if (!(pProcObj->mode & PLC_IF_PC_DBG_MODE)) {    //現在デバッグモードでない　→　デバッグモードへ
                     pProcObj->set_debug_mode(L_ON);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
                     SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT,0, (LPARAM)L"NORMAL->");
                     //オペレーションウィンドウオープン
-                     if (stMainWnd.hWorkWnd == NULL) {
+                     if (stMainWnd.hWorkWnd == NULL) {//既にウィンドウが開いていなければ操作入力用のウィンドウオープン
                         stMainWnd.hWorkWnd = pWorkWnd->open_WorkWnd(hWnd);
                         ShowWindow(stMainWnd.hWorkWnd, SW_SHOW);
                     }
                 }
-                else {
+                else {                                          //現在デバッグモード　→　デバッグモードOFF
                     pProcObj->set_debug_mode(L_OFF);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
                     SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
-                    //オペレーションウィンドウクローズ
-                    if (stMainWnd.hWorkWnd != NULL) {
+                    
+                    if (stMainWnd.hWorkWnd != NULL) {           //オペレーションウィンドウクローズ
                         pWorkWnd->close_WorkWnd();
                         stMainWnd.hWorkWnd = NULL;
                     }
@@ -246,7 +251,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
                 SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
                 break;
-            
+ 
+            case IDC_CHK_IOCHK:
+               
+                if (BST_CHECKED == SendMessage(stMainWnd.h_chk_IO, BM_GETCHECK, 0, 0)) {
+
+                    if (stMainWnd.hIOWnd == NULL){  //既にウィンドウが開いていなければIO check用のウィンドウオープン
+                        stMainWnd.hIOWnd = pWorkWnd->open_IO_Wnd(hWnd);
+                        ShowWindow(stMainWnd.hIOWnd, SW_SHOW);
+                    }
+ 
+                }
+                else {                                         
+                      if (stMainWnd.hIOWnd != NULL) {           //オペレーションウィンドウクローズ
+                          DestroyWindow(stMainWnd.hIOWnd);  //ウィンドウ破棄
+                          stMainWnd.hIOWnd = NULL;
+                    }
+                }
+                break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }

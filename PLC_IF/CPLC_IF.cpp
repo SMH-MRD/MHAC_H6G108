@@ -72,6 +72,12 @@ int CPLC_IF::init_proc() {
 
     pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
+    for (int i = 0;i < 4;i++) {
+        this->melnet.is_force_set_active[i] = false;
+        this->melnet.forced_dat[i] = 0;
+        this->melnet.forced_index[i] = 0;
+    }
+
     //CraneStat立ち上がり待ち
     while (pCrane->is_tasks_standby_ok == false) {
         Sleep(10);
@@ -116,6 +122,9 @@ int CPLC_IF::input() {
 
         if (melnet.err != 0)melnet.status = MELSEC_NET_RECEIVE_ERR;
     }
+    //強制セット
+    if (melnet.is_force_set_active[MEL_FORCE_PLC_B])melnet.plc_b_out[melnet.forced_index[MEL_FORCE_PLC_B]] = melnet.forced_dat[MEL_FORCE_PLC_B];
+    if (melnet.is_force_set_active[MEL_FORCE_PLC_W])melnet.plc_w_out[melnet.forced_index[MEL_FORCE_PLC_W]] = melnet.forced_dat[MEL_FORCE_PLC_W];
       
     //MAINプロセス(Environmentタスクのヘルシー信号取り込み）
     source_counter = pCrane->env_act_count;
@@ -166,6 +175,10 @@ int CPLC_IF::output() {
         memcpy_s(poutput, out_size, &plc_io_workbuf, out_size);
     }
  
+    //強制セット
+    if (melnet.is_force_set_active[MEL_FORCE_PC_B])melnet.pc_b_out[melnet.forced_index[MEL_FORCE_PC_B]] = melnet.forced_dat[MEL_FORCE_PC_B];
+    if (melnet.is_force_set_active[MEL_FORCE_PC_W])melnet.pc_w_out[melnet.forced_index[MEL_FORCE_PC_W]] = melnet.forced_dat[MEL_FORCE_PC_W];
+
     //MELSECNETへの出力処理
     if (melnet.status == MELSEC_NET_OK) {
         //LB書き込み
@@ -659,4 +672,29 @@ int CPLC_IF::parse_sensor_fb() {
     plc_io_workbuf.status.pos[ID_BOOM_H] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_bh_fb[ID_WPOS]] / 10.0;   //m
     plc_io_workbuf.status.pos[ID_SLEW] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_slw_fb[ID_WPOS]] * PI1DEG;  //rad
     return 0;
+}
+
+
+int CPLC_IF::mel_set_force(int id, bool bset, int index, WORD value) {
+
+    if (id < 0 || id >4) return 0;
+
+    if (id == MEL_FORCE_RESET) {
+        for (int i = 0;i < 4;i++) {
+            melnet.is_force_set_active[i] = false;
+            melnet.forced_index[i] = 0;
+            melnet.forced_dat[i] = 0;
+        }
+    }
+    else if (bset == true) {
+        melnet.is_force_set_active[id] =true;
+        melnet.forced_index[id] = index;
+        melnet.forced_dat[id] = value;
+    }
+    else {
+        melnet.is_force_set_active[id] = false;
+        melnet.forced_index[id] = 0;
+        melnet.forced_dat[id] = 0;
+    }
+    return 1;
 }

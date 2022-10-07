@@ -1,5 +1,18 @@
 #pragma once
 
+#define DEVICE_TOP_W_OUT 0x0600
+#define DEVICE_TOP_B_OUT 0x0600
+
+#define DEVICE_TOP_W_IN 0x089c
+#define DEVICE_TOP_B_IN 0x0900
+
+#define DEVICE_END_W_OUT 0x0600
+#define DEVICE_END_B_OUT 0x0600
+
+#define DEVICE_END_W_IN 0x089c
+#define DEVICE_END_B_IN 0x0900
+
+
 #define ALL_BITS    0x0000 //WORDÉfÅ[É^
 #define BIT0        0x0001
 #define BIT1        0x0002
