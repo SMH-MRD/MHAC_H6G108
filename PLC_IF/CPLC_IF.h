@@ -86,13 +86,13 @@ typedef struct st_MelsecNet_tag {
 
     long write_size_w;                  //PC LW書き込みサイズ
     long write_size_b;                  //PC LB書き込みサイズ
-    INT16 pc_w_out[N_PC_W_OUT_WORD];    //PC書込バッファW
-    INT16 pc_b_out[N_PC_B_OUT_WORD];    //PC書込バッファB
+    INT16 pc_w_out[sizeof(ST_PLC_READ_W)];    //PC書込バッファW
+    INT16 pc_b_out[sizeof(ST_PLC_READ_B)];    //PC書込バッファB
 
     long read_size_w;                   //PLC LW書き込みサイズ
     long read_size_b;                   //PLC LB書き込みサイズ
-    INT16 plc_w_out[N_PLC_W_OUT_WORD];  //PLC書込バッファW
-    INT16 plc_b_out[N_PLC_B_OUT_WORD];  //PLC書込バッファB
+    INT16 plc_w_out[sizeof(ST_PLC_WRITE_W)];  //PLC書込バッファW
+    INT16 plc_b_out[sizeof(ST_PLC_WRITE_B)];  //PLC書込バッファB
   
     ST_PLC_OUT_BMAP plc_b_map;          //PLC LB書き込みバッファMAP情報
     ST_PLC_OUT_WMAP plc_w_map;          //PLC LW書き込みバッファMAP情報

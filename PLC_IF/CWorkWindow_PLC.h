@@ -158,7 +158,12 @@ typedef struct stPLCDbugPanelTag {
 #define ID_PLCIO_STATIC_LABEL_5		2326
 #define ID_PLCIO_STATIC_LABEL_6		2327
 #define ID_PLCIO_STATIC_LABEL_7		2328
-#define ID_PLCIO_STATIC_LABEL_OFFSET 2320
+#define ID_PLCIO_STATIC_LABEL_OFFSET 2329
+
+#define ID_PLCIO_STATIC_LABEL_MEL_STAT	2330
+#define ID_PLCIO_STATIC_LABEL_MEL_ERR	2331
+#define ID_PLCIO_STATIC_MEL_STAT		2332
+#define ID_PLCIO_STATIC_MEL_ERR			2333
 
 #define PLCIO_CHK_SEL_WI			0
 #define PLCIO_CHK_SEL_WO			1
@@ -200,6 +205,8 @@ typedef struct _stIOCheckComObj {
 	HWND hwnd_wi_addr_static;					//スタティックテキストのハンドル
 	HWND hwnd_bo_addr_static;					//スタティックテキストのハンドル
 	HWND hwnd_wo_addr_static;					//スタティックテキストのハンドル
+	HWND hwnd_mel_status_static;				//スタティックテキストのハンドル
+	HWND hwnd_mel_err_static;					//スタティックテキストのハンドル
 	
 	int IO_selected;							//操作選択中ＩＯ
 	WORD IO_offset;								//操作選択中ＩＯ
@@ -237,7 +244,7 @@ public:
 	static int update_all_controls(HWND);
 	static int update_IOChk(HWND);
 
-	virtual HWND open_WorkWnd(HWND hwnd_parent);
+	static HWND open_WorkWnd(HWND hwnd_parent);
 	static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);
 
 	HWND open_IO_Wnd(HWND hwnd_parent);

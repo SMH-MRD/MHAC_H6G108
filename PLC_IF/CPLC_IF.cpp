@@ -23,11 +23,11 @@ CPLC_IF::CPLC_IF() {
     melnet.err = 0;
     melnet.status = 0;
     melnet.retry_cnt = MELSEC_NET_RETRY_CNT;
-    melnet.read_size_b = 0;                         //PLCでLWのbitでセットする為LBは未使用
-    melnet.read_size_w = sizeof(ST_PLC_READ_W);
+    melnet.read_size_b = sizeof(ST_PLC_READ_B);                         //PLCでLWのbitでセットする為LBは未使用
+    melnet.read_size_w = sizeof(ST_PLC_READ_W);//192;
     melnet.write_size_b = sizeof(ST_PLC_WRITE_B);
     melnet.write_size_w = sizeof(ST_PLC_WRITE_W);
-    
+
 };
 CPLC_IF::~CPLC_IF() {
     // 共有メモリオブジェクトの解放
@@ -108,7 +108,7 @@ int CPLC_IF::input() {
             MELSEC_NET_SOURCE_STATION,          //局番
             MELSEC_NET_CODE_LB,                 //デバイスタイプ
             MELSEC_NET_B_READ_START,            //先頭デバイス
-            &melnet.read_size_w,                //読み込みバイトサイズ
+            &melnet.read_size_b,                //読み込みバイトサイズ
             melnet.plc_b_out);                   //読み込みバッファ
 
          //W読み込み
@@ -118,8 +118,7 @@ int CPLC_IF::input() {
             MELSEC_NET_CODE_LW,                 //デバイスタイプ
             MELSEC_NET_W_READ_START,            //先頭デバイス
             &melnet.read_size_w,                //読み込みバイトサイズ
-            melnet.pc_w_out);     //読み込みバッファ
-
+            melnet.plc_w_out);     //読み込みバッファ
         if (melnet.err != 0)melnet.status = MELSEC_NET_RECEIVE_ERR;
     }
     //強制セット
@@ -182,6 +181,7 @@ int CPLC_IF::output() {
     //MELSECNETへの出力処理
     if (melnet.status == MELSEC_NET_OK) {
         //LB書き込み
+ //       melnet.pc_b_out[15] = 0xaaaa;
         melnet.err = mdSendEx(melnet.path,  //チャネルのパス
             MELSEC_NET_MY_NW_NO,            //ネットワーク番号   
             MELSEC_NET_MY_STATION,          //局番
@@ -190,6 +190,7 @@ int CPLC_IF::output() {
             &melnet.write_size_b,           //書き込みバイトサイズ
             melnet.pc_b_out); //ソースバッファ
         //LW書き込み
+ //       melnet.pc_w_out[79] = 0xbbbb;
         melnet.err = mdSendEx(melnet.path,  //チャネルのパス
             MELSEC_NET_MY_NW_NO,            //ネットワーク番号  
             MELSEC_NET_MY_STATION,          //局番

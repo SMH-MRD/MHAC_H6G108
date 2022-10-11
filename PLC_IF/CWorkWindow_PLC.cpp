@@ -96,7 +96,6 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_MH), UDM_SETPOS, 0, MH_SLIDAR_0_NOTCH);
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_GT), UDM_SETRANGE, 0, MAKELONG(GT_SLIDAR_MAX, GT_SLIDAR_MIN));
 		SendMessage(GetDlgItem(hDlg, IDC_SPIN_GT), UDM_SETPOS, 0, GT_SLIDAR_0_NOTCH);
-				
 
 		//コントロール初期状態設定
 		update_all_controls(hDlg);
@@ -298,23 +297,23 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 	}break;
 
 	case WM_NOTIFY://SPINコントロール用
-		
+	{
 		WPARAM ui_udn_deltapos = 4294966574;//(WPARAM)UDN_DELTAPOS;コンパイル時のC26454警告を出さない為一旦変数にコードを直接入れる
 
 		if (wp == (WPARAM)IDC_SPIN_SLEW) {
 			lpnmud = (LPNMUPDOWN)lp;
-	
+
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
 				stOpePaneStat.slider_slew = lpnmud->iPos + lpnmud->iDelta;
 				if (stOpePaneStat.slider_slew < 0) stOpePaneStat.slider_slew = 0;
 				else if (stOpePaneStat.slider_slew > SLW_SLIDAR_MAX) stOpePaneStat.slider_slew = SLW_SLIDAR_MAX;
 				else;
-				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew );
+				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew);
 				wsprintf(stOpePaneStat.static_slew_label, L"旋回 %02d", stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_SLEW_LABEL), stOpePaneStat.static_slew_label);
 			}
 		}
-		else if(wp == (WPARAM)IDC_SPIN_BH) {
+		else if (wp == (WPARAM)IDC_SPIN_BH) {
 			lpnmud = (LPNMUPDOWN)lp;
 			if (lpnmud->hdr.code == ui_udn_deltapos) {
 				stOpePaneStat.slider_bh = lpnmud->iPos + lpnmud->iDelta;
@@ -333,7 +332,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 				if (stOpePaneStat.slider_mh < 0) stOpePaneStat.slider_mh = 0;
 				else if (stOpePaneStat.slider_mh > MH_SLIDAR_MAX) stOpePaneStat.slider_mh = MH_SLIDAR_MAX;
 				else;
-				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, MH_SLIDAR_MAX - (INT64)stOpePaneStat.slider_mh );
+				SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, MH_SLIDAR_MAX - (INT64)stOpePaneStat.slider_mh);
 				wsprintf(stOpePaneStat.static_mh_label, L"巻 %02d", stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH);
 				SetWindowText(GetDlgItem(hDlg, IDC_STATIC_MH_LABEL), stOpePaneStat.static_mh_label);
 			}
@@ -352,6 +351,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		}
 
 		break;
+	}
 	}
 	return FALSE;
 }
@@ -427,6 +427,7 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 				230, 55 + 15 * i, 50, 20, hwnd, (HMENU)(ID_PLCIO_STATIC_AO0 + INT64(i)), hInst, NULL);
 		}
 
+
 		//種別選択ラジオボタン
 		stIOCheckObj.hwnd_radio_bi = CreateWindow(L"BUTTON", L"BI", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
 			80, 5, 50, 20, hwnd, (HMENU)ID_PLCIO_RADIO_BI, hInst, NULL);
@@ -439,16 +440,25 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 
 		//出力値強制セット
 		stIOCheckObj.hwnd_chk_pause = CreateWindow(L"BUTTON", L"PAUSE", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-			20, 250, 80, 20, hwnd, (HMENU)ID_PLCIO_CHK_PAUSE, hInst, NULL);
+			20, 225, 80, 20, hwnd, (HMENU)ID_PLCIO_CHK_PAUSE, hInst, NULL);
 
-
-		//出力値強制セット
 		stIOCheckObj.hwnd_chk_forceset = CreateWindow(L"BUTTON", L"強制(16進）", WS_CHILD | WS_VISIBLE | BS_CHECKBOX,
-			170, 250, 110, 20, hwnd, (HMENU)ID_PLCIO_CHK_FORCE, hInst, NULL);
+			170, 225, 110, 20, hwnd, (HMENU)ID_PLCIO_CHK_FORCE, hInst, NULL);
 
 		stIOCheckObj.hwnd_edit_forceset = CreateWindowEx(0, L"EDIT", L"0000", WS_CHILD | WS_VISIBLE | WS_BORDER | SS_RIGHT,
-			120, 250, 40, 20, hwnd, (HMENU)ID_PLCIO_EDIT_VALUE, hInst, NULL);
+			120, 225, 40, 20, hwnd, (HMENU)ID_PLCIO_EDIT_VALUE, hInst, NULL);
 		SendMessage(stIOCheckObj.hwnd_edit_forceset, EM_SETLIMITTEXT, (WPARAM)4, 0);//入力可能文字数設定4文字
+
+		//MELNET通信ボードステータス表示
+		 CreateWindowW(TEXT("STATIC"), L"mel stat", WS_CHILD | WS_VISIBLE | SS_CENTER,
+			20, 250, 60, 20, hwnd, (HMENU)ID_PLCIO_STATIC_LABEL_MEL_STAT, hInst, NULL);
+		stIOCheckObj.hwnd_mel_status_static = CreateWindowW(TEXT("STATIC"), L"0000", WS_CHILD | WS_VISIBLE | SS_CENTER,
+			85, 250, 70, 20, hwnd, (HMENU)ID_PLCIO_STATIC_MEL_STAT, hInst, NULL);
+
+		CreateWindowW(TEXT("STATIC"), L"mel err", WS_CHILD | WS_VISIBLE | SS_CENTER,
+			160, 250, 60, 20, hwnd, (HMENU)ID_PLCIO_STATIC_LABEL_MEL_ERR, hInst, NULL);
+		stIOCheckObj.hwnd_mel_err_static = CreateWindowW(TEXT("STATIC"), L"00000000", WS_CHILD | WS_VISIBLE | SS_CENTER,
+			225, 250, 70, 20, hwnd, (HMENU)ID_PLCIO_STATIC_MEL_ERR, hInst, NULL);
 
 		//オフセット変更
 		stIOCheckObj.hwnd_iochk_plusPB = CreateWindow(L"BUTTON", L"+", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -508,7 +518,7 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			}
 			case ID_PLCIO_RADIO_BO: {
 				id = stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT + offset;
-				if (id >= N_PC_B_OUT_WORD - PLCIO_IO_DISP_NUM) stIOCheckObj.bi_addr = DEVICE_TOP_B_OUT + N_PC_B_OUT_WORD - PLCIO_IO_DISP_NUM;
+				if (id >= N_PC_B_OUT_WORD - PLCIO_IO_DISP_NUM) stIOCheckObj.bo_addr = DEVICE_TOP_B_OUT + N_PC_B_OUT_WORD - PLCIO_IO_DISP_NUM;
 				else stIOCheckObj.bo_addr += offset;
 				break;
 			}
@@ -539,7 +549,7 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			}
 			case ID_PLCIO_RADIO_BO: {
 				id = stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT - offset;
-				if (id < 0) stIOCheckObj.bi_addr = DEVICE_TOP_B_OUT;
+				if (id < 0) stIOCheckObj.bo_addr = DEVICE_TOP_B_OUT;
 				else stIOCheckObj.bo_addr -= offset;
 				break;
 			}
@@ -608,30 +618,30 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			switch (stIOCheckObj.IO_selected) {
 			case ID_PLCIO_RADIO_BI: {
 				if (BST_CHECKED == SendMessage(stIOCheckObj.hwnd_chk_forceset, BM_GETCHECK, 0, 0))
-					pProcObj->mel_set_force(MEL_FORCE_PLC_B, false, stIOCheckObj.bi_addr - DEVICE_TOP_B_IN, value);
+					pProcObj->mel_set_force(MEL_FORCE_PLC_B, false, stIOCheckObj.bi_addr - DEVICE_TOP_B_IN, (WORD)value);
 				else
-					pProcObj->mel_set_force(MEL_FORCE_PLC_B, true, stIOCheckObj.bi_addr - DEVICE_TOP_B_IN, value);
+					pProcObj->mel_set_force(MEL_FORCE_PLC_B, true, stIOCheckObj.bi_addr - DEVICE_TOP_B_IN, (WORD)value);
 				break;
 			}
 			case ID_PLCIO_RADIO_BO: {
 				if (BST_CHECKED == SendMessage(stIOCheckObj.hwnd_chk_forceset, BM_GETCHECK, 0, 0))
-					pProcObj->mel_set_force(MEL_FORCE_PC_B, false, stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT, value);
+					pProcObj->mel_set_force(MEL_FORCE_PC_B, false, stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT, (WORD)value);
 				else
-					pProcObj->mel_set_force(MEL_FORCE_PC_B, true, stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT, value);
+					pProcObj->mel_set_force(MEL_FORCE_PC_B, true, stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT, (WORD)value);
 				break;
 			}
 			case ID_PLCIO_RADIO_WI: {
 				if (BST_CHECKED == SendMessage(stIOCheckObj.hwnd_chk_forceset, BM_GETCHECK, 0, 0))
-					pProcObj->mel_set_force(MEL_FORCE_PLC_W, false, stIOCheckObj.wi_addr - DEVICE_TOP_W_IN, value);
+					pProcObj->mel_set_force(MEL_FORCE_PLC_W, false, stIOCheckObj.wi_addr - DEVICE_TOP_W_IN, (WORD)value);
 				else
-					pProcObj->mel_set_force(MEL_FORCE_PLC_W, true, stIOCheckObj.wi_addr - DEVICE_TOP_W_IN, value);
+					pProcObj->mel_set_force(MEL_FORCE_PLC_W, true, stIOCheckObj.wi_addr - DEVICE_TOP_W_IN, (WORD)value);
 				break;
 			}
 			case ID_PLCIO_RADIO_WO: {
 				if (BST_CHECKED == SendMessage(stIOCheckObj.hwnd_chk_forceset, BM_GETCHECK, 0, 0))
-					pProcObj->mel_set_force(MEL_FORCE_PC_W, false, stIOCheckObj.wo_addr - DEVICE_TOP_W_OUT, value);
+					pProcObj->mel_set_force(MEL_FORCE_PC_W, false, stIOCheckObj.wo_addr - DEVICE_TOP_W_OUT, (WORD)value);
 				else
-					pProcObj->mel_set_force(MEL_FORCE_PC_W, true, stIOCheckObj.wo_addr - DEVICE_TOP_W_OUT, value);
+					pProcObj->mel_set_force(MEL_FORCE_PC_W, true, stIOCheckObj.wo_addr - DEVICE_TOP_W_OUT, (WORD)value);
 				break;
 			}
 			}
@@ -679,15 +689,18 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 	WCHAR wc[16];
 	WORD source_w;
 	LPST_MELSEC_NET pmel = pProcObj->get_melnet();
+	WORD buf_id;
 
 	//デバイスアドレス表示	
-	wsprintf(wc, L"%04x", stIOCheckObj.bi_addr);
+	buf_id = stIOCheckObj.bi_addr + (stIOCheckObj.bi_addr - DEVICE_TOP_B_IN) * 15;//BレジスタはBit単位のアドレスを表示する
+	wsprintf(wc, L"%04x", buf_id);
 	SetWindowText(stIOCheckObj.hwnd_bi_addr_static, wc);
 
 	wsprintf(wc, L"%04x", stIOCheckObj.wi_addr);
 	SetWindowText(stIOCheckObj.hwnd_wi_addr_static, wc);
 
-	wsprintf(wc, L"%04x", stIOCheckObj.bo_addr);
+	buf_id = stIOCheckObj.bo_addr + (stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT) * 15;//BレジスタはBit単位のアドレスを表示する
+	wsprintf(wc, L"%04x", buf_id);
 	SetWindowText(stIOCheckObj.hwnd_bo_addr_static, wc);
 
 	wsprintf(wc, L"%04x", stIOCheckObj.wo_addr);
@@ -696,7 +709,8 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 
 	if (stIOCheckObj.is_pause_update == false) {
 		for (int i = 0; i < PLCIO_IO_DISP_NUM; i++) {
-			source_w = pmel->plc_b_out[stIOCheckObj.bi_addr - DEVICE_TOP_B_IN + i];
+			buf_id = stIOCheckObj.bi_addr - DEVICE_TOP_B_IN;
+			source_w = pmel->plc_b_out[buf_id + i];
 			if (stIOCheckObj.is_bi_hex) {
 				wsprintf(wc, L"%04XH", source_w);
 			}
@@ -706,7 +720,8 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 			SetWindowTextW(stIOCheckObj.hwnd_bi_dat_static[i], wc);
 		}
 		for (int i = 0; i < PLCIO_IO_DISP_NUM; i++) {
-			source_w = pmel->plc_w_out[stIOCheckObj.wi_addr - DEVICE_TOP_W_IN + i];
+			buf_id = stIOCheckObj.wi_addr - DEVICE_TOP_W_IN;
+			source_w = pmel->plc_w_out[buf_id + i];
 			if (stIOCheckObj.is_wi_hex) {
 				wsprintf(wc, L"%04XH", source_w);
 			}
@@ -716,7 +731,8 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 			SetWindowTextW(stIOCheckObj.hwnd_wi_dat_static[i], wc);
 		}
 		for (int i = 0; i < PLCIO_IO_DISP_NUM; i++) {
-			source_w = pmel->pc_b_out[stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT + i];
+			buf_id = stIOCheckObj.bo_addr - DEVICE_TOP_B_OUT;
+			source_w = pmel->pc_b_out[buf_id + i];
 			if (stIOCheckObj.is_bo_hex) {
 				wsprintf(wc, L"%04XH", source_w);
 			}
@@ -726,7 +742,9 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 			SetWindowTextW(stIOCheckObj.hwnd_bo_dat_static[i], wc);
 		}
 		for (int i = 0; i < PLCIO_IO_DISP_NUM; i++) {
-			source_w = pmel->pc_w_out[stIOCheckObj.wo_addr - DEVICE_TOP_W_OUT + i];
+			buf_id = stIOCheckObj.wo_addr - DEVICE_TOP_W_OUT;
+			source_w = pmel->pc_w_out[buf_id + i];
+
 			if (stIOCheckObj.is_wo_hex) {
 				wsprintf(wc, L"%04XH", source_w);
 			}
@@ -738,6 +756,14 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 
 	}
 
+	wsprintf(wc, L"%08d", pmel->read_size_w);
+	SetWindowTextW(stIOCheckObj.hwnd_mel_status_static, wc);
+	wsprintf(wc, L"%08d", pmel->err);
+	SetWindowTextW(stIOCheckObj.hwnd_mel_err_static, wc);
+
+
+
+	//デバイス選択ラジオボタン設定
 	switch (stIOCheckObj.IO_selected) {
 	case ID_PLCIO_RADIO_BI: {
 		if(pProcObj->melnet.is_force_set_active[MEL_FORCE_PLC_B]) 
