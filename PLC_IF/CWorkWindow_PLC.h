@@ -108,7 +108,7 @@ typedef struct stPLCDbugPanelTag {
 #define ID_PLCIO_STATIC_MH_NOTCH	2264
 #define ID_PLCIO_STATIC_BH_NOTCH	2265
 #define ID_PLCIO_STATIC_SLW_NOTCH	2266
-#define ID_PLCIO_STATIC_LABEL_LAMP	2267
+#define ID_PLCIO_STATIC_LABEL_NOCH	2267
 
 
 #define PLCIO_IO_DISP_NUM			8
@@ -218,6 +218,7 @@ typedef struct _stIOCheckComObj {
 	HWND hwnd_mel_status_static;				//スタティックテキストのハンドル
 	HWND hwnd_mel_err_static;					//スタティックテキストのハンドル
 
+	HWND hwnd_notch_out_lavel;					//スタティックテキストのハンドル
 	HWND hwnd_mh_notch_out_static;				//スタティックテキストのハンドル
 	HWND hwnd_bh_notch_out_static;				//スタティックテキストのハンドル
 	HWND hwnd_slw_notch_out_static;				//スタティックテキストのハンドル

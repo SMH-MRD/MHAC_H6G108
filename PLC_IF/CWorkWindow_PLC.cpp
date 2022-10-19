@@ -433,12 +433,15 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 
 
 		//ノッチ出力値表示
+
+		stIOCheckObj.hwnd_notch_out_lavel = CreateWindowW(TEXT("STATIC"), L"           0+-2345", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			290, 55, 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_LABEL_NOCH, hInst, NULL);
 		stIOCheckObj.hwnd_mh_notch_out_static = CreateWindowW(TEXT("STATIC"), L"HST OUT:", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			290, 55 , 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_MH_NOTCH, hInst, NULL);
+			290, 75 , 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_MH_NOTCH, hInst, NULL);
 		stIOCheckObj.hwnd_slw_notch_out_static = CreateWindowW(TEXT("STATIC"), L"SLW OUT:", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			290, 70, 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_SLW_NOTCH, hInst, NULL);
-		stIOCheckObj.hwnd_slw_notch_out_static = CreateWindowW(TEXT("STATIC"), L"BH  OUT:", WS_CHILD | WS_VISIBLE | SS_LEFT,
-			290, 85, 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_SLW_NOTCH, hInst, NULL);
+			290, 95, 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_SLW_NOTCH, hInst, NULL);
+		stIOCheckObj.hwnd_bh_notch_out_static = CreateWindowW(TEXT("STATIC"), L"BH  OUT:", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			290, 115, 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_SLW_NOTCH, hInst, NULL);
 
 
 		//ビット指令強制出力
@@ -820,16 +823,36 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 
 	}
 
+	//制御PC　ノッチ指令値表示
+	wostringstream wo;
+
+	WORD wsource = pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.com_hst_notch_0[ID_WPOS]];
+	wo << L"HST OUT:";
+	int mask = 0x0001;
+	for (int i = 0;i < 7;i++) {
+		if (wsource & mask) wo << L"1"; else wo << L"0";
+		mask = mask << 1;
+	}
+	SetWindowTextW(stIOCheckObj.hwnd_mh_notch_out_static, (wo.str()).c_str()); wo.str(L""); wo.clear();
+
+	wsource = pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.com_bh_notch_0[ID_WPOS]];
+	wo << L"BH  OUT:";
+	mask = 0x0001;
+	for (int i = 0;i < 7;i++) {
+		if (wsource & mask) wo << L"1"; else wo << L"0";
+		mask = mask << 1;
+	}
+	SetWindowTextW(stIOCheckObj.hwnd_bh_notch_out_static, (wo.str()).c_str()); wo.str(L""); wo.clear();
+
+	wsource = pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.com_slw_notch_0[ID_WPOS]];
+	wo << L"SLW OUT:";
+	mask = 0x0080;
+	for (int i = 0;i < 7;i++) {
+		if (wsource & mask) wo << L"1"; else wo << L"0";
+		mask = mask << 1;
+	}
+	SetWindowTextW(stIOCheckObj.hwnd_slw_notch_out_static, (wo.str()).c_str()); wo.str(L""); wo.clear();
 
 	return 0;
 }
 
-
-void print16b(WORD v, WCHAR* wc) {
-	WORD mask = (int)1 << (sizeof(v) * CHAR_BIT - 1);
-	*(wc + 16) = L'/n';
-	for (int i = 15; i >= 0;i--) {
-		if (mask & v) *(wc+i) = L'1';
-		else  *(wc + i) = L'0';
-	}
-}

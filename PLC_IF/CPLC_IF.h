@@ -148,8 +148,8 @@ public:
         return;
     }
     void set_plc_emu_forced(bool b) {
-        if (b) melnet.is_forced_pc_ctrl = true;
-        else melnet.is_forced_pc_ctrl = false;
+        if (b) melnet.is_forced_emulate = true;
+        else melnet.is_forced_emulate = false;
         return;
     }
 

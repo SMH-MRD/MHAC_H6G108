@@ -168,9 +168,9 @@ int CEnvironment::parse_notch_com() {
 		else {
 			stWorkCraneStat.is_notch_0[i] = false;
 			if (p_notch[i] < 0) 
-				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_r[i][-p_notch[i]];
+				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_r[i][-p_notch[i]] * 1.001;
 			else 
-				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_f[i][p_notch[i]];
+				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_f[i][p_notch[i]] * 1.001;
 		}
 	}
 
