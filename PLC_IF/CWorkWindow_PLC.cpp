@@ -3,6 +3,10 @@
 #include "PLC_IO_DEF.h"
 #include "CPLC_IF.h"
 
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
 extern CPLC_IF* pProcObj;
 
 CWorkWindow_PLC::CWorkWindow_PLC() {}
@@ -428,6 +432,21 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 		}
 
 
+		//ノッチ出力値表示
+		stIOCheckObj.hwnd_mh_notch_out_static = CreateWindowW(TEXT("STATIC"), L"HST OUT:", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			290, 55 , 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_MH_NOTCH, hInst, NULL);
+		stIOCheckObj.hwnd_slw_notch_out_static = CreateWindowW(TEXT("STATIC"), L"SLW OUT:", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			290, 70, 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_SLW_NOTCH, hInst, NULL);
+		stIOCheckObj.hwnd_slw_notch_out_static = CreateWindowW(TEXT("STATIC"), L"BH  OUT:", WS_CHILD | WS_VISIBLE | SS_LEFT,
+			290, 85, 150, 20, hwnd, (HMENU)ID_PLCIO_STATIC_SLW_NOTCH, hInst, NULL);
+
+
+		//ビット指令強制出力
+		stIOCheckObj.hwnd_chk_pc_ctrl = CreateWindow(L"BUTTON", L"PC CTRL", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			290, 30, 80, 20, hwnd, (HMENU)ID_PLCIO_CHK_PC_CTRL, hInst, NULL);
+		stIOCheckObj.hwnd_chk_plc_emulate = CreateWindow(L"BUTTON", L"PLC EMU", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+			375, 30, 80, 20, hwnd, (HMENU)ID_PLCIO_CHK_EMULATE, hInst, NULL);
+
 		//種別選択ラジオボタン
 		stIOCheckObj.hwnd_radio_bi = CreateWindow(L"BUTTON", L"BI", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
 			80, 5, 50, 20, hwnd, (HMENU)ID_PLCIO_RADIO_BI, hInst, NULL);
@@ -448,6 +467,7 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 		stIOCheckObj.hwnd_edit_forceset = CreateWindowEx(0, L"EDIT", L"0000", WS_CHILD | WS_VISIBLE | WS_BORDER | SS_RIGHT,
 			120, 225, 40, 20, hwnd, (HMENU)ID_PLCIO_EDIT_VALUE, hInst, NULL);
 		SendMessage(stIOCheckObj.hwnd_edit_forceset, EM_SETLIMITTEXT, (WPARAM)4, 0);//入力可能文字数設定4文字
+
 
 		//MELNET通信ボードステータス表示
 		 CreateWindowW(TEXT("STATIC"), L"mel stat", WS_CHILD | WS_VISIBLE | SS_CENTER,
@@ -480,11 +500,6 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			15, 60, 35, 20, hwnd, (HMENU)ID_PLCIO_PB_DEC, hInst, NULL);
 		stIOCheckObj.hwnd_iochk_hexPB = CreateWindow(L"BUTTON", L"HEX", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
 			15, 85, 35, 20, hwnd, (HMENU)ID_PLCIO_PB_HEX, hInst, NULL);
-
-		stIOCheckObj.is_bi_hex = true;
-		stIOCheckObj.is_wi_hex = true;
-		stIOCheckObj.is_bo_hex = true;
-		stIOCheckObj.is_wo_hex = true;
 
 		stIOCheckObj.bi_addr = DEVICE_TOP_B_IN;
 		stIOCheckObj.bo_addr = DEVICE_TOP_B_OUT;
@@ -647,6 +662,14 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 			}
 
 		}break;
+		case ID_PLCIO_CHK_PC_CTRL: {
+			if (BST_CHECKED == SendMessage(stIOCheckObj.hwnd_chk_pc_ctrl, BM_GETCHECK, 0, 0))pProcObj->set_pc_ctrl_forced(true);
+			else pProcObj->set_pc_ctrl_forced(false);
+		}break;
+		case ID_PLCIO_CHK_EMULATE: {
+			if (BST_CHECKED == SendMessage(stIOCheckObj.hwnd_chk_plc_emulate, BM_GETCHECK, 0, 0))pProcObj->set_plc_emu_forced(true);
+			else pProcObj->set_plc_emu_forced(false);
+		}break;
 		case ID_PLCIO_CHK_PAUSE: {
 			if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_PLCIO_CHK_PAUSE), BM_GETCHECK, 0, 0)) stIOCheckObj.is_pause_update = true;
 			else stIOCheckObj.is_pause_update = false;
@@ -690,6 +713,7 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 	WORD source_w;
 	LPST_MELSEC_NET pmel = pProcObj->get_melnet();
 	WORD buf_id;
+	std::wostringstream wos;
 
 	//デバイスアドレス表示	
 	buf_id = stIOCheckObj.bi_addr + (stIOCheckObj.bi_addr - DEVICE_TOP_B_IN) * 15;//BレジスタはBit単位のアドレスを表示する
@@ -801,3 +825,11 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 }
 
 
+void print16b(WORD v, WCHAR* wc) {
+	WORD mask = (int)1 << (sizeof(v) * CHAR_BIT - 1);
+	*(wc + 16) = L'/n';
+	for (int i = 15; i >= 0;i--) {
+		if (mask & v) *(wc+i) = L'1';
+		else  *(wc + i) = L'0';
+	}
+}

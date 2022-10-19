@@ -79,7 +79,7 @@ void CAgent::input() {
 void CAgent::main_proc() {
 
 	update_auto_setting();	//自動実行モードの設定と自動レシピのセット
-	set_pc_control();		//PLCがPC指令で動作する軸の選択
+	set_pc_control();		//PLCがPC指令で動作する軸の選択,
 
 	//PLCへの出力計算
 	set_ref_mh();			//巻き速度指令

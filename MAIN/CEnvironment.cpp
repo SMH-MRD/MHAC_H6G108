@@ -233,6 +233,8 @@ int CEnvironment::parse_for_auto_ctrl() {
 /****************************************************************************/
 /*　 制御用振れ状態計算											            */
 /****************************************************************************/
+
+static bool as_off_pb_last;
 int CEnvironment::mode_set() {
 	//リモートモードセット
 	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
@@ -250,9 +252,10 @@ int CEnvironment::mode_set() {
 	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == true) {
 		stWorkCraneStat.auto_standby = true;
 	}
-	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF] == true) {
+	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF] != as_off_pb_last) { //前回値から変化有
 		stWorkCraneStat.auto_standby = false;
 	}
+	as_off_pb_last = pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF];
 
 	return 0;
 

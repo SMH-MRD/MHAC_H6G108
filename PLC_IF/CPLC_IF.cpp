@@ -1,10 +1,12 @@
 #include "CPLC_IF.h"
+#include "PLC_IF.h"
 #include "PLC_IO_DEF.h"
 #include "CWorkWindow_PLC.h"
 #include <windows.h>
 #include "Mdfunc.h"
 
 extern ST_SPEC def_spec;
+extern ST_KNL_MANAGE_SET    knl_manage_set;
 
 CPLC_IF::CPLC_IF() {
     // 共有メモリオブジェクトのインスタンス化
@@ -24,7 +26,7 @@ CPLC_IF::CPLC_IF() {
     melnet.status = 0;
     melnet.retry_cnt = MELSEC_NET_RETRY_CNT;
     melnet.read_size_b = sizeof(ST_PLC_READ_B);                         //PLCでLWのbitでセットする為LBは未使用
-    melnet.read_size_w = sizeof(ST_PLC_READ_W);//192;
+    melnet.read_size_w = sizeof(ST_PLC_READ_W);
     melnet.write_size_b = sizeof(ST_PLC_WRITE_B);
     melnet.write_size_w = sizeof(ST_PLC_WRITE_W);
 
@@ -77,6 +79,16 @@ int CPLC_IF::init_proc() {
         this->melnet.forced_dat[i] = 0;
         this->melnet.forced_index[i] = 0;
     }
+
+    //PLCアドレスマップセット
+    ST_PLC_OUT_BMAP plc_out_b_map;
+    melnet.plc_b_map = plc_out_b_map;
+    ST_PLC_OUT_WMAP plc_out_w_map;
+    melnet.plc_w_map = plc_out_w_map;
+    ST_PC_OUT_BMAP pc_out_b_map;
+    melnet.pc_b_map = pc_out_b_map;
+    ST_PC_OUT_WMAP pc_out_w_map;
+    melnet.pc_b_map = pc_out_b_map;
 
     //CraneStat立ち上がり待ち
     while (pCrane->is_tasks_standby_ok == false) {
@@ -136,6 +148,9 @@ int CPLC_IF::input() {
 int CPLC_IF::parse() { 
 
  
+    //### ヘルシー信号
+    helthy_cnt;
+
     //### PLCリンク入力を解析
     parse_notch_com();
     
@@ -154,10 +169,10 @@ int CPLC_IF::parse() {
 #endif
 
     //### PLCへの出力信号バッファセット
-
-    //ノッチ出力信号セット
-    set_notch_ref();
-    set_bit_coms();
+    
+    set_notch_ref();  //ノッチ出力信号セット
+    set_bit_coms();   //ビット出力信号セット
+    set_ao_coms();    //アナログ出力信号セット
 
     return 0; 
 }
@@ -177,6 +192,11 @@ int CPLC_IF::output() {
     //強制セット
     if (melnet.is_force_set_active[MEL_FORCE_PC_B])melnet.pc_b_out[melnet.forced_index[MEL_FORCE_PC_B]] = melnet.forced_dat[MEL_FORCE_PC_B];
     if (melnet.is_force_set_active[MEL_FORCE_PC_W])melnet.pc_w_out[melnet.forced_index[MEL_FORCE_PC_W]] = melnet.forced_dat[MEL_FORCE_PC_W];
+  
+    if (melnet.is_forced_pc_ctrl) melnet.pc_b_out[melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] |= melnet.pc_b_map.com_pc_ctr_act[ID_BPOS];
+    if (melnet.is_forced_pc_ctrl) melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] |= melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
+   
+
 
     //MELSECNETへの出力処理
     if (melnet.status == MELSEC_NET_OK) {
@@ -256,7 +276,6 @@ int CPLC_IF::closeIF() {
         melnet.status = MELSEC_NET_CLOSE;
    return 0;
 }
-
 
 //*********************************************************************************************
 // set_notch_ref()
@@ -465,19 +484,32 @@ int CPLC_IF::set_notch_ref() {
 //*********************************************************************************************
 int CPLC_IF::set_bit_coms() {
     
+    //正常クロック システムカウンタを利用 25msec counter 64*0.025=1.6
+    if (knl_manage_set.sys_counter& 0x40) melnet.pc_b_out[melnet.pc_b_map.healty[ID_WPOS]] |= melnet.pc_b_map.healty[ID_BPOS];
+    else melnet.pc_b_out[melnet.pc_b_map.healty[ID_WPOS]] &= ~melnet.pc_b_map.healty[ID_BPOS];
+
+
+    //制御PCからの指令動作ビット
+    if(pAgentInf->auto_active[ID_SLEW] || pAgentInf->auto_active[ID_BOOM_H])melnet.pc_b_out[melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] |= melnet.pc_b_map.com_pc_ctr_act[ID_BPOS];
+    else melnet.pc_b_out[melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] &= ~melnet.pc_b_map.com_pc_ctr_act[ID_BPOS];
+
+    //制御PCからのエミュレータ指令ビット
+    if (pAgentInf->auto_active[ID_SLEW] || pAgentInf->auto_active[ID_BOOM_H])melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] |= melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
+    else melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] &= ~melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
+
     //非常停止PB
     if (pAgentInf->PLC_PB_com[ID_PB_ESTOP]) melnet.pc_b_out[melnet.pc_b_map.com_estop[ID_WPOS]] |= melnet.pc_b_map.com_estop[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_estop[ID_WPOS]] &= ~melnet.pc_b_map.com_estop[ID_BPOS];
-
+    //主幹1入
     if (pAgentInf->PLC_PB_com[ID_PB_CTRL_SOURCE_ON]) melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source_on[ID_WPOS]] |= melnet.pc_b_map.com_ctrl_source_on[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source_on[ID_WPOS]] &= ~melnet.pc_b_map.com_ctrl_source_on[ID_BPOS];
-
+    //主幹1切
     if (pAgentInf->PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]) melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source_off[ID_WPOS]] |= melnet.pc_b_map.com_ctrl_source_off[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source_off[ID_WPOS]] &= ~melnet.pc_b_map.com_ctrl_source_off[ID_BPOS];
-
+    //主幹2入
     if (pAgentInf->PLC_PB_com[ID_PB_CTRL_SOURCE2_ON]) melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source2_on[ID_WPOS]] |= melnet.pc_b_map.com_ctrl_source2_on[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source2_on[ID_WPOS]] &= ~melnet.pc_b_map.com_ctrl_source2_on[ID_BPOS];
-
+    //主幹2切
     if (pAgentInf->PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF]) melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source2_off[ID_WPOS]] |= melnet.pc_b_map.com_ctrl_source2_off[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_ctrl_source2_off[ID_WPOS]] &= ~melnet.pc_b_map.com_ctrl_source2_off[ID_BPOS];
 
@@ -513,6 +545,16 @@ int CPLC_IF::set_bit_coms() {
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg4[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg4[ID_BPOS];
 
      return 0;
+}
+
+//*********************************************************************************************
+//set_ao_coms()
+// AGENTタスクのアナログ指令、ヘルシー信号等の出力セット
+//*********************************************************************************************
+int CPLC_IF::set_ao_coms() {
+
+
+    return 0;
 }
 
 //*********************************************************************************************

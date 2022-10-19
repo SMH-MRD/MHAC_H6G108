@@ -53,9 +53,7 @@ public:
 
     double ph_chk_range[NUM_OF_AS_AXIS];
 
- 
-
-    void input();                                           //外部データ取り込み
+     void input();                                           //外部データ取り込み
     void main_proc();                                       //処理内容
  
     void output();                                          //出力データ更新
@@ -64,6 +62,8 @@ public:
     int set_ref_gt();                                       //走行速度指令値出力
     int set_ref_slew();                                     //旋回速度指令値出力
     int set_ref_bh();                                       //引込速度指令値出力
+  
+    
     void update_pb_lamp_com();                              //ランプ表示出力
 
     int parse_indata();                                     //入力信号の分析
@@ -71,6 +71,7 @@ public:
     void set_auto_active(int type);                         //各軸のauto_activeフラグセット
     double cal_step(LPST_COMMAND_SET pCom, int motion);     //自動指令出力値の計算
 
+                                                        
     //タブパネルのStaticテキストを設定
     void set_panel_tip_txt();
     //タブパネルのFunctionボタンのStaticテキストを設定

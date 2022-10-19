@@ -99,9 +99,15 @@ typedef struct st_MelsecNet_tag {
     ST_PC_OUT_BMAP  pc_b_map;           //PC LB書き込みバッファMAP情報
     ST_PC_OUT_WMAP  pc_w_map;           //PC LW書き込みバッファMAP情報
 
+    //BI,WI,BO,WO強制セット
     bool is_force_set_active[4];        //IO強制セットフラグ
     WORD forced_dat[4];                 //強制セット値
     int forced_index[4];                 //強制セット値
+
+    //PC CTRL, PLC emulate強制セット
+
+    BOOL is_forced_pc_ctrl;						//強制出力有効フラグ
+    BOOL is_forced_emulate;						//強制出力有効フラグ
 
 }ST_MELSEC_NET, * LPST_MELSEC_NET;
 
@@ -133,6 +139,18 @@ public:
     void set_debug_mode(int id) {
         if (id) mode |= PLC_IF_PC_DBG_MODE;
         else    mode &= ~PLC_IF_PC_DBG_MODE;
+        return;
+    }
+
+    void set_pc_ctrl_forced(bool b) {
+        if (b) melnet.is_forced_pc_ctrl = true;
+        else melnet.is_forced_pc_ctrl = false;
+        return;
+    }
+    void set_plc_emu_forced(bool b) {
+        if (b) melnet.is_forced_pc_ctrl = true;
+        else melnet.is_forced_pc_ctrl = false;
+        return;
     }
 
     int is_debug_mode() { return(mode & PLC_IF_PC_DBG_MODE); }
@@ -158,4 +176,5 @@ private:
     int parse_sensor_fb();
     int set_notch_ref();
     int set_bit_coms();
+    int set_ao_coms();
  };

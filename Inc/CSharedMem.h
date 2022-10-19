@@ -75,6 +75,7 @@ using namespace std;
 #define ID_PB_CTRL_SOURCE2_OFF	17
 #define ID_PB_AUTO_RESET		18
 
+
 #define PLC_IO_LAMP_FLICKER_COUNT    40 //ランプフリッカの間隔カウント
 #define PLC_IO_LAMP_FLICKER_CHANGE   20 //ランプフリッカの間隔カウント
 
@@ -101,7 +102,6 @@ typedef struct StPLCStatus {
 #define PLC_IF_PC_DBG_MODE  0x00000001		//PCデバッグパネル、SIM出力からIO情報生成
 typedef struct StPLCIO {
 	DWORD mode;
-	BOOL is_debug_mode;
 	DWORD helthy_cnt;
 	ST_PLC_UI ui;
 	ST_PLC_STATUS status;
@@ -503,16 +503,18 @@ typedef struct stPolicyInfo {
 typedef struct stAgentInfo {
 
 	WORD pc_ctrl_mode; //PCからの指令で動作させる軸の指定
+
 	double v_ref[MOTION_ID_MAX];
 	int PLC_PB_com[N_PLC_PB];
 	int PLC_LAMP_com[N_PLC_LAMP];
 	int PLC_LAMP_semiauto_com[SEMI_AUTO_TARGET_MAX];
+
 	int auto_on_going;								//実行中の自動
 	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中(軸毎)
 	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
 	double pos_target[MOTION_ID_MAX];				//位置決め目標位置
 	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め速度FB条件
-	bool be_hold_target[MOTION_ID_MAX];			//振れ止め速度FB条件
+	bool be_hold_target[MOTION_ID_MAX];				//目標位置キープフラグ
 	double gap_from_target[MOTION_ID_MAX];			//目標位置からのずれ
 	double gap2_from_target[MOTION_ID_MAX];			//目標位置からのずれ2乗
 	double sway_amp2m[MOTION_ID_MAX];				//振れ振幅の2乗m2

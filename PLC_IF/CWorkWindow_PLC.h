@@ -14,7 +14,7 @@
 
 #define IO_WND_X							1050		//Window表示位置X
 #define IO_WND_Y							340 			//Window表示位置Y
-#define IO_WND_W							320		    //WindowWINDOW幅
+#define IO_WND_W							480		    //WindowWINDOW幅
 #define IO_WND_H							320			//WindowWINDOW高さ
 
 #define WORK_SCAN_TIME						200			// 表示更新周期msec
@@ -101,6 +101,14 @@ typedef struct stPLCDbugPanelTag {
 #define ID_PLCIO_RADIO_WO			2259
 #define ID_PLCIO_CHK_FORCE			2260
 #define ID_PLCIO_CHK_PAUSE			2261
+
+#define ID_PLCIO_CHK_PC_CTRL		2262
+#define ID_PLCIO_CHK_EMULATE		2263
+
+#define ID_PLCIO_STATIC_MH_NOTCH	2264
+#define ID_PLCIO_STATIC_BH_NOTCH	2265
+#define ID_PLCIO_STATIC_SLW_NOTCH	2266
+#define ID_PLCIO_STATIC_LABEL_LAMP	2267
 
 
 #define PLCIO_IO_DISP_NUM			8
@@ -189,6 +197,8 @@ typedef struct _stIOCheckComObj {
 
 	HWND hwnd_chk_forceset;						//強制セットチェックボックス
 	HWND hwnd_chk_pause;						//表示更新ポーズチェックボックス
+	HWND hwnd_chk_pc_ctrl;						//PC制御ビット強制出力チェックボックス
+	HWND hwnd_chk_plc_emulate;					//表示更新ポーズチェックボックス
 
 	HWND hwnd_edit_forceset;					//強制セットエディットボックス
 	HWND hwnd_edit_offset;						//強制セットエディットボックス
@@ -207,6 +217,10 @@ typedef struct _stIOCheckComObj {
 	HWND hwnd_wo_addr_static;					//スタティックテキストのハンドル
 	HWND hwnd_mel_status_static;				//スタティックテキストのハンドル
 	HWND hwnd_mel_err_static;					//スタティックテキストのハンドル
+
+	HWND hwnd_mh_notch_out_static;				//スタティックテキストのハンドル
+	HWND hwnd_bh_notch_out_static;				//スタティックテキストのハンドル
+	HWND hwnd_slw_notch_out_static;				//スタティックテキストのハンドル
 	
 	int IO_selected;							//操作選択中ＩＯ
 	WORD IO_offset;								//操作選択中ＩＯ
@@ -218,6 +232,7 @@ typedef struct _stIOCheckComObj {
 
 	BOOL is_pause_update;						//表示更新保留フラグ
 	BOOL is_forced_out_active;					//強制出力有効フラグ
+
 
 	WORD bi_addr;
 	WORD bo_addr;
@@ -251,5 +266,9 @@ public:
 	static LRESULT CALLBACK IOWndProc(HWND, UINT, WPARAM, LPARAM);
 
 	int close_WorkWnd();
+
+private:
+
+
 };
 
