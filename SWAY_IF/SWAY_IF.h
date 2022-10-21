@@ -8,6 +8,11 @@
 #define TARGET_RESOLUTION			1		//マルチメディアタイマー分解能 msec
 #define SYSTEM_TICK_ms				25		//メインスレッド周期 msec
 
+//タイマーID
+#define ID_MAIN_WINDOW_UPDATE_TIMER				10701
+#define ID_MAIN_WINDOW_UPDATE_TICK_ms			1000
+
+
 //-Main Windowの配置設定
 #define MAIN_WND_INIT_SIZE_W		380		//-Main Windowの初期サイズ　W
 #define MAIN_WND_INIT_SIZE_H		195		//-Main Windowの初期サイズ　H

@@ -88,7 +88,7 @@ int CPLC_IF::init_proc() {
     ST_PC_OUT_BMAP pc_out_b_map;
     melnet.pc_b_map = pc_out_b_map;
     ST_PC_OUT_WMAP pc_out_w_map;
-    melnet.pc_b_map = pc_out_b_map;
+    melnet.pc_w_map = pc_out_w_map;
 
     //CraneStat立ち上がり待ち
     while (pCrane->is_tasks_standby_ok == false) {
@@ -149,7 +149,7 @@ int CPLC_IF::parse() {
 
  
     //### ヘルシー信号
-    helthy_cnt;
+    helthy_cnt++;
 
     //### PLCリンク入力を解析
     parse_notch_com();
@@ -279,7 +279,7 @@ int CPLC_IF::closeIF() {
 
 //*********************************************************************************************
 // set_notch_ref()
-// AGENTタスクのノッチ位置指令に応じてIO出力を設定
+// AGENTタスクの速度指令をノッチ位置指令に変換してIO出力を設定
 //*********************************************************************************************
 int CPLC_IF::set_notch_ref() {
 
@@ -490,11 +490,13 @@ int CPLC_IF::set_bit_coms() {
 
 
     //制御PCからの指令動作ビット
-    if(pAgentInf->auto_active[ID_SLEW] || pAgentInf->auto_active[ID_BOOM_H])melnet.pc_b_out[melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] |= melnet.pc_b_map.com_pc_ctr_act[ID_BPOS];
+    if (pAgentInf->auto_active[ID_SLEW] || pAgentInf->auto_active[ID_BOOM_H])
+        melnet.pc_b_out[melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] |= melnet.pc_b_map.com_pc_ctr_act[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] &= ~melnet.pc_b_map.com_pc_ctr_act[ID_BPOS];
 
     //制御PCからのエミュレータ指令ビット
-    if (pAgentInf->auto_active[ID_SLEW] || pAgentInf->auto_active[ID_BOOM_H])melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] |= melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
+    if ((pAgentInf->auto_active[ID_SLEW] || pAgentInf->auto_active[ID_BOOM_H]) && (pSim->mode & SIM_ACTIVE_MODE))
+        melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] |= melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] &= ~melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
 
     //非常停止PB
@@ -553,6 +555,12 @@ int CPLC_IF::set_bit_coms() {
 //*********************************************************************************************
 int CPLC_IF::set_ao_coms() {
 
+    melnet.pc_w_out[melnet.pc_w_map.helthy[ID_WPOS]] = helthy_cnt;
+
+    melnet.pc_w_out[melnet.pc_w_map.spd_ref_bh[ID_WPOS]] = pAgentInf->v_ref[ID_BOOM_H];
+    melnet.pc_w_out[melnet.pc_w_map.spd_ref_slw[ID_WPOS]] = pAgentInf->v_ref[ID_SLEW];
+    melnet.pc_w_out[melnet.pc_w_map.spd_ref_hst[ID_WPOS]] = pAgentInf->v_ref[ID_HOIST];
+    melnet.pc_w_out[melnet.pc_w_map.spd_ref_gnt[ID_WPOS]] = pAgentInf->v_ref[ID_GANTRY];
 
     return 0;
 }
@@ -710,10 +718,10 @@ int CPLC_IF::parse_sensor_fb() {
 
     plc_io_workbuf.status.weight = (double)melnet.plc_w_out[melnet.plc_w_map.load_fb[ID_WPOS]] * 100.0; //Kg
     
-    plc_io_workbuf.status.pos[ID_HOIST] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_hst_fb[ID_WPOS]] / 10.0;   //m
-    plc_io_workbuf.status.pos[ID_GANTRY] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_gnt_fb[ID_WPOS]] / 10.0;  //m
-    plc_io_workbuf.status.pos[ID_BOOM_H] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_bh_fb[ID_WPOS]] / 10.0;   //m
-    plc_io_workbuf.status.pos[ID_SLEW] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_slw_fb[ID_WPOS]] * PI1DEG;  //rad
+    plc_io_workbuf.status.pos[ID_HOIST] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_hst_fb[ID_WPOS]] / 10.0;        //m　PLCからは0.1m単位）
+    plc_io_workbuf.status.pos[ID_GANTRY] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_gnt_fb[ID_WPOS]] / 10.0;       //m　PLCからは0.1m単位）
+    plc_io_workbuf.status.pos[ID_BOOM_H] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_bh_fb[ID_WPOS]] / 10.0;        //m　PLCからは0.1m単位）
+    plc_io_workbuf.status.pos[ID_SLEW] = (double)melnet.plc_w_out[melnet.plc_w_map.pos_slw_fb[ID_WPOS]] * PI1DEG/10.0;  //rad PLCからは0.1deg単位）
     return 0;
 }
 

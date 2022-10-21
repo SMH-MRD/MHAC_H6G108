@@ -3,6 +3,7 @@
 #include "CVector3.h"
 #include "COMMON_DEF.H"
 #include "Spec.h"
+#include "CSharedMem.h"
 
 //Moving Objectクラス
 class CMob
@@ -54,6 +55,9 @@ private:
 #define SIM_INIT_X                  10.0        //走行初期値 m
 #define SIM_INIT_M                  10000.0     //荷重初期値 kg
 
+#define MOB_MODE_SIM                0
+#define MOB_MODE_PLC                1
+
 class CCrane : public CMob
 {
 public:
@@ -64,6 +68,8 @@ public:
     double l_mh;                    //巻ロープ長 m
     Vector3 rc;                     //クレーン中心点の位置ベクトル
     Vector3 vc;                     //クレーン中心点の速度ベクトル
+
+    int source_mode;
 
 
     double r0[MOTION_ID_MAX];        //位置・角度
@@ -86,12 +92,22 @@ public:
     
     void timeEvolution();                       //時間発展を計算するメソッド
 
+   
+    
+    void set_plc(LPST_PLC_IO _pPLC) {
+        pPLC = _pPLC; return;
+    }
+
+    void init_mob(double _dt, Vector3& _r, Vector3& _v); //初期化
+
+
  private:
+     LPST_PLC_IO pPLC;
     double brk_elaped_time[MOTION_ID_MAX];      //ブレーキ開放経過時間
     double Tf[MOTION_ID_MAX];                   //加速度一時遅れ
 
     Vector3 A(Vector3& _r, Vector3& _v);        //吊点加速度計算
-    void Ac();                                  //クレーン加速度計算
+    void Ac();                  //クレーン加速度計算 SIM mode, PLC mode
 
     LPST_SPEC pspec;
     double accdec_cut_spd_range[MOTION_ID_MAX]; //加減速指令を0にする速度指令とFBの差の範囲

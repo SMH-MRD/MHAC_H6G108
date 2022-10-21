@@ -44,6 +44,13 @@ int CSwayIF::init_proc() {
         mode |= SWAY_IF_CRANE_MEM_NG;
     }
 
+    //デバッグモード　ON　製番ではOFFで初期化
+#ifdef _DVELOPMENT_MODE
+    set_debug_mode(L_ON);
+#else
+    set_debug_mode(L_OFF);
+#endif
+   
     //共有クレーンステータス構造体のポインタセット
     pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
     pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
@@ -54,14 +61,14 @@ int CSwayIF::init_proc() {
     }
     
     //振れ角計算用カメラパラメータセット
-    for(int i=0;i< N_SWAY_SENSOR;i++)
+    for (int i = 0;i < N_SWAY_SENSOR;i++) {
         for (int j = 0;j < SWAY_SENSOR_N_AXIS;j++)
         {
             double D0 = pCraneStat->spec.SwayCamParam[i][j][SID_D0];
             double H0 = pCraneStat->spec.SwayCamParam[i][j][SID_H0];
             double l0 = pCraneStat->spec.SwayCamParam[i][j][SID_l0];
-            
-            SwayCamParam[i][j][CAM_SET_PARAM_a] = sqrt(D0*D0 + (H0-l0)* (H0 - l0));
+
+            SwayCamParam[i][j][CAM_SET_PARAM_a] = sqrt(D0 * D0 + (H0 - l0) * (H0 - l0));
             double tempd = H0 - l0; if (tempd < 0.0) tempd *= -1.0;
             if (tempd < 0.000001) {
                 SwayCamParam[i][j][CAM_SET_PARAM_b] = 0.0;
@@ -71,8 +78,13 @@ int CSwayIF::init_proc() {
             }
             SwayCamParam[i][j][CAM_SET_PARAM_c] = pCraneStat->spec.SwayCamParam[i][j][SID_ph0];
             SwayCamParam[i][j][CAM_SET_PARAM_d] = pCraneStat->spec.SwayCamParam[i][j][SID_PIXlRAD];//rad→pix変換係数
- 
+
         }
+    }
+
+
+
+
     return int(mode & 0xff00);
 }
 //*********************************************************************************************
@@ -97,7 +109,8 @@ int CSwayIF::parse() {
 
 
 #ifdef _DVELOPMENT_MODE
-    if (pSimStat->mode & SIM_ACTIVE_MODE) {
+//    if (pSimStat->mode & SIM_ACTIVE_MODE) {
+    if(is_debug_mode()){
         set_sim_status(&sway_io_workbuf);   //　振れセンサ受信バッファの値をSIMからSWAY_IFのバッファにコピー
         parse_sway_stat(SID_SIM);           //　シミュレータの受信バッファを解析（カメラ座標での振れ検出値）
     }

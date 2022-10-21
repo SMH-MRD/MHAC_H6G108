@@ -86,7 +86,7 @@ void CMob::timeEvolution() {
 /*       Crane Object                                                          */
 /********************************************************************************/
 CCrane::CCrane() { 
-	pspec = &def_spec;
+	pspec = &def_spec;							//クレーン仕様
 	accdec_cut_spd_range[ID_HOIST] = 0.01;
 	accdec_cut_spd_range[ID_BOOM_H] = 0.01;
 	accdec_cut_spd_range[ID_SLEW] = 0.001;
@@ -111,9 +111,17 @@ CCrane::CCrane() {
 	r0[ID_BOOM_H] = pspec->boom_pos_min;
 	r0[ID_SLEW] = 0.0;
 	l_mh = 9.8;//初期値　周期　2π
+
+	source_mode = MOB_MODE_SIM;
 	
 }
 CCrane::~CCrane() {}
+
+//# 初期化　PLCエミュレータへの切り替え時 ########################################################################	
+void CCrane::init_mob(double _dt, Vector3& _r, Vector3& _v) {
+	;
+}
+
 
 void CCrane::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref) {
 	v_ref[ID_HOIST] = hoist_ref;
@@ -140,74 +148,78 @@ Vector3 CCrane::A(Vector3& _r, Vector3& _v) {
 #define REF_CUT_BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
 
 void CCrane::Ac() {
-
-	//加速指令計算
-	if(!motion_break[ID_HOIST]) a_ref[ID_HOIST] = 0.0;
-	else if ((v_ref[ID_HOIST] - v0[ID_HOIST])>accdec_cut_spd_range[ID_HOIST]) {
-		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][ACC];//正転加速
-		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][DEC];//逆転減速
-	}
-	else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
-		if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][DEC];//正転減速
-		else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][ACC];//逆転加速
-	}
-	else{
-		a_ref[ID_HOIST] = 0.0;
-	}
-	//極限停止
-	if((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
-	if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
-
-
-	if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
-	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
-		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][ACC];//正転加速
-		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][DEC];//逆転減速
-	}
-	else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
-		if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][DEC];//正転減速
-		else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][ACC];//逆転加速
-	}
-	else {
-		a_ref[ID_GANTRY] = 0.0;
-	}
-
-	//極限停止
-	if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
-	if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+	if (source_mode == MOB_MODE_SIM) {
+		//加速指令計算
+		if (!motion_break[ID_HOIST]) a_ref[ID_HOIST] = 0.0;
+		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) > accdec_cut_spd_range[ID_HOIST]) {
+			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][ACC];//正転加速
+			else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][DEC];//逆転減速
+		}
+		else if ((v_ref[ID_HOIST] - v0[ID_HOIST]) < -accdec_cut_spd_range[ID_HOIST]) {
+			if (v_ref[ID_HOIST] > 0.0) a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][FWD][DEC];//正転減速
+			else a_ref[ID_HOIST] = pspec->accdec[ID_HOIST][REV][ACC];//逆転加速
+		}
+		else {
+			a_ref[ID_HOIST] = 0.0;
+		}
+		//極限停止
+		if ((a_ref[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
+		if ((a_ref[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) a_ref[ID_HOIST] = 0.0;
 
 
+		if (!motion_break[ID_GANTRY]) a_ref[ID_GANTRY] = 0.0;
+		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) > accdec_cut_spd_range[ID_GANTRY]) {
+			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][ACC];//正転加速
+			else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][DEC];//逆転減速
+		}
+		else if ((v_ref[ID_GANTRY] - v0[ID_GANTRY]) < -accdec_cut_spd_range[ID_GANTRY]) {
+			if (v_ref[ID_GANTRY] > 0.0) a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][FWD][DEC];//正転減速
+			else a_ref[ID_GANTRY] = pspec->accdec[ID_GANTRY][REV][ACC];//逆転加速
+		}
+		else {
+			a_ref[ID_GANTRY] = 0.0;
+		}
 
-	if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
-	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
-		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][ACC];//正転加速
-		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][DEC];//逆転減速
+		//極限停止
+		if ((a_ref[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+		if ((a_ref[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) a_ref[ID_GANTRY] = 0.0;
+
+
+
+		if (!motion_break[ID_BOOM_H]) a_ref[ID_BOOM_H] = 0.0;
+		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) > accdec_cut_spd_range[ID_BOOM_H]) {
+			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][ACC];//正転加速
+			else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][DEC];//逆転減速
+		}
+		else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
+			if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][DEC];//正転減速
+			else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][ACC];//逆転加速
+		}
+		else {
+			a_ref[ID_BOOM_H] = 0.0;
+		}
+
+		//極限停止
+		if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+		if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
+
+		if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
+		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
+			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][ACC];//正転加速
+			else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][DEC];//逆転減速
+		}
+		else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
+			if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][DEC];//正転減速
+			else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//逆転加速
+		}
+		else {
+			a_ref[ID_SLEW] = 0.0;
+		}
 	}
-	else if ((v_ref[ID_BOOM_H] - v0[ID_BOOM_H]) < -accdec_cut_spd_range[ID_BOOM_H]) {
-		if (v_ref[ID_BOOM_H] > 0.0) a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][FWD][DEC];//正転減速
-		else a_ref[ID_BOOM_H] = pspec->accdec[ID_BOOM_H][REV][ACC];//逆転加速
-	}
-	else {
-		a_ref[ID_BOOM_H] = 0.0;
+	else {//PLC モード
+
 	}
 
-	//極限停止
-	if ((a_ref[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
-	if ((a_ref[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) a_ref[ID_BOOM_H] = 0.0;
-	
-	if (!motion_break[ID_SLEW]) a_ref[ID_SLEW] = 0.0;
-	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) > accdec_cut_spd_range[ID_SLEW]) {
-		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][ACC];//正転加速
-		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][DEC];//逆転減速
-	}
-	else if ((v_ref[ID_SLEW] - v0[ID_SLEW]) < -accdec_cut_spd_range[ID_SLEW]) {
-		if (v_ref[ID_SLEW] > 0.0) a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][FWD][DEC];//正転減速
-		else a_ref[ID_SLEW] = pspec->accdec[ID_SLEW][REV][ACC];//逆転加速
-	}
-	else {
-		a_ref[ID_SLEW] = 0.0;
-	}
-	
 	//加速度計算　当面指令に対して一次遅れフィルタを入れる形で計算（将来的にトルク指令からの導出検討）
 	if (motion_break[ID_HOIST]) {
 		a0[ID_HOIST] = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
@@ -238,6 +250,7 @@ void CCrane::Ac() {
 	}
 
 
+
 	//吊点加速度ベクトル
 	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//引込方向加速度　引込加速度＋旋回分
 	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//旋回方向加速度
@@ -254,7 +267,7 @@ void CCrane::Ac() {
 void CCrane::timeEvolution() {
 	//クレーン部
 	//加速度計算
-	Ac();	
+	Ac();
 	//速度計算(オイラー法）
 	v0[ID_HOIST]	+= a0[ID_HOIST] * dt;	if (!motion_break[ID_HOIST]) v0[ID_HOIST] = 0.0;
 	v0[ID_GANTRY]	+= a0[ID_GANTRY] * dt;	if (!motion_break[ID_GANTRY]) v0[ID_GANTRY] = 0.0;

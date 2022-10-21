@@ -734,7 +734,7 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 	SetWindowText(stIOCheckObj.hwnd_wo_addr_static, wc);
 
 
-	if (stIOCheckObj.is_pause_update == false) {
+	if (stIOCheckObj.is_pause_update == false) { //表示アップデートポーズフラグOFF
 		for (int i = 0; i < PLCIO_IO_DISP_NUM; i++) {
 			buf_id = stIOCheckObj.bi_addr - DEVICE_TOP_B_IN;
 			source_w = pmel->plc_b_out[buf_id + i];
@@ -852,6 +852,21 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 		mask = mask << 1;
 	}
 	SetWindowTextW(stIOCheckObj.hwnd_slw_notch_out_static, (wo.str()).c_str()); wo.str(L""); wo.clear();
+
+
+	//PC CONTROL チェックボックスの表示更新
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] & 0x1000)
+		SendMessage(stIOCheckObj.hwnd_chk_pc_ctrl, BM_SETCHECK, BST_CHECKED, 0);
+	else
+		SendMessage(stIOCheckObj.hwnd_chk_pc_ctrl, BM_SETCHECK, BST_UNCHECKED, 0);
+
+
+	//PLC エミュレータモードチェックボックスの表示更新
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] & 0x2000)
+		SendMessage(stIOCheckObj.hwnd_chk_plc_emulate, BM_SETCHECK, BST_CHECKED, 0);
+	else
+		SendMessage(stIOCheckObj.hwnd_chk_plc_emulate, BM_SETCHECK, BST_UNCHECKED, 0);
+
 
 	return 0;
 }

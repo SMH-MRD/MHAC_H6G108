@@ -313,10 +313,16 @@ VOID CMonWin::draw_inf() {
 	//ƒNƒŒ[ƒ“ˆÊ’uFB
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_HOIST]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 860, 50, ws.c_str(), (int)ws.length());
+
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_GANTRY]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 860, 65, ws.c_str(), (int)ws.length());
+
+	_stprintf_s(tbuf, L"%.1f", pPLC_IO->status.pos[ID_SLEW]/ PI1DEG); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 930, 80, ws.c_str(), (int)ws.length());//ù‰ñdeg
+
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_SLEW]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 860, 80, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 860, 80, ws.c_str(), (int)ws.length());//ù‰ñrad
+
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 860, 95, ws.c_str(), (int)ws.length());
 

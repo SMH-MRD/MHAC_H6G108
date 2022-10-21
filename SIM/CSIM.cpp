@@ -80,6 +80,9 @@ int CSIM::init_proc() {
     //クレーンの初期状態セット 
     pCrane->init_crane(SYSTEM_TICK_ms / 1000.0);
 
+    //クレーンオブジェクトにPLC_IOのポインタ渡し
+    pCrane->set_plc(pPLC);
+
 
     //吊荷ｵﾌﾞｼﾞｪｸﾄにｸﾚｰﾝｵﾌﾞｼﾞｪｸﾄを紐付け
     pLoad->set_crane(pCrane);

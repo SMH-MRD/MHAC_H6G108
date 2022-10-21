@@ -212,6 +212,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             30, 40, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+ 
+        //表示更新タイマ起動
+        SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
     }
     break;
     case WM_COMMAND:
@@ -251,6 +254,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_TIMER: {
+        if (pProcObj->is_debug_mode()) {
+            SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
+            SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"NORMAL->");
+        }
+        else {
+            SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
+            SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
+        }
+    }break;
+    
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
