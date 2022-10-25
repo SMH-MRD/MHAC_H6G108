@@ -64,58 +64,54 @@ public:
     CCrane();
     ~CCrane();
     
-    double M;                       //クレーン全体質量　Kg
-    double l_mh;                    //巻ロープ長 m
-    Vector3 rc;                     //クレーン中心点の位置ベクトル
-    Vector3 vc;                     //クレーン中心点の速度ベクトル
+    double M;                                       //クレーン全体質量　Kg
+    double l_mh;                                    //巻ロープ長 m
+    Vector3 rc;                                     //クレーン中心点の位置ベクトル
+    Vector3 vc;                                     //クレーン中心点の速度ベクトル
 
     int source_mode;
 
 
-    double r0[MOTION_ID_MAX];        //位置・角度
-    double v0[MOTION_ID_MAX];        //速度・角速度
-    double a0[MOTION_ID_MAX];        //加速度・角加速度
+    double r0[MOTION_ID_MAX];                       //位置・角度
+    double v0[MOTION_ID_MAX];                       //速度・角速度
+    double a0[MOTION_ID_MAX];                       //加速度・角加速度
 
-    double v_ref[MOTION_ID_MAX];     //速度・角速度指令
-    double a_ref[MOTION_ID_MAX];     //加速度・角加速度指令
+    double v_ref[MOTION_ID_MAX];                    //速度・角速度指令
+    double a_ref[MOTION_ID_MAX];                    //加速度・角加速度指令
 
-    bool is_fwd_endstop[MOTION_ID_MAX];         //正転極限判定
-    bool is_rev_endstop[MOTION_ID_MAX];         //逆転極限判定
+    bool is_fwd_endstop[MOTION_ID_MAX];             //正転極限判定
+    bool is_rev_endstop[MOTION_ID_MAX];             //逆転極限判定
  
-    double trq_fb[MOTION_ID_MAX];               //モータートルクFB
-    bool motion_break[MOTION_ID_MAX];           //ブレーキ開閉状態
+    double trq_fb[MOTION_ID_MAX];                   //モータートルクFB
+    bool motion_break[MOTION_ID_MAX];               //ブレーキ開閉状態
 
     void set_v_ref(double hoist_ref,double gantry_ref,double slew_ref,double boomh_ref);        //速度指令値入力
     void init_crane(double _dt); 
     int set_spec(LPST_SPEC _pspec) { pspec = _pspec; return 0; }
-    void update_break_status();                 //ブレーキ状態, ブレーキ開放経過時間セット
+    void update_break_status();                     //ブレーキ状態, ブレーキ開放経過時間セット
     
-    void timeEvolution();                       //時間発展を計算するメソッド
+    void timeEvolution();                           //時間発展を計算するメソッド
 
    
     
-    void set_plc(LPST_PLC_IO _pPLC) {
-        pPLC = _pPLC; return;
-    }
+    void set_plc(LPST_PLC_IO _pPLC) { pPLC = _pPLC; return; }   //`PLC IO共有メモリポインタセット
+    void set_mode(int _mode) { source_mode = _mode;return; }
 
-    void init_mob(double _dt, Vector3& _r, Vector3& _v); //初期化
-
-
- private:
+  private:
      LPST_PLC_IO pPLC;
-    double brk_elaped_time[MOTION_ID_MAX];      //ブレーキ開放経過時間
-    double Tf[MOTION_ID_MAX];                   //加速度一時遅れ
+    double brk_elaped_time[MOTION_ID_MAX];          //ブレーキ開放経過時間
+    double Tf[MOTION_ID_MAX];                       //加速度一時遅れ
 
-    Vector3 A(Vector3& _r, Vector3& _v);        //吊点加速度計算
-    void Ac();                  //クレーン加速度計算 SIM mode, PLC mode
+    Vector3 A(Vector3& _r, Vector3& _v);            //吊点加速度計算（旋回、引込方向をxy方向に変換
+    void Ac();                                      //クレーン加速度計算 SIM mode, PLC mode
 
     LPST_SPEC pspec;
-    double accdec_cut_spd_range[MOTION_ID_MAX]; //加減速指令を0にする速度指令とFBの差の範囲
+    double accdec_cut_spd_range[MOTION_ID_MAX];     //加減速指令を0にする速度指令とFBの差の範囲
 };
 
 //計算誤差吸収処理　紐長さ補正力＝補正ばね弾性力＋補正粘性抵抗力
-#define compensationK 0.5       //紐長さ補正弾性係数
-#define compensationGamma 0.5   //紐長さ粘性係数
+#define compensationK 0.5                           //紐長さ補正弾性係数
+#define compensationGamma 0.5                       //紐長さ粘性係数
 
 //吊荷クラス
 class CLoad : public CMob

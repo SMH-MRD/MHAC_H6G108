@@ -87,11 +87,15 @@ void CMob::timeEvolution() {
 /********************************************************************************/
 CCrane::CCrane() { 
 	pspec = &def_spec;							//クレーン仕様
+
+	//0速とみなす速度上限
 	accdec_cut_spd_range[ID_HOIST] = 0.01;
 	accdec_cut_spd_range[ID_BOOM_H] = 0.01;
 	accdec_cut_spd_range[ID_SLEW] = 0.001;
 	accdec_cut_spd_range[ID_GANTRY] = 0.01;
+
 	M = pspec->m_loard0;//初期荷重
+
 	for (int i = 0; i < MOTION_ID_MAX;i++) {
 		is_fwd_endstop[i] = false;
 		is_rev_endstop[i] = false;
@@ -106,6 +110,7 @@ CCrane::CCrane() {
 		trq_fb[i]=0.0;    //モータートルクFB
 		motion_break[i] = false;
 	}
+
 	r0[ID_GANTRY] = pspec->gantry_pos_min;
 	r0[ID_HOIST] = pspec->boom_high - 9.8;	//初期値　周期　2πとなる巻き位置
 	r0[ID_BOOM_H] = pspec->boom_pos_min;
@@ -117,12 +122,6 @@ CCrane::CCrane() {
 }
 CCrane::~CCrane() {}
 
-//# 初期化　PLCエミュレータへの切り替え時 ########################################################################	
-void CCrane::init_mob(double _dt, Vector3& _r, Vector3& _v) {
-	;
-}
-
-
 void CCrane::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, double boomh_ref) {
 	v_ref[ID_HOIST] = hoist_ref;
 	v_ref[ID_BOOM_H] = boomh_ref;
@@ -132,7 +131,7 @@ void CCrane::set_v_ref(double hoist_ref, double gantry_ref, double slew_ref, dou
 }
 
 // ﾄﾙｸT(N・m）= F x R　= J x dω/dt  仕事率P=Tω=Mav　a=Tω/Mv=MT/r
-Vector3 CCrane::A(Vector3& _r, Vector3& _v) {
+Vector3 CCrane::A(Vector3& _r, Vector3& _v) {					//吊点の加速度
 
 	Vector3 a;
 	double r_bm = r0[ID_BOOM_H];//旋回半径
@@ -147,7 +146,7 @@ Vector3 CCrane::A(Vector3& _r, Vector3& _v) {
 
 #define REF_CUT_BREAK_CLOSE_RETIO 0.5	//ブレーキを閉じる判定係数　１ノッチ速度との比率
 
-void CCrane::Ac() {
+void CCrane::Ac() {								//加速度計算
 	if (source_mode == MOB_MODE_SIM) {
 		//加速指令計算
 		if (!motion_break[ID_HOIST]) a_ref[ID_HOIST] = 0.0;
@@ -216,33 +215,37 @@ void CCrane::Ac() {
 			a_ref[ID_SLEW] = 0.0;
 		}
 	}
-	else {//PLC モード
-
+	else {			//PLC モードでは、速度FBの微分を加速度指令として評価
+		//加速指令計算
+		a_ref[ID_HOIST] = (pPLC->status.v_fb[ID_HOIST] - v0[ID_HOIST]) / dt;
+		a_ref[ID_GANTRY] = (pPLC->status.v_fb[ID_GANTRY] - v0[ID_GANTRY]) / dt;
+		a_ref[ID_BOOM_H] = (pPLC->status.v_fb[ID_BOOM_H] - v0[ID_BOOM_H]) / dt;
+		a_ref[ID_SLEW] = (pPLC->status.v_fb[ID_SLEW] - v0[ID_SLEW]) / dt;
 	}
 
 	//加速度計算　当面指令に対して一次遅れフィルタを入れる形で計算（将来的にトルク指令からの導出検討）
-	if (motion_break[ID_HOIST]) {
+	if ((motion_break[ID_HOIST])||(source_mode != MOB_MODE_SIM)) {
 		a0[ID_HOIST] = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);
 	}
 	else {
 		a0[ID_HOIST] = 0.0;
 	}
 
-	if (motion_break[ID_BOOM_H]) {
+	if ((motion_break[ID_BOOM_H]) || (source_mode != MOB_MODE_SIM)) {
 		a0[ID_BOOM_H] = (dt * a_ref[ID_BOOM_H] + Tf[ID_BOOM_H] * a0[ID_BOOM_H]) / (dt + Tf[ID_BOOM_H]);
 	}
 	else {
 		a0[ID_BOOM_H] = 0.0;
 	}
 
-	if (motion_break[ID_SLEW]) {
+	if ((motion_break[ID_SLEW]) || (source_mode != MOB_MODE_SIM)) {
 		a0[ID_SLEW] = (dt * a_ref[ID_SLEW] + Tf[ID_SLEW] * a0[ID_SLEW]) / (dt + Tf[ID_SLEW]);
 	}
 	else {
 		a0[ID_SLEW] = 0.0;
 	}
 
-	if (motion_break[ID_GANTRY]) {
+	if ((motion_break[ID_GANTRY]) || (source_mode != MOB_MODE_SIM)) {
 		a0[ID_GANTRY] = (dt * a_ref[ID_GANTRY] + Tf[ID_GANTRY] * a0[ID_GANTRY]) / (dt + Tf[ID_GANTRY]);
 	}
 	else {
@@ -250,13 +253,12 @@ void CCrane::Ac() {
 	}
 
 
-
-	//吊点加速度ベクトル
+	//吊点加速度ベクトル（円柱座標）
 	double a_er = a0[ID_BOOM_H] - r0[ID_BOOM_H] * v0[ID_SLEW] * v0[ID_SLEW];		//引込方向加速度　引込加速度＋旋回分
 	double a_eth = r0[ID_BOOM_H] * a0[ID_SLEW] + 2.0 * v0[ID_BOOM_H] * v0[ID_SLEW];	//旋回方向加速度
-	double a_z = 0.0;
+	double a_z = 0.0;																//吊点の高さは一定
 
-
+	//xyz座標吊点加速度ベクトル
 	a.x = a0[ID_GANTRY] + a_er * cos(r0[ID_SLEW]) - a_eth * sin(r0[ID_SLEW]);
 	a.y = a_er * sin(r0[ID_SLEW]) + a_eth * cos(r0[ID_SLEW]);
 	a.z = a_z;
@@ -268,25 +270,40 @@ void CCrane::timeEvolution() {
 	//クレーン部
 	//加速度計算
 	Ac();
-	//速度計算(オイラー法）
-	v0[ID_HOIST]	+= a0[ID_HOIST] * dt;	if (!motion_break[ID_HOIST]) v0[ID_HOIST] = 0.0;
-	v0[ID_GANTRY]	+= a0[ID_GANTRY] * dt;	if (!motion_break[ID_GANTRY]) v0[ID_GANTRY] = 0.0;
-	v0[ID_SLEW]		+= a0[ID_SLEW] * dt;	if (!motion_break[ID_SLEW]) v0[ID_SLEW] = 0.0;
-	v0[ID_BOOM_H]	+= a0[ID_BOOM_H] * dt;	if (!motion_break[ID_BOOM_H]) v0[ID_BOOM_H] = 0.0;
 
-	//極限停止
-	if (((v0[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) || (v0[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) v0[ID_HOIST] = 0.0;
-	if (((v0[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) || (v0[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) v0[ID_GANTRY] = 0.0;
-	if (((v0[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) || (v0[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) v0[ID_BOOM_H] = 0.0;
+	if (source_mode == MOB_MODE_SIM) {
+		//速度計算(オイラー法）
+		v0[ID_HOIST] += a0[ID_HOIST] * dt;	if (!motion_break[ID_HOIST]) v0[ID_HOIST] = 0.0;
+		v0[ID_GANTRY] += a0[ID_GANTRY] * dt;	if (!motion_break[ID_GANTRY]) v0[ID_GANTRY] = 0.0;
+		v0[ID_SLEW] += a0[ID_SLEW] * dt;	if (!motion_break[ID_SLEW]) v0[ID_SLEW] = 0.0;
+		v0[ID_BOOM_H] += a0[ID_BOOM_H] * dt;	if (!motion_break[ID_BOOM_H]) v0[ID_BOOM_H] = 0.0;
 
+		//極限停止
+		if (((v0[ID_HOIST] > 0.0) && (is_fwd_endstop[ID_HOIST])) || (v0[ID_HOIST] < 0.0) && (is_rev_endstop[ID_HOIST])) v0[ID_HOIST] = 0.0;
+		if (((v0[ID_GANTRY] > 0.0) && (is_fwd_endstop[ID_GANTRY])) || (v0[ID_GANTRY] < 0.0) && (is_rev_endstop[ID_GANTRY])) v0[ID_GANTRY] = 0.0;
+		if (((v0[ID_BOOM_H] > 0.0) && (is_fwd_endstop[ID_BOOM_H])) || (v0[ID_BOOM_H] < 0.0) && (is_rev_endstop[ID_BOOM_H])) v0[ID_BOOM_H] = 0.0;
 
-	//位置計算(オイラー法）
-	r0[ID_HOIST]	+= v0[ID_HOIST] * dt;	
-	r0[ID_GANTRY]	+= v0[ID_GANTRY] * dt;
-	r0[ID_BOOM_H]	+= v0[ID_BOOM_H] * dt;
-	r0[ID_SLEW] += v0[ID_SLEW] * dt; 
-	
-	//-π～πの表現にする
+		//位置計算(オイラー法）
+		r0[ID_HOIST] += v0[ID_HOIST] * dt;
+		r0[ID_GANTRY] += v0[ID_GANTRY] * dt;
+		r0[ID_BOOM_H] += v0[ID_BOOM_H] * dt;
+		r0[ID_SLEW] += v0[ID_SLEW] * dt;
+
+	}
+	else {
+		v0[ID_HOIST] = pPLC->status.v_fb[ID_HOIST];
+		v0[ID_GANTRY] = pPLC->status.v_fb[ID_GANTRY];
+		v0[ID_SLEW] = pPLC->status.v_fb[ID_SLEW];
+		v0[ID_BOOM_H] = pPLC->status.v_fb[ID_BOOM_H];
+
+		//位置計算(オイラー法）
+		r0[ID_HOIST] = pPLC->status.pos[ID_HOIST];
+		r0[ID_GANTRY] = pPLC->status.pos[ID_GANTRY];
+		r0[ID_BOOM_H] = pPLC->status.pos[ID_BOOM_H];
+		r0[ID_SLEW] = pPLC->status.pos[ID_SLEW];
+	}
+
+	//旋回角は、-π～πの表現にする
 	if (r0[ID_SLEW] >= PI180)r0[ID_SLEW] -= PI360; if (r0[ID_SLEW] <= -PI180)r0[ID_SLEW] += PI360;
 
 	vc.x = v0[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;
@@ -302,26 +319,45 @@ void CCrane::timeEvolution() {
 	r.y = r_bm * sin(r0[ID_SLEW]);
 	r.z = pspec->boom_high;
 	l_mh = pspec->boom_high - r0[ID_HOIST];	//ロープ長
+
 	return;
 }
 
 void CCrane::init_crane(double _dt) {
 
-	rc.x = SIM_INIT_X; rc.y = 0.0; rc.z = 0.0;
-	vc.x = 0.0; vc.y = 0.0; vc.z = 0.0;
-	
-	Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), pspec->boom_high);
+	if (source_mode == MOB_MODE_PLC) {
+		//クレーン基準点の初期位置,速度
+		rc.x = pPLC->status.pos[ID_GANTRY]; rc.y = 0.0; rc.z = 0.0;
+		vc.x = pPLC->status.v_fb[ID_GANTRY]; vc.y = 0.0; vc.z = 0.0;
 
-	init_mob(_dt, _r, vc);
+		Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), pspec->boom_high);
+
+		init_mob(_dt, _r, vc);
+
+		//r0は、各軸アブソコーダの値,　rは、吊点のxyz座標の値
+		r0[ID_HOIST] = pPLC->status.pos[ID_HOIST];
+		r0[ID_GANTRY] = rc.x;
+		r0[ID_SLEW] = pPLC->status.pos[ID_SLEW];
+		r0[ID_BOOM_H] = pPLC->status.pos[ID_BOOM_H];
+	}
+	else {
+		//クレーン基準点の初期位置,速度
+		rc.x = SIM_INIT_X; rc.y = 0.0; rc.z = 0.0;
+		vc.x = 0.0; vc.y = 0.0; vc.z = 0.0;
+
+		Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), pspec->boom_high);
+
+		init_mob(_dt, _r, vc);
+
+		//r0は、各軸アブソコーダの値,　rは、吊点のxyz座標の値
+		r0[ID_HOIST] = r.z - SIM_INIT_L;
+		r0[ID_GANTRY] = rc.x;
+		r0[ID_SLEW] = SIM_INIT_TH;
+		r0[ID_BOOM_H] = SIM_INIT_R;
+	}
 
 	set_v_ref(0.0, 0.0, 0.0, 0.0);	//初期速度指令値セット
 	set_fex(0.0, 0.0, 0.0);			//初期外力セット
-
-	//r0は、各軸アブソコーダの値,　rは、吊点のxyz座標の値
-	r0[ID_HOIST] = r.z - SIM_INIT_L;
-	r0[ID_GANTRY] = rc.x;
-	r0[ID_SLEW] = SIM_INIT_TH;
-	r0[ID_BOOM_H] = SIM_INIT_R;
 		
 	//加速度一次遅れフィルタ時定数
 	Tf[ID_HOIST] = SIM_TF_HOIST;

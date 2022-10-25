@@ -47,7 +47,7 @@ int CSIM::init_proc() {
 
      // 出力用共有メモリ取得
     out_size = sizeof(ST_SIMULATION_STATUS);
-    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, out_size, MUTEX_SIMULATION_STATUS_NAME)) {
+    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME, (DWORD)out_size, MUTEX_SIMULATION_STATUS_NAME)) {
         mode |= SIM_IF_SIM_MEM_NG;
     }
 
@@ -148,14 +148,57 @@ int CSIM::input() {
 //*********************************************************************************************
 // parse()
 //*********************************************************************************************
+static int sim_act_last,wait_count=0;
 int CSIM::parse() {
+
+
+    //************** モード切り替え時初期化処理　**************
+    {
+        if (sim_act_last != is_act_mode()) wait_count = 100;//PLC IO 更新待ちカウンタセット
+        else { if (wait_count > 0)wait_count--; }
+        //モード切り替え後PLC IF更新を待って初期化
+        if (wait_count == 90) {//100msec後
+            Sleep(1000);//PLC_IFの切変わり待ち
+            if (is_act_mode()) {
+                pCrane->set_mode(MOB_MODE_SIM);
+                //吊荷の初期状態セット 
+                Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), def_spec.boom_high - SIM_INIT_L);  //吊点位置
+                Vector3 _v(0.0, 0.0, 0.0);                          //吊点位速度
+                pCrane->init_crane(dt);
+                pLoad->init_mob(dt, _r, _v);
+                pLoad->set_m(SIM_INIT_M);
+            }
+            else {
+                pCrane->set_mode(MOB_MODE_PLC);
+                //吊荷の初期状態セット 
+                Vector3 _r(pPLC->status.pos[ID_BOOM_H] * cos(pPLC->status.pos[ID_SLEW]) + pPLC->status.pos[ID_GANTRY],
+                    pPLC->status.pos[ID_BOOM_H] * sin(pPLC->status.pos[ID_SLEW]),
+                    pPLC->status.pos[ID_HOIST]);             //吊点位置
+
+                Vector3 _v(0.0, 0.0, 0.0);                          //吊点速度
+                pCrane->init_crane(dt);
+                pLoad->init_mob(dt, _r, _v);
+                pLoad->set_m(SIM_INIT_M + pPLC->status.weight);
+            }
+        }
+    }
+    //************** モード切り替え時初期化処理　************** 
 
      pCrane->update_break_status(); //ブレーキ状態更新
      pCrane->timeEvolution();       //クレーンの位置,速度計算
      pLoad->timeEvolution();        //吊荷の位置,速度計算
+   
+     if (sim_act_last != is_act_mode()) {
+         pLoad->dr.x = 0.0;pLoad->dr.y = 0.0;pLoad->dr.z = 0.0;
+         pLoad->dv.x = 0.0;pLoad->dv.y = 0.0;pLoad->dv.z = 0.0;
+     }
+     
      pLoad->r.add(pLoad->dr);       //吊荷位置更新
      pLoad->v.add(pLoad->dv);       //吊荷速度更新
      pLoad->update_relative_vec();  //吊荷吊点相対ベクトル更新(ロープベクトル　L,vL)
+
+     sim_act_last = is_act_mode();
+
 
     return 0;
 }
