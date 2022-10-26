@@ -243,6 +243,10 @@ typedef struct StPCOutBMap {
     UINT16 lamp_auto_tg2[2]          = { 0, BIT13 };
     UINT16 lamp_auto_tg3[2]          = { 0, BIT14 };
     UINT16 lamp_auto_tg4[2]          = { 0, BIT15 };
+    UINT16 lamp_auto_tg5[2]          = { 1, BIT0 };
+    UINT16 lamp_auto_tg6[2]          = { 1, BIT1 };
+    UINT16 lamp_auto_tg7[2]          = { 1, BIT2 };
+    UINT16 lamp_auto_tg8[2]          = { 1, BIT3 };
 
     UINT16 com_pc_ctr_act[2]         = { 1, BIT12 };
     UINT16 com_plc_emulate_act[2]    = { 1, BIT13 };

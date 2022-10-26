@@ -14,7 +14,7 @@
 
 #define CMON_PIX_PER_M_CRANE    5       //1m 5pixel クレーン部
 #define CMON_PIX_PER_M_HOIST    5       //1m 5pixel 巻位置部
-#define CMON_PIX_R_BOOM_END     2       //ブーム端点表示円半径
+#define CMON_PIX_R_BOOM_END     3       //ブーム端点表示円半径
 #define CMON_PIX_PER_RAD_LOAD   1000    //1rad 1000pixel 吊荷部
 #define CMON_PIX_PER_M_GNT      2       //1m 2pixel   走行位置
 #define CMON_PIX_GNT_MARK_W     2       //走行位置表示マーク幅

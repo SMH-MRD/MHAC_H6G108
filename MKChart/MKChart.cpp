@@ -162,6 +162,7 @@ HWND CMKChart::open_chart(int chartID, HWND hwnd_parent) {
 			0,
 			hInst,
 			NULL);
+
 	}
 
 	//初期化処理呼び出し

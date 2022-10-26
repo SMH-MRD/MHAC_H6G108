@@ -6,8 +6,8 @@
 
 
 
-#define AGENT_PB_OFF_DELAY          10                            //PB出力OFF DELAY COUNT
-#define AGENT_LAMP_ON               PLC_IO_LAMP_FLICKER_CHANGE    //LAMP ON出力カウント値
+#define AGENT_PB_OFF_DELAY          40                            //PB出力OFF DELAY COUNT
+#define AGENT_LAMP_ON               39    //LAMP ON出力カウント値
 #define AGENT_LAMP_OFF              0                             //LAMP OFF出力カウント値
 
 #define PHASE_CHECK_RANGE           0.02  // レシピ出力　位相到達判定範囲　rad :1deg = 0.017 rad
@@ -31,9 +31,7 @@ public:
     void routine_work(void* param);
     DWORD auto_type;                                //ANTI_SWAY,SEMI_AUTO,JOB
     DWORD auto_ctrl_mode;                           //STAND_BY,SUSPEND,ACTIVE
-
-    int receipt_ope_com(int type, int id);          //Operation Command受付
-
+      
   private:
     
     LPST_POLICY_INFO pPolicyInf;

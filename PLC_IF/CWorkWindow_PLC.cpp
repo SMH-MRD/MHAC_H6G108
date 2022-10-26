@@ -104,9 +104,15 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		//コントロール初期状態設定
 		update_all_controls(hDlg);
 
-
+		SetTimer(hDlg, ID_WORK_UPDATE_TIMER, IO_CHK_TIMER_PRIOD, NULL);
+	
 		return TRUE;
-	}break;
+	}break;		//表示更新タイマ起動
+
+
+	case WM_CREATE: {
+			break;
+	}
 	case WM_COMMAND: {
 		switch (LOWORD(wp)) {
 		case IDC_BUTTON_SOURCE1_ON:
@@ -296,10 +302,31 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 			wsprintf(stOpePaneStat.static_gt_label, L"走行 %02d", stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH);
 			SetWindowText(GetDlgItem(hDlg, IDC_STATIC_GT_LABEL), stOpePaneStat.static_gt_label);
 		}break;
+
+		case IDC_BUTTON_FAULT_RESET:
+		{
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE2_ON), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.button_source2_on = TRUE;
+			}
+			else {
+				stOpePaneStat.button_source2_on = FALSE;
+			}
+		}break;
+
+
+
 		}
 
 	}break;
+	case WM_PAINT:{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hDlg, &ps);
+		// TODO: HDC を使用する描画コードをここに追加してください...
+		BitBlt(hdc, 0, 0, WORK_WND_W, WORK_WND_H, stOpePaneStat.hdc_mem_gr, 0, 0, SRCCOPY);
 
+
+		EndPaint(hDlg, &ps);
+	}break;
 	case WM_NOTIFY://SPINコントロール用
 	{
 		WPARAM ui_udn_deltapos = 4294966574;//(WPARAM)UDN_DELTAPOS;コンパイル時のC26454警告を出さない為一旦変数にコードを直接入れる
@@ -356,7 +383,18 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 
 		break;
 	}
+
+	case WM_TIMER: {
+
+		update_Work(hDlg);
+	}break;
+	case WM_CTLCOLORSTATIC:break;
+	case WM_DESTROY: {
+		KillTimer(hDlg, ID_WORK_UPDATE_TIMER);
+	}return 0;
+
 	}
+
 	return FALSE;
 }
 
@@ -709,7 +747,60 @@ int CWorkWindow_PLC::update_all_controls(HWND hDlg) {
 	SetWindowText(GetDlgItem(hDlg, IDC_STATIC_GT_LABEL), stOpePaneStat.static_gt_label);
 	return 0;
 }
+int CWorkWindow_PLC::update_Work(HWND hwnd) {
 
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_as_on[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_as_on[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_ANTISWAY_LAMP), L"●");
+	}else SetWindowText(GetDlgItem(hwnd, IDC_ANTISWAY_LAMP), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_start[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_start[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_AUTOSTART_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_AUTOSTART_LAMP), L"○");
+
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg1[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg1[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP1), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP1), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg2[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg2[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP2), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP2), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg3[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg3[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP3), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP3), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg4[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg4[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP4), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP4), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg5[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg5[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP1), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP1), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg6[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg6[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP2), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP2), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg7[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg7[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP3), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP3), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg8[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg8[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP4), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP4), L"○");
+
+	return 0;
+}
 int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 
 	WCHAR wc[16];

@@ -26,6 +26,7 @@
 
 //IO CHECK 表示更新タイマーID
 #define ID_IO_CHK_UPDATE_TIMER				10700
+#define ID_WORK_UPDATE_TIMER				10701
 
 //表示更新周期(msec)
 #define IO_CHK_TIMER_PRIOD        			100
@@ -51,6 +52,9 @@
 #define LABEL_BUF_SIZE 32
 
 typedef struct stPLCDbugPanelTag {
+
+	HDC hdc_mem_gr = NULL;					    //グラフィック部メモリデバイスコンテキスト
+	
 	int slider_slew = 0;							// IDC_SLIDER_SLEW                 1000
 	bool check_estop = false;						// IDC_CHECK_ESTOP                 1001
 	int slider_bh = 0;								// IDC_SLIDER_BH                   1002
@@ -86,6 +90,10 @@ typedef struct stPLCDbugPanelTag {
 	bool button_to2 = false;						// IDC_BUTTON_TO2                  1040
 	bool button_to3 = false;						// IDC_BUTTON_TO3                  1041
 	bool button_to4 = false;						// IDC_BUTTON_TO4                  1042
+
+
+	bool button_fault_reset = false;						//IDC_BUTTON_FAULT_RESET          1050
+
 }ST_PLC_DEBUG_PANEL, * LPST_PLC_DEBUG_PANEL;
 
 //コモンコントロールID
@@ -259,6 +267,7 @@ public:
 
 	static int update_all_controls(HWND);
 	static int update_IOChk(HWND);
+	static int update_Work(HWND);
 
 	static HWND open_WorkWnd(HWND hwnd_parent);
 	static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);

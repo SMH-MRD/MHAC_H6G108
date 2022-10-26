@@ -91,7 +91,7 @@ int CMonWin::init_main_window() {
 	//Pen,Brush設定
 	stGraphic.hpen[CMON_RED_PEN] = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
 	stGraphic.hpen[CMON_GREEN_PEN] = CreatePen(PS_SOLID, 1, RGB(0,255, 0));
-	stGraphic.hpen[CMON_BLUE_PEN] = CreatePen(PS_SOLID, 1, RGB(0,0,255));
+	stGraphic.hpen[CMON_BLUE_PEN] = CreatePen(PS_SOLID, 2, RGB(0,0,255));
 	stGraphic.hpen[CMON_GLAY_PEN] = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
 	stGraphic.hbrush[CMON_BG_BRUSH] = CreateSolidBrush(RGB(240, 240, 240));
 	stGraphic.hbrush[CMON_RED_BRUSH] = CreateSolidBrush(RGB(255, 0, 0));
@@ -395,7 +395,20 @@ VOID CMonWin::draw_graphic() {
 
 	COLORREF color_pt = RGB(255, 0, 0); //ポイント描画色
 
-//# ブーム先端描画
+
+	//吊荷描画
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_BRUSH]);
+	SelectObject(stGraphic.hdc_mem_gr, GetStockObject(NULL_PEN));
+	POINT load_xy;
+	load_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rl.x * CMON_PIX_PER_M_CRANE);
+	load_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rl.y * CMON_PIX_PER_M_CRANE);
+	Ellipse(stGraphic.hdc_mem_gr,
+		load_xy.x - 6,
+		load_xy.y - 6,
+		load_xy.x + 6,
+		load_xy.y + 6);
+
+	//# ブーム先端描画
 	POINT boom_end_xy;					//ブーム先端位置
 	boom_end_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rc.x * CMON_PIX_PER_M_CRANE);
 	boom_end_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rc.y * CMON_PIX_PER_M_CRANE);
@@ -414,16 +427,7 @@ VOID CMonWin::draw_graphic() {
 		boom_end_xy.x + CMON_PIX_R_BOOM_END, 
 		boom_end_xy.y + CMON_PIX_R_BOOM_END);
 
-	//吊荷描画
-	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_BRUSH]);
-	POINT load_xy;
-	load_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rl.x * CMON_PIX_PER_M_CRANE);
-	load_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rl.y * CMON_PIX_PER_M_CRANE);
-	Ellipse(stGraphic.hdc_mem_gr,
-		load_xy.x - CMON_PIX_R_BOOM_END,
-		load_xy.y - CMON_PIX_R_BOOM_END,
-		load_xy.x + CMON_PIX_R_BOOM_END,
-		load_xy.y + CMON_PIX_R_BOOM_END);
+
 
 //# 走行位置描画
 	//走行位置描画

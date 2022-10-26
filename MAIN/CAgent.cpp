@@ -705,39 +705,6 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 }
 
 /****************************************************************************/
-/*   運転操作IF　Command受付（PB,Lamp）												*/
-/****************************************************************************/
-int CAgent::receipt_ope_com(int type, int target) {
-	switch (type) {
-	case OPE_COM_PB_SET:
-		AgentInf_workbuf.PLC_PB_com[target] = AGENT_PB_OFF_DELAY;
-		break;
-	case OPE_COM_LAMP_ON:
-		AgentInf_workbuf.PLC_LAMP_com[target] = PLC_IO_LAMP_FLICKER_CHANGE;
-		break;
-	case OPE_COM_LAMP_OFF:
-		AgentInf_workbuf.PLC_LAMP_com[target] = 0;
-		break;
-	case OPE_COM_LAMP_FLICKER:
-		AgentInf_workbuf.PLC_LAMP_com[target] = PLC_IO_LAMP_FLICKER_COUNT;
-		break;
-	case OPE_COM_SEMI_LAMP_ON:
-		AgentInf_workbuf.PLC_LAMP_semiauto_com[target] = PLC_IO_LAMP_FLICKER_CHANGE;
-		break;
-	case OPE_COM_SEMI_LAMP_OFF:
-		AgentInf_workbuf.PLC_LAMP_semiauto_com[target] = 0;
-		break;
-	case OPE_COM_SEMI_LAMP_FLICKER:
-		AgentInf_workbuf.PLC_LAMP_semiauto_com[target] = PLC_IO_LAMP_FLICKER_CHANGE;
-		break;
-
-	default:
-		break;
-	}
-	return 0;
-};
-
-/****************************************************************************/
 /*  自動起動可否チェック													*/
 /****************************************************************************/
 bool CAgent::can_auto_trigger()
@@ -1002,13 +969,20 @@ int CAgent::update_auto_setting() {
 /****************************************************************************/
 void CAgent::update_pb_lamp_com() {
 	//PB ON状態を一定時間ホールド
+	//カウンタ値セット
+	if (pPLC_IO->ui.PB[ID_PB_ESTOP]) AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = AGENT_PB_OFF_DELAY;
+	//OFFディレイ
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
 
-	//LAMP
+	//振れ止めランプ
 	if (pCraneStat->auto_standby) {
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_ON;
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_OFF;
@@ -1017,52 +991,26 @@ void CAgent::update_pb_lamp_com() {
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_OFF;
 		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_ON;
 	}
+
+	//自動開始ランプ
+	if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] = AGENT_LAMP_ON;
+	else AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] = AGENT_LAMP_OFF;
+
+	//半自動ランプ	
+	//LAMP　カウント値　0：消灯　カウント値%PLC_IO_LAMP_FLICKER_COUNT　が　PLC_IO_LAMP_FLICKER_CHANGE以下でOFF,以上でON（PLC_IFにて出力）
+	for (int i = 0;i < SEMI_AUTO_TG_CLR;i++) {
+		if (i == pCraneStat->semi_auto_selected) {
+			AgentInf_workbuf.PLC_LAMP_semiauto_com[i] = AGENT_LAMP_ON;
+		}
+		else if (pCraneStat->semi_auto_pb_count[i]) {
+			AgentInf_workbuf.PLC_LAMP_semiauto_com[i]++;
+
+		}
+		else {
+			AgentInf_workbuf.PLC_LAMP_semiauto_com[i] = AGENT_LAMP_OFF;
+		}
+	}
 	
-	//LAMP　カウント値　0：消灯　カウント値%PLC_IO_LAMP_FLICKER_COUNT　が　PLC_IO_LAMP_FLICKER_CHANGE以下でON,以上でOFF（PLC_IFにて出力）
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] <= 0)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG1]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG2]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3] >PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG3]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG4]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG5]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG6]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG7]++;
-	else;
-
-	if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8] <= 0)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8] = 0;
-	else if (AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8] > PLC_IO_LAMP_FLICKER_CHANGE)AgentInf_workbuf.PLC_LAMP_com[SEMI_AUTO_TG8]++;
-	else;
-
 	return;
 };
 /****************************************************************************/
