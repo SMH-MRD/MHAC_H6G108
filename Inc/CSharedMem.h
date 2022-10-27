@@ -74,6 +74,7 @@ using namespace std;
 #define ID_PB_CTRL_SOURCE2_ON	16
 #define ID_PB_CTRL_SOURCE2_OFF	17
 #define ID_PB_AUTO_RESET		18
+#define ID_PB_FAULT_RESET		19
 
 
 #define PLC_IO_LAMP_FLICKER_COUNT    40 //ランプフリッカの間隔カウント

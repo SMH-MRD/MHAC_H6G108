@@ -63,7 +63,6 @@
 #define IDC_SOURCE2                     1049
 #define IDC_BUTTON_FAULT_RESET          1050
 #define IDC_CHECK_SPD_MODE              1051
-#define IDC_CHECK_SPD_MODE2             1052
 #define IDC_CHECK_SIM_FB                1052
 #define IDC_STATIC                      -1
 

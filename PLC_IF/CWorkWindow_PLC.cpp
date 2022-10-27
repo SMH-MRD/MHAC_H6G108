@@ -151,7 +151,6 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 				stOpePaneStat.button_source2_off = FALSE;
 			}
 		}break;
-
 		case IDC_BUTTON_AUTO_START:
 		{
 			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_AUTO_START), BM_GETCHECK, 0, 0)) {
@@ -305,17 +304,32 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 
 		case IDC_BUTTON_FAULT_RESET:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE2_ON), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_source2_on = TRUE;
+			if (stOpePaneStat.button_fault_reset) stOpePaneStat.button_fault_reset = false;
+			else stOpePaneStat.button_fault_reset = true;
+		}break ;
+
+		case IDC_CHECK_SPD_MODE:
+		{
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SPD_MODE), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.chk_PC_ref_spd = TRUE;
 			}
 			else {
-				stOpePaneStat.button_source2_on = FALSE;
+				stOpePaneStat.chk_PC_ref_spd = FALSE;
+			}
+		}break;
+		case IDC_CHECK_SIM_FB:
+		{
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SIM_FB), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.chk_sim_fb = TRUE;
+			}
+			else {
+				stOpePaneStat.chk_sim_fb = FALSE;
 			}
 		}break;
 
-
-
 		}
+
+
 
 	}break;
 	case WM_PAINT:{

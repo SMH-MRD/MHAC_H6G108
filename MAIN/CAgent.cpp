@@ -968,19 +968,25 @@ int CAgent::update_auto_setting() {
 /*  PB,ランプ指令更新														*/
 /****************************************************************************/
 void CAgent::update_pb_lamp_com() {
+	//操作PB
 	//PB ON状態を一定時間ホールド
 	//カウンタ値セット
 	if (pPLC_IO->ui.PB[ID_PB_ESTOP]) AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = AGENT_PB_OFF_DELAY;
+
+	if (pPLC_IO->ui.PB[ID_PB_FAULT_RESET] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] = AGENT_PB_OFF_DELAY;
+
 	//OFFディレイ
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON]--;
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF]--;
+
+	if (AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET]--;
 
 	//振れ止めランプ
 	if (pCraneStat->auto_standby) {
@@ -1013,6 +1019,7 @@ void CAgent::update_pb_lamp_com() {
 	
 	return;
 };
+
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
 /****************************************************************************/

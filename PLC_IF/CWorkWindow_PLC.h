@@ -36,20 +36,22 @@
 #define ID_WORK_WND_TIMER					100
 
 //ëÄçÏëÏÉpÉlÉãä«óùç\ë¢ëÃ
-#define SLW_SLIDAR_0_NOTCH	5
-#define SLW_SLIDAR_MAX	10
-#define SLW_SLIDAR_MIN	0
-#define BH_SLIDAR_0_NOTCH	5
-#define BH_SLIDAR_MAX	10
-#define BH_SLIDAR_MIN	0
-#define MH_SLIDAR_0_NOTCH	5
-#define MH_SLIDAR_MAX	10
-#define MH_SLIDAR_MIN	0
-#define GT_SLIDAR_0_NOTCH	5
-#define GT_SLIDAR_MAX	10
-#define GT_SLIDAR_MIN	0
+#define SLW_SLIDAR_0_NOTCH					5
+#define SLW_SLIDAR_MAX						10
+#define SLW_SLIDAR_MIN						0
+#define BH_SLIDAR_0_NOTCH					5
+#define BH_SLIDAR_MAX						10
+#define BH_SLIDAR_MIN						0
+#define MH_SLIDAR_0_NOTCH					5
+#define MH_SLIDAR_MAX						10
+#define MH_SLIDAR_MIN						0
+#define GT_SLIDAR_0_NOTCH					5
+#define GT_SLIDAR_MAX						10
+#define GT_SLIDAR_MIN						0
 
-#define LABEL_BUF_SIZE 32
+#define LABEL_BUF_SIZE						32
+
+#define PLC_IF_PB_HOLD 						100
 
 typedef struct stPLCDbugPanelTag {
 
@@ -90,7 +92,8 @@ typedef struct stPLCDbugPanelTag {
 	bool button_to2 = false;						// IDC_BUTTON_TO2                  1040
 	bool button_to3 = false;						// IDC_BUTTON_TO3                  1041
 	bool button_to4 = false;						// IDC_BUTTON_TO4                  1042
-
+	bool chk_PC_ref_spd = false;					// IDC_CHECK_SPD_MODE              1051
+	bool chk_sim_fb = false;						// IDC_CHECK_SIM_FB                1052
 
 	bool button_fault_reset = false;						//IDC_BUTTON_FAULT_RESET          1050
 
