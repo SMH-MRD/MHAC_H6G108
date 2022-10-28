@@ -147,7 +147,8 @@ int CPLC_IF::input() {
 //*********************************************************************************************
 int CPLC_IF::parse() { 
 
- 
+    CWorkWindow_PLC* pWorkWindow;
+
     //### ヘルシー信号
     helthy_cnt++;
 
@@ -156,9 +157,9 @@ int CPLC_IF::parse() {
     
 
     //運転室操作内容 
-    if (is_debug_mode()) set_debug_status();
-    else parse_ope_com();
-
+    parse_ope_com();
+    if( is_debug_mode() && (pWorkWindow->stOpePaneStat.chk_input_disable == FALSE)) set_debug_status();
+   
     //### センサ検出内容取込
     parse_sensor_fb();
     //シミュレーションモード時シミュレーションの結果で上書き
@@ -265,7 +266,8 @@ int CPLC_IF::set_debug_status() {
     plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_OFF] = pWorkWindow->stOpePaneStat.button_source2_off;
 
     plc_io_workbuf.ui.PB[ID_PB_FAULT_RESET] = pWorkWindow->stOpePaneStat.button_fault_reset;
-       
+ 
+    /*
     //########################## デバッグ用　SimFBモード時は、自動関連操作はPLC入力で上書き
     if (pWorkWindow->stOpePaneStat.chk_sim_fb) {
         plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] = melnet.plc_b_out[melnet.plc_b_map.PB_as_on[ID_WPOS]] & melnet.plc_b_map.PB_as_on[ID_BPOS];
@@ -282,7 +284,7 @@ int CPLC_IF::set_debug_status() {
     }
     //##########################    
 
-
+*/
 
 
     return 0;
@@ -524,7 +526,7 @@ int CPLC_IF::set_bit_coms() {
     else melnet.pc_b_out[melnet.pc_b_map.com_pc_ctr_act[ID_WPOS]] &= ~melnet.pc_b_map.com_pc_ctr_act[ID_BPOS];
 
     //制御PCからのエミュレータ指令ビット
-    if ((pAgentInf->auto_active[ID_SLEW] || pAgentInf->auto_active[ID_BOOM_H]) && (pSim->mode & SIM_ACTIVE_MODE))
+    if (pSim->mode & SIM_ACTIVE_MODE)
         melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] |= melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_plc_emulate_act[ID_WPOS]] &= ~melnet.pc_b_map.com_plc_emulate_act[ID_BPOS];
 

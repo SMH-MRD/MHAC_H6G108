@@ -70,7 +70,7 @@ void CEnvironment::init_task(void* pobj) {
 bool CEnvironment::check_tasks_init() {
 
 	CTaskObj* ptask;
-	int n_tasks = VectpCTaskObj.size();
+	int n_tasks = (int)VectpCTaskObj.size();
 
 	for (int i = 0;i < n_tasks ;i++) {
 		ptask = (CTaskObj*)VectpCTaskObj[i];
@@ -216,6 +216,12 @@ int CEnvironment::parse_for_auto_ctrl() {
 				stWorkCraneStat.semi_auto_selected = i;
 		}
 	}
+
+	//”¼Ž©“®Ý’è‰ðœ
+
+	if (pPLC_IO->ui.PB[ID_PB_AUTO_RESET])
+		stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
+
 	//Ž©“®ŠJŽnPB
 	if (pPLC_IO->ui.PB[ID_PB_AUTO_START])stWorkCraneStat.auto_start_pb_count++;
 	else stWorkCraneStat.auto_start_pb_count = 0;

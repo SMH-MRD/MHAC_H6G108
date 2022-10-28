@@ -51,6 +51,9 @@ public:
 
     double ph_chk_range[NUM_OF_AS_AXIS];
 
+    int dbg_mont[8];//デバッグ用
+
+
      void input();                                           //外部データ取り込み
     void main_proc();                                       //処理内容
  

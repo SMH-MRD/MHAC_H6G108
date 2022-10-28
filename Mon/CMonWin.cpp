@@ -89,10 +89,11 @@ int CMonWin::init_main_window() {
 	);
 
 	//Pen,Brush設定
-	stGraphic.hpen[CMON_RED_PEN] = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
-	stGraphic.hpen[CMON_GREEN_PEN] = CreatePen(PS_SOLID, 1, RGB(0,255, 0));
+	stGraphic.hpen[CMON_RED_PEN] = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
+	stGraphic.hpen[CMON_GREEN_PEN] = CreatePen(PS_SOLID, 2, RGB(0,255, 0));
 	stGraphic.hpen[CMON_BLUE_PEN] = CreatePen(PS_SOLID, 2, RGB(0,0,255));
 	stGraphic.hpen[CMON_GLAY_PEN] = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
+	stGraphic.hpen[CMON_YELLOW_PEN] = CreatePen(PS_DOT, 2, RGB(255, 255, 0));
 	stGraphic.hbrush[CMON_BG_BRUSH] = CreateSolidBrush(RGB(240, 240, 240));
 	stGraphic.hbrush[CMON_RED_BRUSH] = CreateSolidBrush(RGB(255, 0, 0));
 	stGraphic.hbrush[CMON_GREEN_BRUSH] = CreateSolidBrush(RGB(0, 255, 0));
@@ -395,11 +396,11 @@ VOID CMonWin::draw_graphic() {
 
 	COLORREF color_pt = RGB(255, 0, 0); //ポイント描画色
 
-
+	POINT load_xy;
 	//吊荷描画
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_BRUSH]);
 	SelectObject(stGraphic.hdc_mem_gr, GetStockObject(NULL_PEN));
-	POINT load_xy;
+
 	load_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rl.x * CMON_PIX_PER_M_CRANE);
 	load_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rl.y * CMON_PIX_PER_M_CRANE);
 	Ellipse(stGraphic.hdc_mem_gr,
@@ -413,6 +414,39 @@ VOID CMonWin::draw_graphic() {
 	boom_end_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(pCraneStat->rc.x * CMON_PIX_PER_M_CRANE);
 	boom_end_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(pCraneStat->rc.y * CMON_PIX_PER_M_CRANE);
 
+	
+	//#自動目標位置
+	POINT tg_xy;
+	double sin_slew = sin(pAgentInf->pos_target[ID_SLEW]);
+	double cos_slew = cos(pAgentInf->pos_target[ID_SLEW]);
+	double x = pAgentInf->pos_target[ID_BOOM_H] * cos_slew;
+	double y = pAgentInf->pos_target[ID_BOOM_H] * sin_slew;
+
+	tg_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(x * CMON_PIX_PER_M_CRANE);
+	tg_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(y * CMON_PIX_PER_M_CRANE);
+
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_RED_PEN]);
+	SelectObject(stGraphic.hdc_mem_gr, GetStockObject(NULL_BRUSH));
+	MoveToEx(stGraphic.hdc_mem_gr, tg_xy.x-2, tg_xy.y -2, NULL);
+	LineTo(stGraphic.hdc_mem_gr, tg_xy.x + 2, tg_xy.y + 2);
+	MoveToEx(stGraphic.hdc_mem_gr, tg_xy.x + 2, tg_xy.y - 2, NULL);
+	LineTo(stGraphic.hdc_mem_gr, tg_xy.x - 2, tg_xy.y + 2);
+
+	//半自動ターゲット描画
+	if (pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR) {
+		sin_slew = sin(pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_SLEW]);
+		cos_slew = cos(pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_SLEW]);
+		x = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_BOOM_H] * cos_slew;
+		y = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_BOOM_H] * sin_slew;
+
+		tg_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(x * CMON_PIX_PER_M_CRANE);
+		tg_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(y * CMON_PIX_PER_M_CRANE);
+
+		SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_YELLOW_PEN]);
+		Ellipse(stGraphic.hdc_mem_gr,tg_xy.x - 6,tg_xy.y - 6,tg_xy.x + 6,tg_xy.y + 6);
+	}
+
+
 	//ペン、ブラシセット
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_BLUE_BRUSH]);
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_BLUE_PEN]);
@@ -422,9 +456,9 @@ VOID CMonWin::draw_graphic() {
 
 	//ブーム先端描画
 	Ellipse(stGraphic.hdc_mem_gr, 
-		boom_end_xy.x - CMON_PIX_R_BOOM_END, 
-		boom_end_xy.y - CMON_PIX_R_BOOM_END, 
-		boom_end_xy.x + CMON_PIX_R_BOOM_END, 
+		boom_end_xy.x - CMON_PIX_R_BOOM_END,
+		boom_end_xy.y - CMON_PIX_R_BOOM_END,
+		boom_end_xy.x + CMON_PIX_R_BOOM_END,
 		boom_end_xy.y + CMON_PIX_R_BOOM_END);
 
 

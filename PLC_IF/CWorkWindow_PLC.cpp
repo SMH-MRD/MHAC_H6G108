@@ -326,6 +326,15 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 				stOpePaneStat.chk_sim_fb = FALSE;
 			}
 		}break;
+		case IDC_DISABLE_PANEL_INPUT:
+		{
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_DISABLE_PANEL_INPUT), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.chk_input_disable = TRUE;
+			}
+			else {
+				stOpePaneStat.chk_input_disable = FALSE;
+			}
+		}break;
 
 		}
 
@@ -763,16 +772,23 @@ int CWorkWindow_PLC::update_all_controls(HWND hDlg) {
 }
 int CWorkWindow_PLC::update_Work(HWND hwnd) {
 
+	//振れ止め
 	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_as_on[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_as_on[ID_BPOS]) {
 		SetWindowText(GetDlgItem(hwnd, IDC_ANTISWAY_LAMP), L"●");
 	}else SetWindowText(GetDlgItem(hwnd, IDC_ANTISWAY_LAMP), L"○");
-
+	//自動開始
 	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_start[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_start[ID_BPOS]) {
 		SetWindowText(GetDlgItem(hwnd, IDC_AUTOSTART_LAMP), L"●");
 	}
 	else SetWindowText(GetDlgItem(hwnd, IDC_AUTOSTART_LAMP), L"○");
 
+	//半自動リセット
+	if (stOpePaneStat.button_auto_reset == TRUE) {
+		SetWindowText(GetDlgItem(hwnd, IDC_SEMI_RESET_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_SEMI_RESET_LAMP), L"○");
 
+	//半自動設定
 	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg1[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg1[ID_BPOS]) {
 		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP1), L"●");
 	}
@@ -812,6 +828,9 @@ int CWorkWindow_PLC::update_Work(HWND hwnd) {
 		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP4), L"●");
 	}
 	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP4), L"○");
+
+
+
 
 	return 0;
 }

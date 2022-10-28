@@ -236,8 +236,8 @@ typedef struct StPCOutBMap {
     UINT16 com_auto_device_off[2]    = { 0, BIT3 };
     UINT16 com_sway_trget_on[2]	    = { 0, BIT5 };
     UINT16 com_sway_trget_off[2]     = { 0, BIT6 };
-    UINT16 lamp_as_on[2]             = { 0, BIT8 };
-    UINT16 lamp_as_off[2]            = { 0, BIT9 };
+    UINT16 lamp_as_off[2]             = { 0, BIT8 };
+    UINT16 lamp_as_on[2]            = { 0, BIT9 };
     UINT16 lamp_auto_start[2]        = { 0, BIT10 };
     UINT16 lamp_auto_tg1[2]          = { 0, BIT12 };
     UINT16 lamp_auto_tg2[2]          = { 0, BIT13 };

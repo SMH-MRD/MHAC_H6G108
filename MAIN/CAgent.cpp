@@ -107,6 +107,8 @@ void CAgent::output() {
 	wostrs << L"#BH TG: " << AgentInf_workbuf.pos_target[ID_BOOM_H];
 	wostrs << L",GAP: " << AgentInf_workbuf.gap_from_target[ID_BOOM_H];
 
+	wostrs << L",ActiveSet: " << dbg_mont[0];
+	
 	wostrs <<  L" --Scan " << inf.period;;
 
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
@@ -826,6 +828,8 @@ void CAgent::set_auto_active(int type) {
 /****************************************************************************/
 int CAgent::update_auto_setting() {
 	
+	dbg_mont[0] = 0;//@@@ debug/
+
 	//自動起動処理
 	if (pCraneStat->auto_standby == false) {//自動モード
 	
@@ -837,7 +841,7 @@ int CAgent::update_auto_setting() {
 
 		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
 			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-			set_auto_active(AUTO_TYPE_MANUAL);
+			set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 1;//@@@ debug/
 			pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_END;
 			pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_END;
 		}
@@ -846,12 +850,12 @@ int CAgent::update_auto_setting() {
 		pCom->com_status = COMMAND_STAT_END;
 		pCom = NULL;
 		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-		set_auto_active(AUTO_TYPE_MANUAL);
+		set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 2;//@@@ debug/
 	}
 	else if ((pCraneStat->is_notch_0[ID_SLEW] == false) || (pCraneStat->is_notch_0[ID_BOOM_H]) == false) {
 		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
 			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-			set_auto_active(AUTO_TYPE_MANUAL);
+			set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 9;//@@@ debug/
 			if (pPolicyInf->com[pPolicyInf->i_com].com_status != COMMAND_STAT_END) pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_ABORT;
 			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_END) pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_ABORT;
 		}
@@ -868,13 +872,13 @@ int CAgent::update_auto_setting() {
 
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_SEMI_AUTO;
-				set_auto_active(AUTO_TYPE_SEMI_AUTO);
+				set_auto_active(AUTO_TYPE_SEMI_AUTO);	dbg_mont[0] = 3;//@@@ debug/
 				cleanup_command(pCom);
 				//目標キープフラグ
 				for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.be_hold_target[i] = true;
 			}
 			else {
-				set_auto_active(AUTO_TYPE_MANUAL);
+				set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 10;//@@@ debug/
 			}
 		}
 		else if ((pCSInf->n_job_standby > 0) 
@@ -884,13 +888,13 @@ int CAgent::update_auto_setting() {
 			pCom = pPolicy->generate_command(AUTO_TYPE_JOB, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_JOB;
-				set_auto_active(AUTO_TYPE_JOB);
+				set_auto_active(AUTO_TYPE_JOB);	dbg_mont[0] = 4;//@@@ debug/
 				cleanup_command(pCom);
 				//目標キープフラグ
 				for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.be_hold_target[i] = true;
 			}
 			else {
-				set_auto_active(AUTO_TYPE_MANUAL);
+				set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 5;//@@@ debug/
 			}
 		}
 		else {
@@ -899,13 +903,13 @@ int CAgent::update_auto_setting() {
 			pCom = pPolicy->generate_command(AUTO_TYPE_ANTI_SWAY, AgentInf_workbuf.pos_target);
 			if (pCom != NULL) {
 				AgentInf_workbuf.auto_on_going = AUTO_TYPE_ANTI_SWAY;
-				set_auto_active(AUTO_TYPE_ANTI_SWAY);
+				set_auto_active(AUTO_TYPE_ANTI_SWAY);	dbg_mont[0] = 6;//@@@ debug/
 				cleanup_command(pCom);
 				//目標キープフラグ
 				for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.be_hold_target[i] = true;
 			}
 			else {
-				set_auto_active(AUTO_TYPE_MANUAL);
+				set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 7;//@@@ debug/
 			}
 		}
 	}
@@ -977,7 +981,7 @@ void CAgent::update_pb_lamp_com() {
 	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = AGENT_PB_OFF_DELAY;
 	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = AGENT_PB_OFF_DELAY;
 
-	if (pPLC_IO->ui.PB[ID_PB_FAULT_RESET] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] = AGENT_PB_OFF_DELAY;
+	if (pPLC_IO->ui.PB[ID_PB_FAULT_RESET] ==true)AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] = AGENT_PB_OFF_DELAY;
 
 	//OFFディレイ
 	if (AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP]--;

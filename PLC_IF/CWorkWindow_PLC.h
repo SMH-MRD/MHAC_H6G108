@@ -94,6 +94,7 @@ typedef struct stPLCDbugPanelTag {
 	bool button_to4 = false;						// IDC_BUTTON_TO4                  1042
 	bool chk_PC_ref_spd = false;					// IDC_CHECK_SPD_MODE              1051
 	bool chk_sim_fb = false;						// IDC_CHECK_SIM_FB                1052
+	bool chk_input_disable = false;					// IDC_DISABLE_PANEL_INPUT         1053
 
 	bool button_fault_reset = false;						//IDC_BUTTON_FAULT_RESET          1050
 
