@@ -48,6 +48,7 @@
 #define CMON_GREEN_PEN          2
 #define CMON_GLAY_PEN           3
 #define CMON_YELLOW_PEN         4
+#define CMON_MAZENDA_PEN        5      
 #define CMON_RED_BRUSH          0
 #define CMON_BLUE_BRUSH         1
 #define CMON_GREEN_BRUSH        2

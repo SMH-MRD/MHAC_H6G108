@@ -1,4 +1,15 @@
 #include "CSwayIF.h"
+#include <windowsx.h>       //# コモンコントロール
+
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+HWND CSwayIF::hWorkWnd;
+HWND CSwayIF::hwndSTATMSG;
+HWND CSwayIF::hwndRCVMSG;
+HWND CSwayIF::hwndSNDMSG;
+
 
 
 CSwayIF::CSwayIF() {
@@ -25,8 +36,7 @@ int CSwayIF::set_outbuf(LPVOID pbuf) {
 //******************************************************************************************
 int CSwayIF::init_proc() {
 
-     
-    // 共有メモリ取得
+     // 共有メモリ取得
 
      // 出力用共有メモリ取得
     out_size = sizeof(ST_PLC_IO);
@@ -110,7 +120,7 @@ int CSwayIF::parse() {
 
 #ifdef _DVELOPMENT_MODE
 //    if (pSimStat->mode & SIM_ACTIVE_MODE) {
-    if(is_debug_mode()){
+    if(is_debug_mode() && !(pSimStat->mode & SIM_SWAY_PACKET_MODE)){
         set_sim_status(&sway_io_workbuf);   //　振れセンサ受信バッファの値をSIMからSWAY_IFのバッファにコピー
         parse_sway_stat(SID_SIM);           //　シミュレータの受信バッファを解析（カメラ座標での振れ検出値）
     }
@@ -147,7 +157,7 @@ int CSwayIF::set_sim_status(LPST_SWAY_IO pworkbuf) {
  
     return 0;
 }
-
+//*********************************************************************************************
 int CSwayIF::parse_sway_stat(int ID) {
     
     double ax = SwayCamParam[ID][SID_AXIS_X][CAM_SET_PARAM_a];//センサ検出角補正値
@@ -218,4 +228,225 @@ int CSwayIF::parse_sway_stat(int ID) {
     }
     
 	return 0;
+}
+//*********************************************************************************************
+//Sway Sensor模擬用
+static WSADATA wsaData;
+static SOCKET s;
+static SOCKADDR_IN addrin;
+static SOCKADDR_IN server;
+static int serverlen, nEvent;
+static int nRtn = 0, nRcv = 0, nSnd = 0;
+static u_short port = SWAY_IF_IP_PORT_C;
+static char szBuf[256];
+
+std::wostringstream woMSG;
+std::wstring wsMSG;
+
+
+HWND CSwayIF::open_WorkWnd(HWND hwnd_parent) {
+    InitCommonControls();//コモンコントロール初期化
+
+    WNDCLASSEX wc;
+
+    hInst = GetModuleHandle(0);
+
+    ZeroMemory(&wc, sizeof(wc));
+
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = WorkWndProc;// !CALLBACKでreturnを返していないとWindowClassの登録に失敗する
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = hInst;
+    wc.hIcon = NULL;
+    wc.hCursor = LoadCursor(0, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = TEXT("WorkWnd");
+    wc.hIconSm = NULL;
+    ATOM fb = RegisterClassExW(&wc);
+
+    hWorkWnd = CreateWindow(TEXT("WorkWnd"),
+        TEXT("COMM_CHK"),
+        WS_POPUPWINDOW | WS_VISIBLE | WS_CAPTION, WORK_WND_X, WORK_WND_Y, WORK_WND_W, WORK_WND_H,
+        hwnd_parent,
+        0,
+        hInst,
+        NULL);
+
+    ShowWindow(hWorkWnd, SW_SHOW);
+    UpdateWindow(hWorkWnd);
+
+    return hWorkWnd;
+    
+    
+    
+    return 0; 
+}
+//*********************************************************************************************
+int CSwayIF::close_WorkWnd() { 
+    closesocket(s);
+    WSACleanup();
+    DestroyWindow(hWorkWnd);  //ウィンドウ破棄
+    hWorkWnd = NULL;
+    return 0;
+}
+//*********************************************************************************************
+int CSwayIF::init_sock(HWND hwnd) { 
+    if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {    //WinSockの初期化
+        perror("WSAStartup Error\n");
+        return -1;
+    }
+
+    s = socket(AF_INET, SOCK_DGRAM, 0);                  //Socketオープン
+    if (s < 0) {
+        perror("socket失敗\n");
+        return -2;
+    }
+    memset(&addrin, 0, sizeof(addrin));
+    addrin.sin_port = htons(port);
+    addrin.sin_family = AF_INET;
+    inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &addrin.sin_addr.s_addr);
+
+    nRtn = bind(s, (LPSOCKADDR)&addrin, (int)sizeof(addrin)); //ソケットに名前を付ける
+    if (nRtn == SOCKET_ERROR) {
+        perror("bindエラーです\n");
+        closesocket(s);
+        WSACleanup();
+        return -3;
+    }
+  
+    nRtn = WSAAsyncSelect(s, hwnd, ID_UDP_EVENT, FD_READ | FD_WRITE | FD_CLOSE);
+
+    if (nRtn == SOCKET_ERROR) {
+        woMSG << L"非同期化失敗";
+        closesocket(s);
+        WSACleanup();
+        return -4;
+    }
+
+    //送信先アドレス初期値設定
+    memset(&server, 0, sizeof(server));
+    server.sin_port = htons(SWAY_IF_IP_PORT_C);
+    server.sin_family = AF_INET;
+    inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &server.sin_addr.s_addr);
+    return 0;
+    ; 
+}
+
+//# ウィンドウへのメッセージ表示　wstring
+void CSwayIF::tweet2statusMSG(const std::wstring& srcw) {
+    SetWindowText(hwndSTATMSG, srcw.c_str()); return;
+};
+void CSwayIF::tweet2rcvMSG(const std::wstring& srcw) {
+    static HWND hwndSNDMSG;
+    SetWindowText(hwndRCVMSG, srcw.c_str()); return;
+};
+void CSwayIF::tweet2sndMSG(const std::wstring& srcw) {
+    SetWindowText(hwndSNDMSG, srcw.c_str()); return;
+};
+
+//*********************************************************************************************
+LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+    
+    HDC hdc;
+    switch (msg) {
+    case WM_DESTROY: {
+        hWorkWnd = NULL;
+    }return 0;
+    case WM_CREATE: {
+
+        InitCommonControls();//コモンコントロール初期化
+        HINSTANCE hInst = GetModuleHandle(0);
+
+        CreateWindowW(TEXT("STATIC"), L"STATUS", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 20, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+        hwndSTATMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            70, 20, 300, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+        CreateWindowW(TEXT("STATIC"), L"RCV  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 45, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+        hwndRCVMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            70, 45, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+        CreateWindowW(TEXT("STATIC"), L"SND  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 90, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_SND, hInst, NULL);
+        hwndSNDMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            70, 90, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+
+        if (init_sock(hwnd) == 0) {
+            woMSG << L"SOCK OK";
+            tweet2statusMSG(woMSG.str()); woMSG.str(L""); woMSG.clear();
+            wsMSG = L"No RCV MSG";
+            tweet2rcvMSG(wsMSG);wsMSG.clear();
+            wsMSG = L"No SND MSG";
+            tweet2sndMSG(wsMSG);wsMSG.clear();
+        }
+        else {
+            tweet2statusMSG(woMSG.str()); woMSG.str(L""); woMSG.clear();
+            wsMSG = L"No RCV MSG";
+            tweet2rcvMSG(wsMSG);wsMSG.clear();
+            wsMSG = L"No SND MSG";
+            tweet2sndMSG(wsMSG);wsMSG.clear();
+
+            close_WorkWnd();
+        }
+
+        //振れセンサ送信タイマ起動
+        SetTimer(hwnd, ID_WORK_WND_TIMER, WORK_SCAN_TIME, NULL);
+    }break;
+    case WM_TIMER: {
+        int n = sprintf_s(szBuf, sizeof(szBuf), "%08d", nSnd);
+        nRtn = sendto(s, szBuf, n, 0, (LPSOCKADDR)&server, sizeof(server));
+        if (nRtn == n) {
+            nSnd++;
+            woMSG << L" SND len: " << nRtn << L"  Count > " << nSnd;
+        }
+        else {
+            woMSG << L" sendto ERROR ";
+        }
+        tweet2sndMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+    }break;
+
+    case ID_UDP_EVENT: {
+        nEvent = WSAGETSELECTEVENT(lp);
+        switch (nEvent) {
+        case FD_READ: {
+            nRcv++;
+            serverlen = (int)sizeof(server);
+            nRtn = recvfrom(s, szBuf, (int)sizeof(szBuf) - 1, 0, (SOCKADDR*)&server, &serverlen);
+            if (nRtn == SOCKET_ERROR) {
+                woMSG << L" recvfrom ERROR";
+            }
+            else {
+                woMSG << L" RCV len: " << serverlen << L"Count" << nRcv;
+            }
+            tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+
+        }break;
+        case FD_WRITE: {
+
+        }break;
+        case FD_CLOSE: {
+            ;
+        }break;
+
+        }
+    }break;
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        hdc = BeginPaint(hwnd, &ps);
+        EndPaint(hwnd, &ps);
+    }break;
+    case WM_COMMAND: {
+ //       switch (LOWORD(wp)) {
+ //       case ID_WORK_WND_CLOSE_PB: {
+ //       }break;
+ //      }
+    }break;
+
+    default:
+        return DefWindowProc(hwnd, msg, wp, lp);
+    }
+    
+    return 0; 
 }

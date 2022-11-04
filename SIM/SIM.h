@@ -14,6 +14,7 @@
 #define IDC_STATIC_0				2101
 #define IDC_PB_EXIT					2102
 #define IDC_PB_ACTIVE				2103
+#define IDC_PB_PACKET_MODE			2104
 
 //メインウィンドウ管理構造体
 typedef struct stMainWndTag {
@@ -21,6 +22,10 @@ typedef struct stMainWndTag {
 	HWND h_static0;			//スタティックオブジェクトのハンドル
 	HWND h_pb_exit;			//ボタンオブジェクトのハンドル
 	HWND h_pb_debug;		//ボタンオブジェクトのハンドル
+	HWND h_chk_packetout;	//振れセンサのパケットを送信する
+
+	bool is_sway_packet_send;//振れセンサのパケットを送信する
+
 }ST_MAIN_WND, * LPST_MAIN_WND;
 
 //マルチメディアタイマー管理構造体

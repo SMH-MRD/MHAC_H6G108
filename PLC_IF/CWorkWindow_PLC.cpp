@@ -746,8 +746,6 @@ LRESULT CALLBACK CWorkWindow_PLC::IOWndProc(HWND hwnd, UINT msg, WPARAM wp, LPAR
 	return 0;
 }
 
-
-
 int CWorkWindow_PLC::update_all_controls(HWND hDlg) {
 	stOpePaneStat.slider_slew = SLW_SLIDAR_0_NOTCH;
 	SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew);

@@ -43,10 +43,28 @@
 #define IDC_BUTTON_FROM2                1029
 #define IDC_BUTTON_FROM3                1030
 #define IDC_BUTTON_FROM4                1031
+#define IDC_STATIC_FROM_LAMP1           1032
+#define IDC_STATIC_FROM_LAMP2           1033
+#define IDC_STATIC_FROM_LAMP3           1034
+#define IDC_STATIC_FROM_LAMP4           1035
 #define IDC_BUTTON_TO1                  1036
+#define IDC_STATIC_TO_LAMP1             1037
+#define IDC_STATIC_TO_LAMP2             1038
+#define IDC_STATIC_TO_LAMP3             1039
 #define IDC_BUTTON_TO2                  1040
 #define IDC_BUTTON_TO3                  1041
 #define IDC_BUTTON_TO4                  1042
+#define IDC_STATIC_TO_LAMP4             1043
+#define IDC_ANTISWAY_LAMP               1044
+#define IDC_AUTOSTART_LAMP              1045
+#define IDC_SEMI_RESET_LAMP             1046
+#define IDC_ESTOP                       1047
+#define IDC_SOURCE1                     1048
+#define IDC_SOURCE2                     1049
+#define IDC_BUTTON_FAULT_RESET          1050
+#define IDC_CHECK_SPD_MODE              1051
+#define IDC_CHECK_SIM_FB                1052
+#define IDC_DISABLE_PANEL_INPUT         1053
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -56,7 +74,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1028
+#define _APS_NEXT_CONTROL_VALUE         1054
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

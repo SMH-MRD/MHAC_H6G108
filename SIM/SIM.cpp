@@ -4,8 +4,11 @@
 #include "framework.h"
 #include "SIM.h"
 #include "CSIM.h"
+#include "CWorkWindow_SIM.h"
 
 #include "CSharedMem.h"	    //# 共有メモリクラス
+//#include <ws2tcpip.h>
+//#include <winsock2.h>
 #include <windowsx.h>       //# コモンコントロール用
 #include <commctrl.h>       //# コモンコントロール用
 
@@ -34,13 +37,17 @@ double sim_dt = SYSTEM_TICK_ms * 0.001;
 static ST_KNL_MANAGE_SET    knl_manage_set;     //マルチスレッド管理用構造体
 static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作管理用構造体
 
-CSIM * pProcObj;          //メイン処理オブジェクト:
+CSIM * pProcObj;         //メイン処理オブジェクト:
+CWorkWindow* pWorkWnd = new CWorkWindow();   //振れセンサ処理用ウィンドウ:
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+//Sway Sensor模擬用
+int init_sock();
+
 
 //# ウィンドウにステータスバーを追加追加
 HWND CreateStatusbarMain(HWND hWnd);
@@ -209,6 +216,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"PAUSE->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             30, 40, 100, 30, hWnd, (HMENU)IDC_PB_ACTIVE, hInst, NULL);
+
+        stMainWnd.h_chk_packetout = CreateWindow(L"BUTTON", L"SWAY PACKET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            150, 40, 120, 30, hWnd, (HMENU)IDC_PB_PACKET_MODE, hInst, NULL);
     }
     break;
     case WM_COMMAND:
@@ -226,7 +236,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case IDC_PB_ACTIVE:
                 if (pProcObj->mode & SIM_ACTIVE_MODE) {
-                    pProcObj->set_mode(L_OFF);
+                     pProcObj->set_mode(L_OFF);
                     SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"SIM PAUSED!");
                     SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"ACTIVE->");
                     SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"PAUSE");
@@ -238,7 +248,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"ACTIVE");
                 }
                 break;
+            case IDC_PB_PACKET_MODE:
 
+                if(pWorkWnd->hWorkWnd == NULL) pWorkWnd->open_WorkWnd(hWnd);
+                else                pWorkWnd->close_WorkWnd();
+
+                break;
+                
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
@@ -253,6 +269,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+
         PostQuitMessage(0);
         break;
     default:

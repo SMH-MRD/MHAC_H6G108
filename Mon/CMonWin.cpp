@@ -94,6 +94,7 @@ int CMonWin::init_main_window() {
 	stGraphic.hpen[CMON_BLUE_PEN] = CreatePen(PS_SOLID, 2, RGB(0,0,255));
 	stGraphic.hpen[CMON_GLAY_PEN] = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
 	stGraphic.hpen[CMON_YELLOW_PEN] = CreatePen(PS_DOT, 2, RGB(255, 255, 0));
+	stGraphic.hpen[CMON_MAZENDA_PEN] = CreatePen(PS_DOT, 2, RGB(255, 0, 255));
 	stGraphic.hbrush[CMON_BG_BRUSH] = CreateSolidBrush(RGB(240, 240, 240));
 	stGraphic.hbrush[CMON_RED_BRUSH] = CreateSolidBrush(RGB(255, 0, 0));
 	stGraphic.hbrush[CMON_GREEN_BRUSH] = CreateSolidBrush(RGB(0, 255, 0));
@@ -442,7 +443,7 @@ VOID CMonWin::draw_graphic() {
 		tg_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(x * CMON_PIX_PER_M_CRANE);
 		tg_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(y * CMON_PIX_PER_M_CRANE);
 
-		SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_YELLOW_PEN]);
+		SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_MAZENDA_PEN]);
 		Ellipse(stGraphic.hdc_mem_gr,tg_xy.x - 6,tg_xy.y - 6,tg_xy.x + 6,tg_xy.y + 6);
 	}
 

@@ -212,6 +212,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             30, 40, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+
+        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            150, 40, 100, 30, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);
  
         //表示更新タイマ起動
         SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
@@ -249,6 +252,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 DestroyWindow(hWnd);
                 break;
+
+            case IDC_PB_COMWIN:
+
+                if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
+                else                pProcObj->close_WorkWnd();
+
+                break;
+
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }

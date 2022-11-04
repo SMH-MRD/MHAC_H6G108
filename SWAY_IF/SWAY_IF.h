@@ -24,6 +24,7 @@
 #define IDC_STATIC_0				2301
 #define IDC_PB_EXIT					2302
 #define IDC_PB_DEBUG				2303
+#define IDC_PB_COMWIN				2304
 
 #define MSG_SENSOR_SOCK				2310	//WinSockイベントメッセージ
 
@@ -34,7 +35,7 @@ typedef struct stMainWndTag {
 	HWND h_static0 = NULL;			//スタティックオブジェクトのハンドル
 	HWND h_pb_exit = NULL;			//ボタンオブジェクトのハンドル
 	HWND h_pb_debug = NULL;			//ボタンオブジェクトのハンドル
-
+	HWND h_pb_comwin = NULL;		//ボタンオブジェクトのハンドル
 	HWND hWorkWnd = NULL;			//ワークウィンドウのハンドル
 
 }ST_MAIN_WND, * LPST_MAIN_WND;

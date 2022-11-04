@@ -175,7 +175,8 @@ typedef struct StRemoteIO {
 /*   シミュレーション信号定義構造体                                  　   　*/
 /* 　SIM PROCがセットする共有メモリ上の情報　　　　　　　          　    　 */
 /****************************************************************************/
-#define SIM_ACTIVE_MODE  0x00000100	//シミュレーション実行モード
+#define SIM_ACTIVE_MODE  0x00000100			//シミュレーション実行モード
+#define SIM_SWAY_PACKET_MODE 0x00000010		//振れセンサパケット送信モード
 typedef struct StSimulationStatus {
 	DWORD mode;
 	DWORD helthy_cnt;
