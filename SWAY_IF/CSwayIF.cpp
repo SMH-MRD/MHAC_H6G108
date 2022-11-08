@@ -10,7 +10,10 @@ HWND CSwayIF::hwndSTATMSG;
 HWND CSwayIF::hwndRCVMSG;
 HWND CSwayIF::hwndSNDMSG;
 
-
+ST_SWAY_RCV_MSG CSwayIF::rcv_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_RCV_BUF];
+ST_SWAY_SND_MSG CSwayIF::snd_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_SND_BUF];
+int CSwayIF::i_rcv_msg[N_SWAY_SENSOR] = { 0,0,0 };
+int CSwayIF::i_snd_msg[N_SWAY_SENSOR] = { 0,0,0 };
 
 CSwayIF::CSwayIF() {
     // 共有メモリオブジェクトのインスタンス化
@@ -238,7 +241,7 @@ static SOCKADDR_IN server;
 static int serverlen, nEvent;
 static int nRtn = 0, nRcv = 0, nSnd = 0;
 static u_short port = SWAY_IF_IP_PORT_C;
-static char szBuf[256];
+static char szBuf[512];
 
 std::wostringstream woMSG;
 std::wstring wsMSG;
@@ -413,12 +416,16 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         case FD_READ: {
             nRcv++;
             serverlen = (int)sizeof(server);
-            nRtn = recvfrom(s, szBuf, (int)sizeof(szBuf) - 1, 0, (SOCKADDR*)&server, &serverlen);
+         //nRtn = recvfrom(s, szBuf, (int)sizeof(szBuf) - 1, 0, (SOCKADDR*)&server, &serverlen);
+
+           nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&server, &serverlen);
+ 
+           
             if (nRtn == SOCKET_ERROR) {
                 woMSG << L" recvfrom ERROR";
             }
             else {
-                woMSG << L" RCV len: " << serverlen << L"Count" << nRcv;
+                woMSG << L" RCV len: " << nRtn << L"Count" << nRcv;
             }
             tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
 

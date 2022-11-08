@@ -52,10 +52,10 @@ private:
     CSharedMem* pCraneStatusObj;
     CSharedMem* pSimulationStatusObj;
 
-    ST_SWAY_RCV_MSG rcv_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_RCV_BUF];
-    ST_SWAY_SND_MSG snd_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_SND_BUF];
-    int i_rcv_msg[N_SWAY_SENSOR] = { 0,0,0 };
-    int i_snd_msg[N_SWAY_SENSOR] = { 0,0,0 };
+    static ST_SWAY_RCV_MSG rcv_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_RCV_BUF];
+    static ST_SWAY_SND_MSG snd_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_SND_BUF];
+    static int i_rcv_msg[N_SWAY_SENSOR];
+    static int i_snd_msg[N_SWAY_SENSOR];
 
     LPST_CRANE_STATUS pCraneStat;
     LPST_SIMULATION_STATUS pSimStat;

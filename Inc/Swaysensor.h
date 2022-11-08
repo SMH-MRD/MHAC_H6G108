@@ -41,7 +41,7 @@ typedef struct SwayComRcvDATA { //振れセンサ受信メッセージデータ構成部
 
 typedef struct SwayComRcvBody { //振れセンサ受信メッセージボディ部
     ST_SWAY_RCV_DATA data[4];
-    INT16 info[4];
+    INT16 info[4][16];
 }ST_SWAY_RCV_BODY, * LPST_SWAY_RCV_BODY;
 
 typedef struct SwayComRcvMsg { //振れセンサ受信メッセージ

@@ -12,7 +12,9 @@
 #include <sstream>
 
 #include "CWorkWindow_SIM.h"
+#include "CSIM.h"
 
+extern CSIM* pProcObj;
 
 CWorkWindow::CWorkWindow() {}
 CWorkWindow::~CWorkWindow() {}
@@ -193,8 +195,9 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 
 	}break;
 	case WM_TIMER: {
-		int n = sprintf_s(szBuf,sizeof(szBuf), "%08d", nSnd);
-		nRtn = sendto(s, szBuf,n,0,(LPSOCKADDR)&client, sizeof(client));
+//		int n = sprintf_s(szBuf,sizeof(szBuf), "%08d", nSnd);
+		int n = sizeof(ST_SWAY_RCV_MSG);
+		nRtn = sendto(s, reinterpret_cast<const char*> (&pProcObj->pSIM_work->rcv_msg),n,0,(LPSOCKADDR)&client, sizeof(client));//reinterpret_cast ã≠êßìIÇ»å^ïœä∑
 		if (nRtn == n) {
 			nSnd++;
 			woMSG << L" SND len: " << nRtn << L"  Count > " << nSnd;

@@ -16,6 +16,7 @@ CSIM::CSIM() {
     // MOB オブジェクトのインスタンス化
     pCrane = new CCrane(); //クレーンのモデル
     pLoad = new CLoad();   //吊荷のモデル
+    pSIM_work = &sim_stat_workbuf;
 
     out_size = 0;
  
@@ -173,12 +174,12 @@ int CSIM::parse() {
                 //吊荷の初期状態セット 
                 Vector3 _r(pPLC->status.pos[ID_BOOM_H] * cos(pPLC->status.pos[ID_SLEW]) + pPLC->status.pos[ID_GANTRY],
                     pPLC->status.pos[ID_BOOM_H] * sin(pPLC->status.pos[ID_SLEW]),
-                    pPLC->status.pos[ID_HOIST]);             //吊点位置
+                    pPLC->status.pos[ID_HOIST]);                    //吊点位置
 
                 Vector3 _v(0.0, 0.0, 0.0);                          //吊点速度
                 pCrane->init_crane(dt);
                 pLoad->init_mob(dt, _r, _v);
-                pLoad->set_m(SIM_INIT_M + pPLC->status.weight);
+                pLoad->set_m(SIM_INIT_M + pPLC->status.weight);     //吊荷重セット
             }
         }
     }
@@ -295,11 +296,24 @@ int CSIM::set_sway_io() {
     sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].dth_x = (INT32)(dth_camx * dx);
     sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].dth_y = (INT32)(dth_camy * dy);
     
+    
+    //ヘッダ情報セット
+    sim_stat_workbuf.rcv_msg.head.id[0] = 'C';
+    sim_stat_workbuf.rcv_msg.head.id[1] = 'A';
+    sim_stat_workbuf.rcv_msg.head.id[2] = 'M';
+    sim_stat_workbuf.rcv_msg.head.id[3] = '1';
+    
+    sim_stat_workbuf.rcv_msg.body.info[3][15] = 0x3737;
+    
     //シミュレータロジックチェック用バッファセット
     sim_stat_workbuf.sway_io.th[ID_SLEW] = thx;
     sim_stat_workbuf.sway_io.th[ID_BOOM_H] = thy;
     sim_stat_workbuf.sway_io.dth[ID_SLEW] = dth_camx;
     sim_stat_workbuf.sway_io.dth[ID_BOOM_H] = dth_camy;
     
+
+
+
+
     return 0;
 }

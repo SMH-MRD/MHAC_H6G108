@@ -46,6 +46,8 @@ private:
     int parse();            //メイン処理
     int output();           //出力処理
     void set_dt(double _dt) { dt = _dt; return; }   //起動間隔セット（MM Timerの関数で呼び出し時にセット）
+    
+    LPST_SIMULATION_STATUS pSIM_work;
 
     //追加メソッド
  
