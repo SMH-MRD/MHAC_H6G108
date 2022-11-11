@@ -248,6 +248,9 @@ static double thcamx_last=0, thcamy_last=0;
 
 int CSIM::set_sway_io() {
       
+    //時間セット
+    GetLocalTime(&sim_stat_workbuf.rcv_msg.head.time);
+    
     // 傾斜計検出角度
     double tilt_x = 0.0;
     double tilt_y = 0.0;

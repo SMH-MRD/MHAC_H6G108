@@ -36,10 +36,15 @@
 #define N_SWAY_SENSOR_RCV_BUF   10  //受信データのバッファ数
 #define N_SWAY_SENSOR_SND_BUF   10  //送信データのバッファ数
 
-#define WORK_WND_X							1050		//MAP表示位置X
-#define WORK_WND_Y							394			//MAP表示位置Y
-#define WORK_WND_W							400		    //MAP WINDOW幅
-#define WORK_WND_H							180			//MAP WINDOW高さ
+#define WORK_WND_X							1050		//メンテパネル表示位置X
+#define WORK_WND_Y							394			//メンテパネル表示位置Y
+#define WORK_WND_W							400		    //メンテパネルWINDOW幅
+#define WORK_WND_H							360			//メンテパネルWINDOW高さ
+
+#define ID_SWAYIF_REQ_CONST_DATA            0x0001      //定周期通常データ
+#define ID_SWAYIF_REQ_ONE_SHOT              0x0002      //ワンショットデータ
+#define ID_SWAYIF_REQ_IMG                   0x0003      //画像データ
+
 
 class CSwayIF :
     public CBasicControl
@@ -69,6 +74,7 @@ private:
     static void tweet2statusMSG(const std::wstring& srcw);
     static void tweet2rcvMSG(const std::wstring& srcw);
     static void tweet2sndMSG(const std::wstring& srcw);
+    static void tweet2infMSG(const std::wstring& srcw);
  
 
 public:
@@ -85,11 +91,14 @@ public:
     int parse();            //メイン処理
     int output();           //出力処理
 
+    static int set_send_data(int com_id);   //送信処理はタイマー起動
+
     void set_debug_mode(int id) {
         if (id) mode |= SWAY_IF_SIM_DBG_MODE;
         else    mode &= ~SWAY_IF_SIM_DBG_MODE;
     }
 
+ 
     int is_debug_mode() { return(mode & SWAY_IF_SIM_DBG_MODE); }
 
      //追加メソッド
@@ -99,10 +108,11 @@ public:
      static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);
      static int close_WorkWnd();
      static int init_sock(HWND hwnd);
+
      static HWND hwndSTATMSG;
      static HWND hwndRCVMSG;
      static HWND hwndSNDMSG;
-
+     static HWND hwndINFMSG;
 
 };
 

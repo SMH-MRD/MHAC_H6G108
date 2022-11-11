@@ -9,6 +9,7 @@ HWND CSwayIF::hWorkWnd;
 HWND CSwayIF::hwndSTATMSG;
 HWND CSwayIF::hwndRCVMSG;
 HWND CSwayIF::hwndSNDMSG;
+HWND CSwayIF::hwndINFMSG;
 
 ST_SWAY_RCV_MSG CSwayIF::rcv_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_RCV_BUF];
 ST_SWAY_SND_MSG CSwayIF::snd_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_SND_BUF];
@@ -232,12 +233,14 @@ int CSwayIF::parse_sway_stat(int ID) {
     
 	return 0;
 }
+
+
 //*********************************************************************************************
-//Sway Sensor模擬用
+//IF用ソケット
 static WSADATA wsaData;
 static SOCKET s;
-static SOCKADDR_IN addrin;
-static SOCKADDR_IN server;
+static SOCKADDR_IN addrin;//送信ポートアドレス
+static SOCKADDR_IN server;//受信ポートアドレス
 static int serverlen, nEvent;
 static int nRtn = 0, nRcv = 0, nSnd = 0;
 static u_short port = SWAY_IF_IP_PORT_C;
@@ -338,6 +341,28 @@ int CSwayIF::init_sock(HWND hwnd) {
     ; 
 }
 
+//*********************************************************************************************
+int CSwayIF::set_send_data(int com_id) {
+
+    i_snd_msg[SID_CAM1] = 0;
+
+    snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].head.id[0] = 'P';
+    snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].head.id[1] = 'C';
+    snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].head.id[2] = '0';
+    snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].head.id[3] = '1';
+    snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].head.sockaddr = addrin;
+
+
+    if (com_id == ID_SWAYIF_REQ_CONST_DATA) {
+        snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].body.command[0] = 'C';
+        snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].body.command[0] = '1';
+    }
+
+
+    return 0;
+}
+
+
 //# ウィンドウへのメッセージ表示　wstring
 void CSwayIF::tweet2statusMSG(const std::wstring& srcw) {
     SetWindowText(hwndSTATMSG, srcw.c_str()); return;
@@ -348,6 +373,9 @@ void CSwayIF::tweet2rcvMSG(const std::wstring& srcw) {
 };
 void CSwayIF::tweet2sndMSG(const std::wstring& srcw) {
     SetWindowText(hwndSNDMSG, srcw.c_str()); return;
+};
+void CSwayIF::tweet2infMSG(const std::wstring& srcw) {
+    SetWindowText(hwndINFMSG, srcw.c_str()); return;
 };
 
 //*********************************************************************************************
@@ -364,17 +392,21 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         HINSTANCE hInst = GetModuleHandle(0);
 
         CreateWindowW(TEXT("STATIC"), L"STATUS", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 20, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+            10, 5, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
         hwndSTATMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 20, 300, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+            70, 5, 300, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
         CreateWindowW(TEXT("STATIC"), L"RCV  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 45, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+            10, 30, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
         hwndRCVMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 45, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+            70, 30, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
         CreateWindowW(TEXT("STATIC"), L"SND  ", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 90, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_SND, hInst, NULL);
+            10, 75, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_SND, hInst, NULL);
         hwndSNDMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            70, 90, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+            70, 75, 300, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
+        CreateWindowW(TEXT("STATIC"), L"Info ", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 120, 55, 20, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_SND, hInst, NULL);
+        hwndINFMSG = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            70, 120, 300, 195, hwnd, (HMENU)ID_STATIC_SWAY_IF_LABEL_RCV, hInst, NULL);
 
         if (init_sock(hwnd) == 0) {
             woMSG << L"SOCK OK";
@@ -398,11 +430,16 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         SetTimer(hwnd, ID_WORK_WND_TIMER, WORK_SCAN_TIME, NULL);
     }break;
     case WM_TIMER: {
-        int n = sprintf_s(szBuf, sizeof(szBuf), "%08d", nSnd);
-        nRtn = sendto(s, szBuf, n, 0, (LPSOCKADDR)&server, sizeof(server));
+
+      //  int n = sprintf_s(szBuf, sizeof(szBuf), "%08d", nSnd);
+      //  nRtn = sendto(s, szBuf, n, 0, (LPSOCKADDR)&server, sizeof(server));
+       
+        set_send_data(ID_SWAYIF_REQ_CONST_DATA);
+        int n= sizeof(ST_SWAY_SND_MSG);
+        nRtn = sendto(s, reinterpret_cast<const char*> (&snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]]), n, 0, (LPSOCKADDR)&server, sizeof(ST_SWAY_SND_MSG));
         if (nRtn == n) {
             nSnd++;
-            woMSG << L" SND len: " << nRtn << L"  Count > " << nSnd;
+            woMSG << L" SND len: " << nRtn << L"  Count :" << nSnd << L"\n ";
         }
         else {
             woMSG << L" sendto ERROR ";
@@ -416,21 +453,32 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         case FD_READ: {
             nRcv++;
             serverlen = (int)sizeof(server);
-         //nRtn = recvfrom(s, szBuf, (int)sizeof(szBuf) - 1, 0, (SOCKADDR*)&server, &serverlen);
-
+  
            nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&server, &serverlen);
  
            
             if (nRtn == SOCKET_ERROR) {
                 woMSG << L" recvfrom ERROR";
+                tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
             }
             else {
-                woMSG << L" RCV len: " << nRtn << L"Count" << nRcv;
+                woMSG << L" RCV len: " << nRtn << L" Count :" << nRcv ;
+                woMSG << L">> ID: " << rcv_msg[0][0].head.id[0] << rcv_msg[0][0].head.id[1] << rcv_msg[0][0].head.id[2] << rcv_msg[0][0].head.id[3];
+                woMSG << L"\n IP : " <<server.sin_addr.S_un.S_un_b.s_b1 << L"."<< server.sin_addr.S_un.S_un_b.s_b2 << L"." << server.sin_addr.S_un.S_un_b.s_b3 << L"." << server.sin_addr.S_un.S_un_b.s_b4;woMSG.clear();
+                tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+   
+                woMSG << rcv_msg[0][0].head.time.wMonth << L"/" << rcv_msg[0][0].head.time.wDay << L" " << rcv_msg[0][0].head.time.wHour << L":" << rcv_msg[0][0].head.time.wMinute << L":" << rcv_msg[0][0].head.time.wSecond;
+                woMSG << L"\n nPX:" << rcv_msg[0][0].head.pix_x << L" nPY:" << rcv_msg[0][0].head.pix_y << L" P1X:" << rcv_msg[0][0].head.pixlrad_x << L" P1Y:" << rcv_msg[0][0].head.pixlrad_y;
+                woMSG << L"\n TilX :" << rcv_msg[0][0].head.tilt_x << L" TilY :" << rcv_msg[0][0].head.tilt_y ;
+                woMSG << L"\n\n thX :" << rcv_msg[0][0].body.data[0].th_x << L" thY :" << rcv_msg[0][0].body.data[0].th_y << L" wX :" << rcv_msg[0][0].body.data[0].dth_x << L" wY :" << rcv_msg[0][0].body.data[0].dth_y;
+                woMSG << L"\n X0 :" << rcv_msg[0][0].body.data[0].th_x0 << L" Y0 :" << rcv_msg[0][0].body.data[0].th_y0 << L" tg1Size :" << rcv_msg[0][0].body.data[0].tg1_size << L" tr2Size :" << rcv_msg[0][0].body.data[0].tr2_size;
+                tweet2infMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+
             }
-            tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+  
 
         }break;
-        case FD_WRITE: {
+        case FD_WRITE:{
 
         }break;
         case FD_CLOSE: {

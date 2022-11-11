@@ -1,6 +1,6 @@
 #pragma once
 
-//#include <winsock.h>
+#include <winsock.h>
 #include <time.h>
 
 #define SWAY_SENSOR_N_TARGET    4
@@ -44,6 +44,8 @@ typedef struct SwayComRcvBody { //振れセンサ受信メッセージボディ部
     INT16 info[4][16];
 }ST_SWAY_RCV_BODY, * LPST_SWAY_RCV_BODY;
 
+
+
 typedef struct SwayComRcvMsg { //振れセンサ受信メッセージ
     ST_SWAY_RCV_HEAD head;
     ST_SWAY_RCV_BODY body;
@@ -51,8 +53,8 @@ typedef struct SwayComRcvMsg { //振れセンサ受信メッセージ
 
 typedef struct SwayComSndHead { //振れセンサ送信メッセージヘッダ部
     char	id[4];			//機器個体情報
- //   sockaddr_in addr;       //送信元IPアドレス
-    char    sockaddr[16];
+    sockaddr_in sockaddr;       //送信元IPアドレス
+    //char    sockaddr[16];
 }ST_SWAY_SND_HEAD, * LPST_SWAY_SND_HEAD;
 
 typedef struct SwayComSndBody { //振れセンサ送信メッセージボディ部

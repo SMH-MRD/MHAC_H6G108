@@ -196,6 +196,8 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 	}break;
 	case WM_TIMER: {
 //		int n = sprintf_s(szBuf,sizeof(szBuf), "%08d", nSnd);
+	
+
 		int n = sizeof(ST_SWAY_RCV_MSG);
 		nRtn = sendto(s, reinterpret_cast<const char*> (&pProcObj->pSIM_work->rcv_msg),n,0,(LPSOCKADDR)&client, sizeof(client));//reinterpret_cast ‹­§“I‚ÈŒ^•ÏŠ·
 		if (nRtn == n) {
@@ -213,12 +215,20 @@ LRESULT CALLBACK CWorkWindow::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM
 		case FD_READ: {
 			nRcv++;
 			clientlen = (int)sizeof(client);
-			nRtn = recvfrom(s, szBuf, (int)sizeof(szBuf) - 1, 0, (SOCKADDR*)&client, &clientlen);
+
+			nRtn = recvfrom(s, (char*)(&pProcObj->pSIM_work->snd_msg) , (int)sizeof(ST_SWAY_SND_MSG), 0, (SOCKADDR*)&client, &clientlen);
 			if (nRtn == SOCKET_ERROR) {
 				woMSG << L" recvfrom ERROR";
 			}
 			else {
-				woMSG << L" RCV len: " << clientlen << L"Count" << nRcv;
+				woMSG << L" RCV len : " << nRtn << L" Count :" << nRcv ;
+				woMSG << L" >>> ID : " << pProcObj->pSIM_work->snd_msg.head.id[0] << pProcObj->pSIM_work->snd_msg.head.id[1] << pProcObj->pSIM_work->snd_msg.head.id[2] << pProcObj->pSIM_work->snd_msg.head.id[3];
+				woMSG << L"\n  IP : " << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b1<< L".";
+				woMSG << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b2 << L".";
+				woMSG << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b3 << L".";
+				woMSG << pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_addr.S_un.S_un_b.s_b4 ;
+				woMSG << L"  PORT : " << ntohs(pProcObj->pSIM_work->snd_msg.head.sockaddr.sin_port);
+
 			}
 			tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
 
