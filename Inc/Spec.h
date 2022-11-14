@@ -196,6 +196,7 @@ typedef struct StSpec {
 
 #define CTRL_PC_IP_ADDR			"192.168.100.100"
 #define SWAY_SENSOR_IP_ADDR		"192.168.100.101"
+//#define SWAY_SENSOR_IP_ADDR		"192.168.100.102"
 #define SWAY_IF_IP_PORT_C		10080
 #define SWAY_IF_IP_PORT_S		10081
 

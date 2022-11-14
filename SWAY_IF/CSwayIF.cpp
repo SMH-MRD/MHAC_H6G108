@@ -151,7 +151,6 @@ int CSwayIF::output() {
 
     return 0;
 }
-
 //*********************************************************************************************
 // set_sim_status()
 //*********************************************************************************************
@@ -233,8 +232,6 @@ int CSwayIF::parse_sway_stat(int ID) {
     
 	return 0;
 }
-
-
 //*********************************************************************************************
 //IF用ソケット
 static WSADATA wsaData;
@@ -336,7 +333,8 @@ int CSwayIF::init_sock(HWND hwnd) {
     memset(&server, 0, sizeof(server));
     server.sin_port = htons(SWAY_IF_IP_PORT_C);
     server.sin_family = AF_INET;
-    inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &server.sin_addr.s_addr);
+  //  inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &server.sin_addr.s_addr);
+    inet_pton(AF_INET, "192.168.100.100", &server.sin_addr.s_addr);
     return 0;
     ; 
 }
@@ -436,7 +434,9 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
        
         set_send_data(ID_SWAYIF_REQ_CONST_DATA);
         int n= sizeof(ST_SWAY_SND_MSG);
-        nRtn = sendto(s, reinterpret_cast<const char*> (&snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]]), n, 0, (LPSOCKADDR)&server, sizeof(ST_SWAY_SND_MSG));
+
+         nRtn = sendto(s, reinterpret_cast<const char*> (&snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]]), n, 0, (LPSOCKADDR)&server, sizeof(ST_SWAY_SND_MSG));
+
         if (nRtn == n) {
             nSnd++;
             woMSG << L" SND len: " << nRtn << L"  Count :" << nSnd << L"\n ";
@@ -453,8 +453,11 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         case FD_READ: {
             nRcv++;
             serverlen = (int)sizeof(server);
-  
-           nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&server, &serverlen);
+ 
+            SOCKADDR temp_addr;
+            int tempi = (int)sizeof(temp_addr);
+//           nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&server, &serverlen);
+           nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&temp_addr, &tempi);
  
            
             if (nRtn == SOCKET_ERROR) {
@@ -464,14 +467,15 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             else {
                 woMSG << L" RCV len: " << nRtn << L" Count :" << nRcv ;
                 woMSG << L">> ID: " << rcv_msg[0][0].head.id[0] << rcv_msg[0][0].head.id[1] << rcv_msg[0][0].head.id[2] << rcv_msg[0][0].head.id[3];
-                woMSG << L"\n IP : " <<server.sin_addr.S_un.S_un_b.s_b1 << L"."<< server.sin_addr.S_un.S_un_b.s_b2 << L"." << server.sin_addr.S_un.S_un_b.s_b3 << L"." << server.sin_addr.S_un.S_un_b.s_b4;woMSG.clear();
+                woMSG << L"\n IP: " <<server.sin_addr.S_un.S_un_b.s_b1 << L"."<< server.sin_addr.S_un.S_un_b.s_b2 << L"." << server.sin_addr.S_un.S_un_b.s_b3 << L"." << server.sin_addr.S_un.S_un_b.s_b4;
+                woMSG << L" PORT: " << server.sin_port;
                 tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
    
                 woMSG << rcv_msg[0][0].head.time.wMonth << L"/" << rcv_msg[0][0].head.time.wDay << L" " << rcv_msg[0][0].head.time.wHour << L":" << rcv_msg[0][0].head.time.wMinute << L":" << rcv_msg[0][0].head.time.wSecond;
                 woMSG << L"\n nPX:" << rcv_msg[0][0].head.pix_x << L" nPY:" << rcv_msg[0][0].head.pix_y << L" P1X:" << rcv_msg[0][0].head.pixlrad_x << L" P1Y:" << rcv_msg[0][0].head.pixlrad_y;
                 woMSG << L"\n TilX :" << rcv_msg[0][0].head.tilt_x << L" TilY :" << rcv_msg[0][0].head.tilt_y ;
                 woMSG << L"\n\n thX :" << rcv_msg[0][0].body.data[0].th_x << L" thY :" << rcv_msg[0][0].body.data[0].th_y << L" wX :" << rcv_msg[0][0].body.data[0].dth_x << L" wY :" << rcv_msg[0][0].body.data[0].dth_y;
-                woMSG << L"\n X0 :" << rcv_msg[0][0].body.data[0].th_x0 << L" Y0 :" << rcv_msg[0][0].body.data[0].th_y0 << L" tg1Size :" << rcv_msg[0][0].body.data[0].tg1_size << L" tr2Size :" << rcv_msg[0][0].body.data[0].tr2_size;
+                woMSG << L"\n X0 :" << rcv_msg[0][0].body.data[0].th_x0 << L" Y0 :" << rcv_msg[0][0].body.data[0].th_y0 << L" tg1Size :" << rcv_msg[0][0].body.data[0].tg_size ;
                 tweet2infMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
 
             }

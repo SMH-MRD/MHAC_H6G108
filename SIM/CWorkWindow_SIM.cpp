@@ -23,7 +23,7 @@ HWND CWorkWindow::hwndSTATMSG;
 HWND CWorkWindow::hwndRCVMSG;
 HWND CWorkWindow::hwndSNDMSG;
 
-//Sway Sensor–Í‹[—p
+//Sway Sensor–Í‹[—p SIMULATOR‘¤
 static WSADATA wsaData;
 static SOCKET s;
 static SOCKADDR_IN addrin;	//Ž©‹Ç
