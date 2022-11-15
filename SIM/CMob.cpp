@@ -223,6 +223,11 @@ void CCrane::Ac() {								//加速度計算
 		a_ref[ID_SLEW] = (pPLC->status.v_fb[ID_SLEW] - v0[ID_SLEW]) / dt;
 	}
 
+	//!!!! 引込加速度を引込半径に応じて補正
+	double x = r0[ID_BOOM_H]; //引込半径
+	double kbh = 0.0008 * x * x - 0.0626*x + 1.9599;
+	a_ref[ID_BOOM_H] *= kbh;
+
 	//加速度計算　当面指令に対して一次遅れフィルタを入れる形で計算（将来的にトルク指令からの導出検討）
 	if ((motion_break[ID_HOIST])||(source_mode != MOB_MODE_SIM)) {
 		a0[ID_HOIST] = (dt * a_ref[ID_HOIST] + Tf[ID_HOIST] * a0[ID_HOIST]) / (dt + Tf[ID_HOIST]);

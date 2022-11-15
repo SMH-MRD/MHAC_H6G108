@@ -182,8 +182,9 @@ int CSIM::parse() {
                 pLoad->set_m(SIM_INIT_M + pPLC->status.weight);     //吊荷重セット
             }
         }
-    }
-    //************** モード切り替え時初期化処理　************** 
+    } //************** モード切り替え時初期化処理　**************
+    
+
 
      pCrane->update_break_status(); //ブレーキ状態更新
      pCrane->timeEvolution();       //クレーンの位置,速度計算

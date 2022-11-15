@@ -47,7 +47,7 @@ private:
     int mode_set();                 //モード状態セット
     int parse_for_auto_ctrl();      //振れ周期,振れ止め目標,ノッチ状態計算
     int pos_set();                  //位置情報セット
-    int acc_set();                  //加減速度情報セット
+    int set_kbh();                  //引込の速度/加速度の引込半径による補正係数設定
     void chk_subproc();             //サブプロセス状態チェック
 
     //メインパネルのTweetテキストを設定

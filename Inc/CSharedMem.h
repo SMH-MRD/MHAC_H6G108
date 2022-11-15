@@ -185,6 +185,8 @@ typedef struct StSimulationStatus {
 	Vector3 L, vL;//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
 	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角
 
+	double kbh; //引込半径に依存する速度、加速度補正係数
+
 	ST_SWAY_RCV_MSG rcv_msg;
 	ST_SWAY_SND_MSG snd_msg;
 
@@ -266,7 +268,7 @@ typedef struct StCraneStatus {
 	double T;									//振周期		s
 	double w;									//振角周波数	/s
 	double w2;									//振角周波数の2乗
-	double a[MOTION_ID_MAX][2];					//加減速度現在値[0]加速　[1］減速
+	double kbh;									//引込の速度,加速度変換係数（正規化）
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
