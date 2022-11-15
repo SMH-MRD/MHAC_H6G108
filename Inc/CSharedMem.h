@@ -235,6 +235,9 @@ typedef struct stEnvSubproc {
 
 #define SPD0_CHECK_RETIO	0.1
 
+#define STAT_ACC			0;
+#define STAT_DEC			1;
+
 typedef struct StCraneStatus {
 	DWORD env_act_count=0;													//ヘルシー信号
 	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
@@ -263,6 +266,7 @@ typedef struct StCraneStatus {
 	double T;									//振周期		s
 	double w;									//振角周波数	/s
 	double w2;									//振角周波数の2乗
+	double a[MOTION_ID_MAX][2];					//加減速度現在値[0]加速　[1］減速
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
