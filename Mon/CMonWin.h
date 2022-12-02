@@ -10,7 +10,7 @@
 #define GRAPHIC_AREA_X		    0		//グラフィック部左上表示位置X
 #define GRAPHIC_AREA_Y		    0		//グラフィック部左上表示位置Y
 #define GRAPHIC_AREA_W		    620	    //グラフィック部幅
-#define GRAPHIC_AREA_H		    350		//グラフィック部高さ
+#define GRAPHIC_AREA_H		    450		//グラフィック部高さ
 
 #define CMON_PIX_PER_M_CRANE    5       //1m 5pixel クレーン部
 #define CMON_PIX_PER_M_HOIST    5       //1m 5pixel 巻位置部

@@ -1,5 +1,6 @@
 #include "CPolicy.h"
 #include "CAgent.h"
+#include "CEnvironment.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -37,6 +38,7 @@ CPolicy::~CPolicy() {
 int (CPolicy::*pfunc_set_recipe[N_AS_PTN])(LPST_MOTION_RECIPE, int);
 
 static CAgent* pAgent;
+static CEnvironment* pEnvironment;
 
 void CPolicy::init_task(void* pobj) {
 
@@ -49,6 +51,7 @@ void CPolicy::init_task(void* pobj) {
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 
 	pAgent = (CAgent*)VectpCTaskObj[g_itask.agent];
+	pEnvironment = (CEnvironment*)VectpCTaskObj[g_itask.environment];
 
 	set_panel_tip_txt();
 
@@ -59,8 +62,6 @@ void CPolicy::init_task(void* pobj) {
 		pPolicyInf->com[i].com_status = COMMAND_STAT_END;
 		pPolicyInf->job_com[i].com_status = COMMAND_STAT_END;
 	}
-
-
 
 
 	inf.is_init_complete = true;
@@ -181,6 +182,8 @@ int  CPolicy::update_com_status(LPST_COMMAND_SET pcom) {
 /****************************************************************************/
 int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 
+	double R = pPLC_IO->status.pos[ID_BOOM_H];
+	
 	//目標位置設定
 	if (auto_type == AUTO_TYPE_SEMI_AUTO) {
 		st_work.pos_target[motion] = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][motion];
@@ -208,6 +211,11 @@ int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 
 	//加速度
 	st_work.a[motion] = pCraneStat->spec.accdec[motion][FWD][ACC];
+	if (motion == ID_BOOM_H) {
+		st_work.a[motion] *= (0.00008*R*R - 0.0626*R + 1.9599);
+	}
+
+
 
 	//加速時間
 	st_work.acc_time2Vmax[motion] = st_work.vmax[motion] / st_work.a[motion];
@@ -216,7 +224,6 @@ int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 	st_work.pp_th0[motion][ACC] = pCraneStat->spec.accdec[motion][FWD][ACC] / GA;
 	st_work.pp_th0[motion][DEC] = pCraneStat->spec.accdec[motion][FWD][DEC] / GA;
 	if (motion == ID_SLEW) { //旋回の加速度はRθで計算 取り敢えず半径は変化は無い前提とする
-		double R = pPLC_IO->status.pos[ID_BOOM_H];
 		st_work.pp_th0[motion][ACC] *= R;
 		st_work.pp_th0[motion][DEC] *= R;
 	}

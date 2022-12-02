@@ -128,6 +128,9 @@ void CEnvironment::main_proc() {
 	//自動情報セット
 	parse_for_auto_ctrl();
 
+	//引き込み加速度係数セット
+	stWorkCraneStat.kbh = set_kbh(pPLC_IO->status.pos[ID_BOOM_H]);
+
 	return;
 }
 
@@ -264,11 +267,10 @@ int CEnvironment::mode_set() {
 /****************************************************************************/
 /*　 加減速度情報セット											            */
 /****************************************************************************/
-int CEnvironment::set_kbh() {
+double CEnvironment::set_kbh(double r) { 
 	
-	double x = pPLC_IO->status.pos[ID_BOOM_H];
-	stWorkCraneStat.kbh = 0.0008 * x * x - 0.0626 * x + 1.9599;
-	return 0;
+	double ans = 0.0008 * r * r - 0.0626 * r + 1.9599;
+	return ans;
 
 }
 /****************************************************************************/

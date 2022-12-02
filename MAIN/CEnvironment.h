@@ -24,6 +24,7 @@ public:
     void routine_work(void* param);
     bool check_tasks_init();        //制御タスクの初期化が完了しているかチェック
     int clear_semi_auto_select() { stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR; return 0; }
+    double set_kbh(double r);       //引込の速度/加速度の引込半径による補正係数設定
 
 private:
     ST_SPEC spec;       //仕様情報 Environmentが共有メモリにセットする。
@@ -47,7 +48,7 @@ private:
     int mode_set();                 //モード状態セット
     int parse_for_auto_ctrl();      //振れ周期,振れ止め目標,ノッチ状態計算
     int pos_set();                  //位置情報セット
-    int set_kbh();                  //引込の速度/加速度の引込半径による補正係数設定
+
     void chk_subproc();             //サブプロセス状態チェック
 
     //メインパネルのTweetテキストを設定

@@ -388,6 +388,11 @@ VOID CMonWin::draw_inf() {
 	_stprintf_s(tbuf, L"%4d", pAgentInf->auto_active[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 790, 330, ws.c_str(), (int)ws.length());
 
+	
+	//テストアウト
+	TextOutW(stGraphic.hdc_mem_inf, 390, 130,L"Test", 5);
+
+	
 	return;
 }
 

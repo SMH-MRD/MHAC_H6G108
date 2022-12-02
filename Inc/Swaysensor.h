@@ -3,7 +3,14 @@
 #include <winsock.h>
 #include <time.h>
 
-#define SWAY_SENSOR_N_TARGET    4
+#define SWAY_SENSOR_N_CAM       2
+#define SWAY_SENSOR_CAM1        0
+#define SWAY_SENSOR_CAM2        1
+#define SWAY_SENSOR_TIL_X       0
+#define SWAY_SENSOR_TIL_Y       1
+#define SWAY_SENSOR_TG1         0
+#define SWAY_SENSOR_TG2         1
+#define SWAY_SENSOR_N_TARGET    2
 #define SWAY_SENSOR_TG1         0
 #define SWAY_SENSOR_TG2         1
 #define SWAY_SENSOR_TG3         2
@@ -15,8 +22,7 @@ typedef struct TargetStatus {
     char	error[4];		//ステータス
 } ST_TARGET_STAT, *LPST_TARGET_STAT;
 
-typedef struct SwayComRcvHead { //振れセンサ受信メッセージヘッダ部
-    char	id[4];			//機器個体情報
+typedef struct SyaCamSetting {
     INT32	pix_x;			//カメラ画素数x軸
     INT32	pix_y;			//カメラ画素数y軸
     INT32	pixlrad_x;	    //カメラ分解能　PIX/rad
@@ -25,13 +31,16 @@ typedef struct SwayComRcvHead { //振れセンサ受信メッセージヘッダ部
     INT32	l0_y;			//カメラ取付パラメータ㎜
     INT32	ph_x;			//カメラ取付パラメータx1000000rad
     INT32	ph_y;			//カメラ取付パラメータx1000000rad
-    SYSTEMTIME time;		//タイムスタンプ
-    ST_TARGET_STAT tg_stat[2][2];//カメラ２ｘターゲット２
-    INT32	tilt_x;			//カメラ傾斜角x　x1000000rad
-    INT32	tilt_y;			//カメラ傾斜角y　x1000000rad
+}ST_SWAY_CAM_SETTING, * LPST_SWAY_CAM_SETTING;
+typedef struct SwayComRcvHead { //振れセンサ受信メッセージヘッダ部
+    char	id[4];			                                            //PC ID
+    ST_SWAY_CAM_SETTING cam_setting[SWAY_SENSOR_N_CAM];                 //カメラ配置情報
+    SYSTEMTIME time;		                                            //タイムスタンプ
+    ST_TARGET_STAT tg_stat[SWAY_SENSOR_N_CAM][SWAY_SENSOR_N_TARGET];    //カメラ２ｘターゲット２
+    INT32	tilt[SWAY_SENSOR_N_CAM][2];			                        //カメラ傾斜角x　x1000000rad
 }ST_SWAY_RCV_HEAD, * LPST_SWAY_RCV_HEAD;
 
-typedef struct SwayComRcvDATA { //振れセンサ受信メッセージデータ構成部
+typedef struct SwayComMainData { //振れセンサ受信メッセージデータ構成部
     INT32	th_x;			//振角xPIX
     INT32	th_y;			//振角yPIX
     INT32	dth_x;			//振角速度x　PIX/s
@@ -41,12 +50,11 @@ typedef struct SwayComRcvDATA { //振れセンサ受信メッセージデータ構成部
     INT32	dpx_tgs;		//ターゲット間距離X方向
     INT32	dpy_tgs;		//ターゲット間距離Y方向
     INT32	tg_size;		//ターゲットサイズ
-    INT32	skew;			//スキュー角　PIX
-}ST_SWAY_RCV_DATA, * LPST_SWAY_RCV_DATA;
+}ST_SWAY_MAIN_DATA, * LPST_SWAY_MAIN_DATA;
 
 typedef struct SwayComRcvBody { //振れセンサ受信メッセージボディ部
-    ST_SWAY_RCV_DATA data[4];
-    INT16 info[2][32];
+    ST_SWAY_MAIN_DATA data[SWAY_SENSOR_N_CAM][SWAY_SENSOR_N_TARGET];
+    char info[SWAY_SENSOR_N_CAM][32];
 }ST_SWAY_RCV_BODY, * LPST_SWAY_RCV_BODY;
 
 
@@ -59,7 +67,6 @@ typedef struct SwayComRcvMsg { //振れセンサ受信メッセージ
 typedef struct SwayComSndHead { //振れセンサ送信メッセージヘッダ部
     char	id[4];			//機器個体情報
     sockaddr_in sockaddr;       //送信元IPアドレス
-    //char    sockaddr[16];
 }ST_SWAY_SND_HEAD, * LPST_SWAY_SND_HEAD;
 
 typedef struct SwayComSndBody { //振れセンサ送信メッセージボディ部

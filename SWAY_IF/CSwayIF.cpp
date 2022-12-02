@@ -175,14 +175,14 @@ int CSwayIF::parse_sway_stat(int ID) {
     double T = pCraneStat->T;
     double w = pCraneStat->w;
 
-    double tilt_x = ((double)rcv_msg[ID]->head.tilt_x) / 1000000.0;
-    double tilt_y = ((double)rcv_msg[ID]->head.tilt_y) / 1000000.0;
+    double tilt_x = ((double)rcv_msg[ID]->head.tilt[SWAY_SENSOR_CAM1][SWAY_SENSOR_TIL_X]) / 1000000.0;
+    double tilt_y = ((double)rcv_msg[ID]->head.tilt[SWAY_SENSOR_CAM1][SWAY_SENSOR_TIL_Y]) / 1000000.0;
  	
     double phx = tilt_x + cx;
     double phy = tilt_y + cy;
 
-    double psix = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_x) / dx + phx;
-    double psiy = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].th_y) / dy + phy;
+    double psix = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].th_x) / dx + phx;
+    double psiy = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].th_y) / dy + phy;
 
     double offset_thx = asin(ax * sin(phx + bx) / L);
     double offset_thy = asin(ay * sin(phy + by) / L);
@@ -192,8 +192,8 @@ int CSwayIF::parse_sway_stat(int ID) {
     sway_io_workbuf.th[ID_SLEW] = (psix + offset_thx);//接線方向は、旋回速度＋方向が+
     sway_io_workbuf.th[ID_BOOM_H] = psiy + offset_thy;
 
-    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].dth_x) / dx;  // radに変換　接線方向は、旋回速度＋方向が+
-    sway_io_workbuf.dth[ID_BOOM_H] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_TG1].dth_y) / dy;// radに変換
+    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].dth_x) / dx;  // radに変換　接線方向は、旋回速度＋方向が+
+    sway_io_workbuf.dth[ID_BOOM_H] = (double)(rcv_msg[ID][i_rcv_msg[ID]].body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].dth_y) / dy;// radに変換
 
     sway_io_workbuf.dthw[ID_SLEW] = sway_io_workbuf.dth[ID_SLEW] / w;
     sway_io_workbuf.dthw[ID_BOOM_H] = sway_io_workbuf.dth[ID_BOOM_H] / w;
@@ -458,7 +458,6 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             int tempi = (int)sizeof(temp_addr);
 //           nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&server, &serverlen);
            nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&temp_addr, &tempi);
- 
            
             if (nRtn == SOCKET_ERROR) {
                 woMSG << L" recvfrom ERROR";
@@ -472,10 +471,10 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
    
                 woMSG << rcv_msg[0][0].head.time.wMonth << L"/" << rcv_msg[0][0].head.time.wDay << L" " << rcv_msg[0][0].head.time.wHour << L":" << rcv_msg[0][0].head.time.wMinute << L":" << rcv_msg[0][0].head.time.wSecond;
-                woMSG << L"\n nPX:" << rcv_msg[0][0].head.pix_x << L" nPY:" << rcv_msg[0][0].head.pix_y << L" P1X:" << rcv_msg[0][0].head.pixlrad_x << L" P1Y:" << rcv_msg[0][0].head.pixlrad_y;
-                woMSG << L"\n TilX :" << rcv_msg[0][0].head.tilt_x << L" TilY :" << rcv_msg[0][0].head.tilt_y ;
-                woMSG << L"\n\n thX :" << rcv_msg[0][0].body.data[0].th_x << L" thY :" << rcv_msg[0][0].body.data[0].th_y << L" wX :" << rcv_msg[0][0].body.data[0].dth_x << L" wY :" << rcv_msg[0][0].body.data[0].dth_y;
-                woMSG << L"\n X0 :" << rcv_msg[0][0].body.data[0].th_x0 << L" Y0 :" << rcv_msg[0][0].body.data[0].th_y0 << L" tg1Size :" << rcv_msg[0][0].body.data[0].tg_size ;
+                woMSG << L"\n nPX:" << rcv_msg[0][0].head.cam_setting[SWAY_SENSOR_CAM1].pix_x << L" nPY:" << rcv_msg[0][0].head.cam_setting[SWAY_SENSOR_CAM1].pix_y << L" P1X:" << rcv_msg[0][0].head.cam_setting[SWAY_SENSOR_CAM1].pixlrad_x << L" P1Y:" << rcv_msg[0][0].head.cam_setting[SWAY_SENSOR_CAM1].pixlrad_y;
+                woMSG << L"\n TilX :" << rcv_msg[0][0].head.tilt[SWAY_SENSOR_CAM1][SWAY_SENSOR_TIL_X] << L" TilY :" << rcv_msg[0][0].head.tilt[SWAY_SENSOR_CAM1][SWAY_SENSOR_TIL_Y] ;
+                woMSG << L"\n\n thX :" << rcv_msg[0][0].body.data[SWAY_SENSOR_CAM1][0].th_x << L" thY :" << rcv_msg[0][0].body.data[SWAY_SENSOR_CAM1][0].th_y << L" wX :" << rcv_msg[0][0].body.data[SWAY_SENSOR_CAM1][0].dth_x << L" wY :" << rcv_msg[0][0].body.data[SWAY_SENSOR_CAM1][0].dth_y;
+                woMSG << L"\n X0 :" << rcv_msg[0][0].body.data[SWAY_SENSOR_CAM1][0].th_x0 << L" Y0 :" << rcv_msg[0][0].body.data[SWAY_SENSOR_CAM1][0].th_y0 << L" tg1Size :" << rcv_msg[0][0].body.data[SWAY_SENSOR_CAM1][0].tg_size ;
                 tweet2infMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
 
             }
