@@ -390,7 +390,7 @@ VOID CMonWin::draw_inf() {
 
 	
 	//テストアウト
-	TextOutW(stGraphic.hdc_mem_inf, 390, 130,L"Test", 5);
+	TextOutW(stGraphic.hdc_mem_inf, 350, 50,L"rad", 3);
 
 	
 	return;

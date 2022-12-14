@@ -971,15 +971,25 @@ int CAgent::update_auto_setting() {
 /****************************************************************************/
 /*  PB,ランプ指令更新														*/
 /****************************************************************************/
+static bool ctr_soure1_on_last, ctr_soure1_off_last, ctr_soure2_on_last, ctr_soure2_off_last;
+
 void CAgent::update_pb_lamp_com() {
 	//操作PB
 	//PB ON状態を一定時間ホールド
 	//カウンタ値セット
 	if (pPLC_IO->ui.PB[ID_PB_ESTOP]) AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = AGENT_PB_OFF_DELAY;
-	if (pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF] == true)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = AGENT_PB_OFF_DELAY;
+	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON] == true) && (ctr_soure1_on_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = AGENT_PB_OFF_DELAY;
+	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF] == true) && (ctr_soure1_off_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] = AGENT_PB_OFF_DELAY;
+	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON] == true) && (ctr_soure2_on_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = AGENT_PB_OFF_DELAY;
+	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF] == true) && (ctr_soure2_off_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = AGENT_PB_OFF_DELAY;
+
+	ctr_soure1_on_last = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON];
+	ctr_soure1_off_last = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF];
+	ctr_soure2_on_last = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON];
+	ctr_soure2_off_last= pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF];
+
+
+
 
 	if (pPLC_IO->ui.PB[ID_PB_FAULT_RESET] ==true)AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] = AGENT_PB_OFF_DELAY;
 
