@@ -307,8 +307,6 @@ int CSIM::set_sway_io() {
     sim_stat_workbuf.rcv_msg.head.id[2] = 'M';
     sim_stat_workbuf.rcv_msg.head.id[3] = '1';
     
-    sim_stat_workbuf.rcv_msg.body.info[3][15] = 0x3737;
-    
     //シミュレータロジックチェック用バッファセット
     sim_stat_workbuf.sway_io.th[ID_SLEW] = thx;
     sim_stat_workbuf.sway_io.th[ID_BOOM_H] = thy;

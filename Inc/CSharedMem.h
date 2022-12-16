@@ -446,7 +446,7 @@ typedef struct stCommandSet {
 	int type;								//ƒRƒ}ƒ“ƒhí•Ê
 	int job_id;
 	int job_step;
-	bool is_required_motion[MOTION_ID_MAX];		//“®ì‘ÎÛ²
+	bool is_active_axis[MOTION_ID_MAX];
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
 
 	//AGENT SET

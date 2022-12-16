@@ -104,12 +104,6 @@ void CPolicy::output() {
 
 };
 
-int CPolicy::set_pp_th0(int motion) {
-
-	return 0;
-}
-
-
 /****************************************************************************/
 /*　　COMMAND 処理															*/
 /****************************************************************************/
@@ -325,8 +319,6 @@ int CPolicy::judge_auto_ctrl_ptn(int auto_type, int motion) {
 	
 	int ptn = AS_PTN_0;
 	double r0 = st_work.pp_th0[motion][ACC];	//加速時振中心
-
-	set_pp_th0(motion);																//位相平面の回転中心計算
 
 	double T = pCraneStat->T;
 	double w = pCraneStat->w;
@@ -1020,7 +1012,7 @@ int CPolicy::set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion) {
 		pelement->_v = dir * v_top;														// トップ速度
 		pelement->_p = st_work.pos_target[motion] - dir * 0.5 * ta * v_top;				// 目標位置
 		if (pelement->_p > PI180) pelement->_p -= PI360;
-		else if(pelement->_p > PI180 < -PI180) pelement->_p += PI360;
+		else if(pelement->_p < -PI180) pelement->_p += PI360;
 	}
 	//Step 4　停止
 	{	pelement = &(precipe->steps[precipe->n_step++]);

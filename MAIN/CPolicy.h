@@ -83,8 +83,7 @@ private:
     void output();              //出力データ更新
 
     LPST_COMMAND_SET next_command(int type); //次のコマンドへ
-    int set_pp_th0(int motion);
-    int set_pattern_cal_base(int auto_type, int motion);
+     int set_pattern_cal_base(int auto_type, int motion);
     int judge_auto_ctrl_ptn(int auto_type, int motion); //振れ止めパターン判定
     void set_as_gain(int motion, int as_type);          //振れ止めゲイン計算
 

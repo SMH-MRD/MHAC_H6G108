@@ -831,7 +831,7 @@ int CAgent::update_auto_setting() {
 	dbg_mont[0] = 0;//@@@ debug/
 
 	//自動起動処理
-	if (pCraneStat->auto_standby == false) {//自動モード
+	if (pCraneStat->auto_standby == false) {//自動（振れ止め）モードでない
 	
 		//手動時目標位置
 		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
