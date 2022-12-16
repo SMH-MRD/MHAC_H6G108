@@ -853,6 +853,11 @@ int CAgent::update_auto_setting() {
 		set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 2;//@@@ debug/
 	}
 	else if ((pCraneStat->is_notch_0[ID_SLEW] == false) || (pCraneStat->is_notch_0[ID_BOOM_H]) == false) {
+		//Žè“®Žž–Ú•WˆÊ’u
+		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
+			AgentInf_workbuf.pos_target[i] = pPLC_IO->status.pos[i];
+			AgentInf_workbuf.be_hold_target[i] = false;
+		}
 		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
 			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 			set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 9;//@@@ debug/
