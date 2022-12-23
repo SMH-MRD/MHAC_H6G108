@@ -35,16 +35,14 @@ typedef struct stPolicyWork {
     double T;                                   //周期
     double w;                                   //角周波数
     double l;                                   //ロープ長
-    double r[MOTION_ID_MAX];	                //振幅評価値
-    double pos[MOTION_ID_MAX];	                //振幅評価値
+    double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //振幅評価値
-    //double r0[MOTION_ID_MAX];	                //加速時振中心
-    double a[MOTION_ID_MAX];	                //加速度
+    double a[MOTION_ID_MAX];	                //モータの加速度
     double vmax[MOTION_ID_MAX];                 //最大速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
     double pp_th0[NUM_OF_AS_AXIS][ACCDEC_MAX];  //位相平面の回転中心
-    double pos_target[MOTION_ID_MAX];           //位相平面の回転中心
+    double pos_target[MOTION_ID_MAX];           //目標位置
     int motion_dir[NUM_OF_AS_AXIS];             //移動方向
     double as_gain_phase[NUM_OF_AS_AXIS];       //振れ止めゲイン位相(位相平面上の加速時の位相変化量）
     double as_gain_time[NUM_OF_AS_AXIS];        //振れ止めゲイン加速時間
@@ -66,8 +64,8 @@ public:
 
    void routine_work(void* param);
  
-   LPST_COMMAND_SET generate_command(int type, double* ptarget_pos);
-   int  update_com_status(LPST_COMMAND_SET pcom);
+   LPST_COMMAND_BLOCK generate_command(int type, double* ptarget_pos);
+   int  update_com_status(LPST_COMMAND_BLOCK pcom);
  
 private:
 
@@ -82,14 +80,13 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    LPST_COMMAND_SET next_command(int type); //次のコマンドへ
+    LPST_COMMAND_BLOCK next_command(int type); //次のコマンドへ
      int set_pattern_cal_base(int auto_type, int motion);
     int judge_auto_ctrl_ptn(int auto_type, int motion); //振れ止めパターン判定
     void set_as_gain(int motion, int as_type);          //振れ止めゲイン計算
 
-    int set_recipe(LPST_COMMAND_SET pcom, int motion, int ptn);
+    int set_recipe(LPST_COMMAND_BLOCK pcom, int motion, int ptn);
     int set_recipe1step(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion);
     int set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion);
     int set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion);
     int set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion);

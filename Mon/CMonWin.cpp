@@ -471,7 +471,7 @@ VOID CMonWin::draw_graphic() {
 
 //# ‘–sˆÊ’u•`‰æ
 	//‘–sˆÊ’u•`‰æ
-	int gnt_pix = GNT_GRAPHIC_AREA_X + (int)(pCraneStat->rc0.x * CMON_PIX_PER_M_GNT);
+	int gnt_pix = GNT_GRAPHIC_AREA_X + (int)(pPLC_IO->status.pos[ID_GANTRY] * CMON_PIX_PER_M_GNT);
 	RECT rc = { gnt_pix - CMON_PIX_GNT_MARK_W,	GNT_GRAPHIC_AREA_Y,
 				gnt_pix + CMON_PIX_GNT_MARK_W,	GNT_GRAPHIC_AREA_Y + GNT_GRAPHIC_AREA_H };
 

@@ -45,9 +45,9 @@ public:
 
     bool can_auto_trigger();
     bool can_auto_complete();
-    int cleanup_command(LPST_COMMAND_SET pcom);
+    int cleanup_command(LPST_COMMAND_BLOCK pcom);
 
-    LPST_COMMAND_SET pCom;
+    LPST_COMMAND_BLOCK pCom;
 
     double ph_chk_range[NUM_OF_AS_AXIS];
 
@@ -70,7 +70,7 @@ public:
     int parse_indata();                                     //入力信号の分析
     int update_auto_setting();                              //自動条件の更新
     void set_auto_active(int type);                         //各軸のauto_activeフラグセット
-    double cal_step(LPST_COMMAND_SET pCom, int motion);     //自動指令出力値の計算
+    double cal_step(LPST_COMMAND_BLOCK pCom, int motion);     //自動指令出力値の計算
 
                                                         
     //タブパネルのStaticテキストを設定

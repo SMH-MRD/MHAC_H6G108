@@ -128,9 +128,6 @@ void CEnvironment::main_proc() {
 	//自動情報セット
 	parse_for_auto_ctrl();
 
-	//引き込み加速度係数セット
-	stWorkCraneStat.kbh = set_kbh(pPLC_IO->status.pos[ID_BOOM_H]);
-
 	return;
 }
 
@@ -199,9 +196,7 @@ int CEnvironment::parse_for_auto_ctrl() {
 	//周期
 	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
 
-	//加速振れ量
-	stWorkCraneStat.r0[ID_SLEW] = spec.accdec[ID_SLEW][FWD][ACC]/ stWorkCraneStat.w2;
-	stWorkCraneStat.r0[ID_BOOM_H] = spec.accdec[ID_BOOM_H][FWD][ACC] / stWorkCraneStat.w2;
+
 
 
 	//###################
@@ -213,12 +208,20 @@ int CEnvironment::parse_for_auto_ctrl() {
 		else stWorkCraneStat.semi_auto_pb_count[i]++;
 
 		//目標設定
-		if (stWorkCraneStat.semi_auto_pb_count[i] == 200) {//半自動目標設定
+		if (stWorkCraneStat.semi_auto_pb_count[i] == SEMI_AUTO_TG_RESET_TIME) {//半自動目標設定
+			stWorkCraneStat.semi_auto_setting_target[i][ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+			stWorkCraneStat.semi_auto_setting_target[i][ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+			stWorkCraneStat.semi_auto_setting_target[i][ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+
+		}
+		else if (stWorkCraneStat.semi_auto_pb_count[i] == SEMI_AUTO_TG_SELECT_TIME) {//半自動目標設定
+
 			if (i == stWorkCraneStat.semi_auto_selected)//設定中のボタンを押したら解除
 				stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
 			else
 				stWorkCraneStat.semi_auto_selected = i;
 		}
+		else;
 	}
 
 	//半自動設定解除
@@ -265,14 +268,97 @@ int CEnvironment::mode_set() {
 }
 
 /****************************************************************************/
-/*　 加減速度情報セット											            */
+/*　吊点の加減速度計算（※旋回はm/s)
+*/
 /****************************************************************************/
-double CEnvironment::set_kbh(double r) { 
-	
-	double ans = 0.0008 * r * r - 0.0626 * r + 1.9599;
-	return ans;
+
+double CEnvironment::cal_hp_acc(int motion, int dir ) {
+
+	double ans = spec.accdec[motion][dir][ACC];
+	double r = stWorkCraneStat.R;
+
+	switch (motion) {
+	case ID_BOOM_H: {
+		ans *= (0.0008 * r * r - 0.0626 * r + 1.9599);
+	}break;
+	case ID_SLEW: {
+		ans *= r;
+	}break;
+	default:break;
+	}
+
+	return ans;      //吊点の加速度計算
+}
+double CEnvironment::cal_hp_dec(int motion, int dir){
+
+	double ans = spec.accdec[motion][dir][DEC];
+	double r = stWorkCraneStat.R;
+
+	switch (motion) {
+	case ID_BOOM_H: {
+		ans *= (0.0008 * r * r - 0.0626 * r + 1.9599);
+	}break;
+	case ID_SLEW: {
+		ans *= r;
+	}break;
+	default:break;
+	}
+
+	return ans;      //吊点の減速度計算
+}
+
+
+/****************************************************************************/
+/*　 加減速振れ計算											         　　   */
+/****************************************************************************/
+
+double CEnvironment::cal_arad(int motion, int dir) {     //加減速振れ振幅計算rad
+	double ans = cal_hp_acc(motion, dir);
+	ans /= GA;
+	return ans;      //吊点の加速振れ計算
 
 }
+
+double CEnvironment::cal_arad2(int motion, int dir) {     //加減速振れ振幅計算rad
+	double ans = cal_hp_acc(motion, dir);
+	ans /= GA;
+	return (ans*ans); //吊点の加速振れ2乗計算
+
+}
+
+bool CEnvironment::is_sway_larger_than_accsway(int motion){
+	//振角振幅が加速振角よりも大きいか判定
+	double rad_acc2 = cal_arad2(motion, FWD);	//加速振れ角2乗
+	if (pSway_IO->rad_amp2[motion] > rad_acc2) return true;
+	else return false;
+}
+
+/****************************************************************************/
+/*　 自動関連計算											         　　   */
+/****************************************************************************/
+double CEnvironment::cal_dist4stop(int motion, int dir) {					//停止距離計算
+	double r = stWorkCraneStat.R;
+	double dec = spec.accdec[motion][dir][DEC];
+	if (motion == ID_BOOM_H) {
+		dec *= (0.0008 * r * r - 0.0626 * r + 1.9599);
+	}
+
+	double v = pPLC_IO->status.v_fb[motion];
+
+	return (0.5*v*v/dec);
+}
+
+double CEnvironment::cal_dist4target(int motion) {					//目標位置までの距離
+	double dist=pPLC_IO->status.pos[motion] - stWorkCraneStat.auto_target[motion];
+	if (dist < 0.0) return -dist;
+	else return dist;
+}
+
+int    CEnvironment::set_auto_target(int motion, double target){	//自動目標位置セット
+	stWorkCraneStat.auto_target[motion] = pCraneStat->auto_target[motion] = target;
+	return 0;
+}
+
 /****************************************************************************/
 /*　 位置情報セット											            */
 /****************************************************************************/
@@ -281,10 +367,6 @@ int CEnvironment::pos_set() {
 	double sin_slew = sin(pPLC_IO->status.pos[ID_SLEW]);
 	double cos_slew = cos(pPLC_IO->status.pos[ID_SLEW]);
 
-	//クレーン基準点のx,y,z相対座標
-	stWorkCraneStat.rc0.x = pPLC_IO->status.pos[ID_GANTRY];	//走行位置
-	stWorkCraneStat.rc0.y = 0.0;							//旋回中心点
-	stWorkCraneStat.rc0.z = 0.0;							//走行レール高さ
 
 	//クレーン吊点のクレーン基準点とのx,y,z相対座標
 	stWorkCraneStat.rc.x = pPLC_IO->status.pos[ID_BOOM_H] * cos_slew;
@@ -293,6 +375,9 @@ int CEnvironment::pos_set() {
 
 	//ロープ長
 	stWorkCraneStat.mh_l = spec.boom_high - pPLC_IO->status.pos[ID_HOIST];
+
+	//旋回半径
+	stWorkCraneStat.R = pPLC_IO->status.pos[ID_BOOM_H];
 	
 	//吊荷のカメラ座標での吊荷xyz相対座標
 	stWorkCraneStat.rcam.x = stWorkCraneStat.mh_l * sin(pSway_IO->th[ID_SLEW]) ;
@@ -305,9 +390,9 @@ int CEnvironment::pos_set() {
 	stWorkCraneStat.rl.z = pPLC_IO->status.pos[ID_HOIST];
 
 	//極限判定
-	if (stWorkCraneStat.rc0.x < spec.gantry_pos_min) stWorkCraneStat.is_rev_endstop[ID_GANTRY] = true;
+	if (pPLC_IO->status.pos[ID_GANTRY] < spec.gantry_pos_min) stWorkCraneStat.is_rev_endstop[ID_GANTRY] = true;
 	else stWorkCraneStat.is_rev_endstop[ID_GANTRY] = false;
-	if (stWorkCraneStat.rc0.x > spec.gantry_pos_max) stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = true;
+	if (pPLC_IO->status.pos[ID_GANTRY] > spec.gantry_pos_max) stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = true;
 	else stWorkCraneStat.is_fwd_endstop[ID_GANTRY] = false;
 
 	if (stWorkCraneStat.rl.z < spec.hoist_pos_min) stWorkCraneStat.is_rev_endstop[ID_HOIST] = true;

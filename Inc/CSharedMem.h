@@ -156,7 +156,7 @@ typedef struct StSwayIO {
 	double dth[MOTION_ID_MAX];		//振角速度		rad/s
 	double dthw[MOTION_ID_MAX];		//振角速度/ω　	rad
 	double ph[MOTION_ID_MAX];		//位相平面位相	rad
-	double amp2[MOTION_ID_MAX];		//振幅の2乗		rad2
+	double rad_amp2[MOTION_ID_MAX];		//振幅の2乗		rad2
 
 
 }ST_SWAY_IO, * LPST_SWAY_IO;
@@ -241,34 +241,39 @@ typedef struct stEnvSubproc {
 #define STAT_DEC			1;
 
 typedef struct StCraneStatus {
-	DWORD env_act_count=0;													//ヘルシー信号
-	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
+//Event Update				:イベント条件で更新
 	bool is_tasks_standby_ok;												//タスクの立ち上がり確認
 	ST_SPEC spec;															//クレーン仕様
-	WORD operation_mode;													//運転モード　機上,リモート
-
 	bool	auto_standby;													//自動モード
 	double semi_auto_setting_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];	//半自動設定目標位置
-	int	 semi_auto_selected;												//半自動選択ID
-	int	 semi_auto_pb_count[SEMI_AUTO_TARGET_MAX];							//半自動PB　ONカウント
-	int	 auto_start_pb_count;												//自動開始PB　ONカウント
-	bool is_notch_0[MOTION_ID_MAX];											//振れ止めモードノッチ条件
-	double r0[MOTION_ID_MAX];	                //加速振 rad
-	
-	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
-	WORD faultPC[N_PC_FAULT_WORDS];				//PLC検出異常
-	WORD faultPLC[N_PLC_FAULT_WORDS];			//制御PC検出異常
-	Vector3 rc0;								//クレーン基準点のx,y,z座標（x:走行位置 y:旋回中心 z:走行レール高さ）
-	Vector3 rc;									//クレーン吊点のクレーン基準点とのx,y,z相対座標
-	Vector3 rl;									//吊荷のクレーン吊点とのx,y,z相対座標
-	Vector3 rcam;								//振れセンサ検出x,y,z座標
-	bool is_fwd_endstop[MOTION_ID_MAX];			//正転極限判定
-	bool is_rev_endstop[MOTION_ID_MAX];			//逆転極限判定
-	double mh_l;								//ロープ長
-	double T;									//振周期		s
-	double w;									//振角周波数	/s
-	double w2;									//振角周波数の2乗
-	double kbh;									//引込の速度,加速度変換係数（正規化）
+	double auto_target[MOTION_ID_MAX];									    //自動目標位置
+	int	 semi_auto_selected;												//選択中の半自動ID
+
+
+//Periodical Update			：定周期更新
+	DWORD env_act_count=0;													//ヘルシー信号
+	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
+	WORD operation_mode;													//運転モード　機上,リモート
+	int	 semi_auto_pb_count[SEMI_AUTO_TARGET_MAX];							//半自動PB　ON時間カウント
+	int	 auto_start_pb_count;												//自動開始PB　ON時間カウント
+	bool is_notch_0[MOTION_ID_MAX];											//0ノッチ判定
+	Vector3 rc;																//クレーン吊点のクレーン基準点とのx,y,z相対座標
+	Vector3 rl;																//吊荷のクレーン吊点とのx,y,z相対座標
+	Vector3 rcam;															//振れセンサ検出x,y,z座標
+	double notch_spd_ref[MOTION_ID_MAX];									//ノッチ速度指令
+	double mh_l;															//ロープ長
+	double T;																//振周期		s
+	double w;																//振角周波数	/s
+	double w2;																//振角周波数の2乗
+	double R;																//旋回半径
+
+//	double r0[MOTION_ID_MAX];												//加速振 rad
+
+	WORD faultPC[N_PC_FAULT_WORDS];											//PLC検出異常
+	WORD faultPLC[N_PLC_FAULT_WORDS];										//制御PC検出異常
+
+	bool is_fwd_endstop[MOTION_ID_MAX];										//正転極限判定
+	bool is_rev_endstop[MOTION_ID_MAX];										//逆転極限判定
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
@@ -440,7 +445,7 @@ typedef struct stMotionStat {
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
 
-typedef struct stCommandSet {
+typedef struct stCommandBlock {
 	//POLICY SET
 	int id;									//コマンドID
 	int type;								//コマンド種別
@@ -456,8 +461,7 @@ typedef struct stCommandSet {
 	int status_code;						//エラーコード等（異常完了時）　
 	ST_MOTION_STAT	motion_stat[MOTION_ID_MAX];
 
-}ST_COMMAND_SET, * LPST_COMMAND_SET;
-
+}ST_COMMAND_BLOCK, * LPST_COMMAND_BLOCK;
 
 //# Policy タスクセット領域
 
@@ -492,8 +496,8 @@ typedef struct stPolicyInfo {
 
 	int i_jobcom;							//現在のコマンドINDEX
 	int i_com;								//現在のコマンドINDEX
-	ST_COMMAND_SET job_com[COM_STEP_MAX];
-	ST_COMMAND_SET com[COM_STEP_MAX];
+	ST_COMMAND_BLOCK job_com[COM_STEP_MAX];
+	ST_COMMAND_BLOCK com[COM_STEP_MAX];
 	int auto_ctrl_ptn[MOTION_ID_MAX];
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;

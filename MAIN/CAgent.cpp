@@ -1,5 +1,6 @@
 #include "CAgent.h"
 #include "CPolicy.h"
+#include "CEnvironment.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -15,6 +16,7 @@ extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
 extern ST_iTask g_itask;
 
 static CPolicy* pPolicy;
+static CEnvironment* pEnv;
 
 /****************************************************************************/
 /*   コンストラクタ　デストラクタ                                           */
@@ -45,6 +47,7 @@ void CAgent::init_task(void* pobj) {
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 
 	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
+	pEnv = (CEnvironment*)VectpCTaskObj[g_itask.environment];
 	
 	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
 	for (int i = 0;i < N_PLC_LAMP;i++) AgentInf_workbuf.PLC_LAMP_com[i] = 0;
@@ -149,9 +152,11 @@ int CAgent::parse_indata() {
 	}
 
 	//自動完了条件
+
+	//振れ振幅の2乗ｍ
 	double k = pCraneStat->mh_l * pCraneStat->mh_l;
-	AgentInf_workbuf.sway_amp2m[ID_BOOM_H] = k * pSway_IO->amp2[ID_BOOM_H];
-	AgentInf_workbuf.sway_amp2m[ID_SLEW] = k * pSway_IO->amp2[ID_SLEW];
+	AgentInf_workbuf.sway_amp2m[ID_BOOM_H] = k * pSway_IO->rad_amp2[ID_BOOM_H];
+	AgentInf_workbuf.sway_amp2m[ID_SLEW] = k * pSway_IO->rad_amp2[ID_SLEW];
 
 	for (int i = 0;i < MOTION_ID_MAX;i++) { //目標位置までの距離
 		AgentInf_workbuf.gap_from_target[i] = AgentInf_workbuf.pos_target[i] - pPLC_IO->status.pos[i];
@@ -228,7 +233,7 @@ int CAgent::set_ref_gt(){
 /****************************************************************************/
 int CAgent::set_ref_slew(){
 
-	LPST_COMMAND_SET pcom;
+	LPST_COMMAND_BLOCK pcom;
 
 	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_SLEW) {
 		if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_MANUAL)
@@ -267,7 +272,7 @@ int CAgent::set_ref_slew(){
 /****************************************************************************/
 int CAgent::set_ref_bh(){
 
-	LPST_COMMAND_SET pcom;
+	LPST_COMMAND_BLOCK pcom;
 
 	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_BOOM_H) {
 		
@@ -304,7 +309,7 @@ int CAgent::set_ref_bh(){
 /****************************************************************************/
 /*   コマンドステータス初期化                                               */
 /****************************************************************************/
-int CAgent::cleanup_command(LPST_COMMAND_SET pcom) {
+int CAgent::cleanup_command(LPST_COMMAND_BLOCK pcom) {
 	pcom->com_status = COMMAND_STAT_STANDBY;
 	for (int i = 0; i < MOTION_ID_MAX;i++) {
 		if (AgentInf_workbuf.auto_active[i] == AUTO_TYPE_MANUAL) {
@@ -328,7 +333,7 @@ int CAgent::cleanup_command(LPST_COMMAND_SET pcom) {
 /****************************************************************************/
 /*   STEP処理		                                                        */
 /****************************************************************************/
-double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
+double CAgent::cal_step(LPST_COMMAND_BLOCK pCom,int motion) {
 
 	double v_out = 0.0;
 
@@ -375,7 +380,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		if (pstat->step_act_count > pStep->time_count) {
 			pStep->status = PTN_STEP_TIME_OVER;is_step_end = true;
 		}
-		if (pSway_IO->amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {
+		if (pSway_IO->rad_amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {
 			pStep->status = PTN_STEP_FIN;is_step_end = true;
 		}
 		if (is_step_end) {
@@ -455,7 +460,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		if (pstat->step_act_count > pStep->time_count) {
 			pStep->status = PTN_STEP_TIME_OVER;is_step_end = true;
 		}
-		if (pSway_IO->amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {
+		if (pSway_IO->rad_amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {
 			pStep->status = PTN_STEP_FIN;is_step_end = true;
 		}
 		if (is_step_end) {
@@ -522,10 +527,14 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		}
 
 	}break;
-	//#	振れ止め移動起動タイミング調整
+
+	//#	振れ止め移動起動タイミング調整（初期振れが大きいとき加速開始タイミングを調整）
 	case CTR_TYPE_ADJUST_MOTION_TRIGGER: {
 		v_out = 0.0;
-		if (sqrt(pSway_IO->amp2[motion]) > pCraneStat->r0[motion]) {
+		double rad_acc = pEnv->cal_arad(motion, FWD);	//加速振れ角
+		double rad_acc2 = rad_acc * rad_acc;											//加速振れ角２乗
+
+		if (sqrt(pSway_IO->rad_amp2[motion]) > rad_acc2) { // 振れ角振幅が加速振れ角より大きい
 			if (AgentInf_workbuf.gap_from_target[motion] > 0) {//目標位置より現在位置が手前→進行方向＋
 				if ((pSway_IO->ph[motion] < PI180) && (pSway_IO->ph[motion] > PI90))
 					pStep->status = PTN_STEP_FIN;
@@ -551,7 +560,13 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pStep->status = PTN_STEP_FIN;
 			pstat->flg[MOTION_ACC_STEP_BYPASS] = L_OFF;
 		}
-		if (pstat->step_act_count >= pStep->time_count)	pStep->status = PTN_STEP_FIN;
+
+		//タイムオーバー
+		if (pstat->step_act_count >= pStep->time_count) {
+			pstat->flg[MOTION_ACC_STEP_BYPASS] = L_OFF;
+			pStep->status = PTN_STEP_FIN;
+		}
+
 	}break;
 
 		//#	振れ止め加速
@@ -619,7 +634,9 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pstat->flg[MOTION_DEC_STEP_BYPASS] = L_OFF;
 		}
 		else if (chk_d < AgentInf_workbuf.dist_for_stop[motion]) {						// STEP目標位置までの距離が減速距離以下
-			if (sqrt(pSway_IO->amp2[motion]) > pCraneStat->r0[motion]) {				// 振れが加速振れより大
+
+			double rad_acc2 = pEnv->cal_arad2(motion, FWD);	//加速振れ角2乗
+			if (pEnv->is_sway_larger_than_accsway(motion)) {							// 振れが加速振れより大
 				if (AgentInf_workbuf.gap_from_target[motion] > 0) {						//目標位置より現在位置が手前→進行方向＋
 					if ((pSway_IO->ph[motion] < PI180) && (pSway_IO->ph[motion] > PI90))//π/2-πの位相なら完了->減速に入る
 						pStep->status = PTN_STEP_FIN;
@@ -1025,7 +1042,13 @@ void CAgent::update_pb_lamp_com() {
 	//LAMP　カウント値　0：消灯　カウント値%PLC_IO_LAMP_FLICKER_COUNT　が　PLC_IO_LAMP_FLICKER_CHANGE以下でOFF,以上でON（PLC_IFにて出力）
 	for (int i = 0;i < SEMI_AUTO_TG_CLR;i++) {
 		if (i == pCraneStat->semi_auto_selected) {
-			AgentInf_workbuf.PLC_LAMP_semiauto_com[i] = AGENT_LAMP_ON;
+			if((pCraneStat->semi_auto_pb_count[i] > SEMI_AUTO_TG_SELECT_TIME) && (pCraneStat->semi_auto_pb_count[i] < SEMI_AUTO_TG_RESET_TIME)) {
+				AgentInf_workbuf.PLC_LAMP_semiauto_com[i]++;
+			}
+			else {
+				AgentInf_workbuf.PLC_LAMP_semiauto_com[i] = AGENT_LAMP_ON;
+			}
+
 		}
 		else if (pCraneStat->semi_auto_pb_count[i]) {
 			AgentInf_workbuf.PLC_LAMP_semiauto_com[i]++;

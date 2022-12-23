@@ -7,7 +7,8 @@
 #define PLC_IO_HELTHY_NG_COUNT      8
 #define SIM_HELTHY_NG_COUNT         8
 #define SWAY_HELTHY_NG_COUNT        8
-
+#define SEMI_AUTO_TG_RESET_TIME     200
+#define SEMI_AUTO_TG_SELECT_TIME    20
 
 
 class CEnvironment :public CTaskObj
@@ -22,10 +23,17 @@ public:
 
     void init_task(void* pobj);
     void routine_work(void* param);
-    bool check_tasks_init();        //制御タスクの初期化が完了しているかチェック
-    int clear_semi_auto_select() { stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR; return 0; }
-    double set_kbh(double r);       //引込の速度/加速度の引込半径による補正係数設定
-
+    bool check_tasks_init();            //制御タスクの初期化が完了しているかチェック
+  
+    double cal_hp_acc(int motion, int dir);             //吊点の加速度計算(旋回はm/s2）
+    double cal_hp_dec(int motion, int dir);             //吊点の減速度計算(旋回はm/s2）
+    double cal_arad(int motion, int dir);               //加減速振れ振角計算rad
+    double cal_arad2(int motion, int dir);              //加減速振れ振角の2乗計算rad
+    bool is_sway_larger_than_accsway(int motion);       //振れ角が加速振れよりも大きいか判定
+    double cal_dist4stop(int motion, int dir);          //停止距離計算
+    double cal_dist4target(int motion);                 //目標位置までの距離
+    int    set_auto_target(int motion, double target);   //目標位置までの距離
+ 
 private:
     ST_SPEC spec;       //仕様情報 Environmentが共有メモリにセットする。
     ST_CRANE_STATUS stWorkCraneStat;
