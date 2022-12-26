@@ -259,7 +259,7 @@ typedef struct StCraneStatus {
 	bool is_notch_0[MOTION_ID_MAX];											//0ノッチ判定
 	Vector3 rc;																//クレーン吊点のクレーン基準点とのx,y,z相対座標
 	Vector3 rl;																//吊荷のクレーン吊点とのx,y,z相対座標
-	Vector3 rcam;															//振れセンサ検出x,y,z座標
+	Vector3 rcam_m;															//振れセンサ検出x,y,z座標 m
 	double notch_spd_ref[MOTION_ID_MAX];									//ノッチ速度指令
 	double mh_l;															//ロープ長
 	double T;																//振周期		s

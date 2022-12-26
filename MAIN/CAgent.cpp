@@ -531,8 +531,9 @@ double CAgent::cal_step(LPST_COMMAND_BLOCK pCom,int motion) {
 	//#	振れ止め移動起動タイミング調整（初期振れが大きいとき加速開始タイミングを調整）
 	case CTR_TYPE_ADJUST_MOTION_TRIGGER: {
 		v_out = 0.0;
-		double rad_acc = pEnv->cal_arad(motion, FWD);	//加速振れ角
-		double rad_acc2 = rad_acc * rad_acc;											//加速振れ角２乗
+	//	double rad_acc = pEnv->cal_arad_acc(motion, FWD);		//加速振れ角
+	//	double rad_acc2 =pEnv-> rad_acc * rad_acc;				//加速振れ角２乗
+		double rad_acc2 =pEnv->cal_arad2(motion,FWD);			//加速振れ角２乗
 
 		if (sqrt(pSway_IO->rad_amp2[motion]) > rad_acc2) { // 振れ角振幅が加速振れ角より大きい
 			if (AgentInf_workbuf.gap_from_target[motion] > 0) {//目標位置より現在位置が手前→進行方向＋

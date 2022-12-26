@@ -38,6 +38,7 @@ typedef struct stPolicyWork {
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //振幅評価値
     double a[MOTION_ID_MAX];	                //モータの加速度
+    double a_hp[MOTION_ID_MAX];	                //吊点の加速度
     double vmax[MOTION_ID_MAX];                 //最大速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
@@ -81,7 +82,7 @@ private:
     void output();              //出力データ更新
 
     LPST_COMMAND_BLOCK next_command(int type); //次のコマンドへ
-     int set_pattern_cal_base(int auto_type, int motion);
+    int set_pattern_cal_base(int auto_type, int motion);
     int judge_auto_ctrl_ptn(int auto_type, int motion); //振れ止めパターン判定
     void set_as_gain(int motion, int as_type);          //振れ止めゲイン計算
 

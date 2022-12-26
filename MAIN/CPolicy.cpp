@@ -180,34 +180,34 @@ int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 	
 	//目標位置設定
 	if (auto_type == AUTO_TYPE_SEMI_AUTO) {
-		st_work.pos_target[motion] = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][motion];
+
+		pEnvironment->set_auto_target(motion, pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][motion]);
+		st_work.pos_target[motion] = pCraneStat->auto_target[motion];
+
 	}
 	else if (auto_type == AUTO_TYPE_JOB) {
-		st_work.pos_target[motion] = pPLC_IO->status.pos[motion];
+		pEnvironment->set_auto_target(motion, pPLC_IO->status.pos[motion]);
+		st_work.pos_target[motion] = pCraneStat->auto_target[motion];
 	}
 	else {
-		if(pAgentInf->be_hold_target[motion] == false){
-			st_work.pos_target[motion] = pPLC_IO->status.pos[motion] + pAgentInf->dist_for_stop[motion];
+		if(pAgentInf->be_hold_target[motion] == false){ //半自動,JOB後、目標位置キープ条件でないとき
+			pEnvironment->set_auto_target(motion, pPLC_IO->status.pos[motion] + pEnvironment->cal_dist4stop(motion,false));
+			st_work.pos_target[motion] = pCraneStat->auto_target[motion];
 		}
 	}
 	
 	//目標位置までの距離設定
-	st_work.dist_for_target[motion] = st_work.pos_target[motion] -  pPLC_IO->status.pos[motion] ;
-	if (motion == ID_SLEW) {
-		if (st_work.dist_for_target[motion] > PI180) st_work.dist_for_target[motion] -= PI360;
-		else if (st_work.dist_for_target[motion] < -PI180) st_work.dist_for_target[motion] += PI360;
-		else;
-	}
-	if (st_work.dist_for_target[motion] < 0.0) st_work.dist_for_target[motion] *= -1.0;
+	st_work.dist_for_target[motion] = pEnvironment->cal_dist4target(motion,true);
 
 	//最大速度
 	st_work.vmax[motion] = pCraneStat->spec.notch_spd_f[motion][NOTCH_5];
 
 	//加速度
-	st_work.a[motion] = pCraneStat->spec.accdec[motion][FWD][ACC];		//モータの加速度
+	st_work.a[motion] = pCraneStat->spec.accdec[motion][FWD][ACC];			//モータの加速度
 	if (motion == ID_BOOM_H) {
 		st_work.a[motion] *= (0.00008*R*R - 0.0626*R + 1.9599);
 	}
+	st_work.a_hp[motion] = pEnvironment->cal_hp_acc(motion,FWD);		//吊点の加速度
 
 
 
@@ -215,12 +215,15 @@ int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 	st_work.acc_time2Vmax[motion] = st_work.vmax[motion] / st_work.a[motion];
 
 	//加速時振れ中心
-	st_work.pp_th0[motion][ACC] = pCraneStat->spec.accdec[motion][FWD][ACC] / GA;
-	st_work.pp_th0[motion][DEC] = pCraneStat->spec.accdec[motion][FWD][DEC] / GA;
-	if (motion == ID_SLEW) { //旋回の加速度はRθで計算 取り敢えず半径は変化は無い前提とする
-		st_work.pp_th0[motion][ACC] *= R;
-		st_work.pp_th0[motion][DEC] *= R;
-	}
+	st_work.pp_th0[motion][ACC] = pEnvironment->cal_arad_acc(motion, FWD);
+	st_work.pp_th0[motion][DEC] = pEnvironment->cal_arad_dec(motion, REV);
+
+//	st_work.pp_th0[motion][ACC] = pCraneStat->spec.accdec[motion][FWD][ACC] / GA;
+//	st_work.pp_th0[motion][DEC] = pCraneStat->spec.accdec[motion][FWD][DEC] / GA;
+//	if (motion == ID_SLEW) { //旋回の加速度はRθで計算 取り敢えず半径は変化は無い前提とする
+//		st_work.pp_th0[motion][ACC] *= R;
+//		st_work.pp_th0[motion][DEC] *= R;
+//	}
 
 	//振角振幅が加速振角よりも大きいか判定
 	double rad_acc2 = pEnvironment->cal_arad2(motion, FWD);	//加速振れ角2乗
@@ -245,8 +248,8 @@ void CPolicy::set_as_gain(int motion, int as_type) {
 	double a,r,w,l,r0, vmax, max_th_of_as, acc_time2Vmax;
 
 	//最大速度による加速時間制限
-	r = sqrt(pSway_IO->rad_amp2[motion]);	//振幅角評価値
-	r0 = pEnvironment->cal_arad(motion,FWD);	    //加速時振中心
+	r = sqrt(pSway_IO->rad_amp2[motion]);			//振幅角評価値　rad
+	r0 = pEnvironment->cal_arad_acc(motion,FWD);	 //加速時振中心
 	w = pCraneStat->w;								//振れ角加速度
 	a = st_work.a[motion];							//ここの加速度SLEWはrad/s2で良い（半径未考慮）　r0振れ中心は半径考慮済
 	vmax = st_work.vmax[motion];					//ここの速度SLEWはrad/sで良い（半径未考慮）
