@@ -200,30 +200,20 @@ int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
 	st_work.dist_for_target[motion] = pEnvironment->cal_dist4target(motion,true);
 
 	//最大速度
-	st_work.vmax[motion] = pCraneStat->spec.notch_spd_f[motion][NOTCH_5];
+	st_work.vmax[motion] = pEnvironment->get_vmax(motion);
 
 	//加速度
 	st_work.a[motion] = pCraneStat->spec.accdec[motion][FWD][ACC];			//モータの加速度
-	if (motion == ID_BOOM_H) {
-		st_work.a[motion] *= (0.00008*R*R - 0.0626*R + 1.9599);
-	}
-	st_work.a_hp[motion] = pEnvironment->cal_hp_acc(motion,FWD);		//吊点の加速度
+	st_work.a_hp[motion] = pEnvironment->cal_hp_acc(motion,FWD);			//吊点の加速度
 
 
 
-	//加速時間
+	//0->Vmax 加速時間
 	st_work.acc_time2Vmax[motion] = st_work.vmax[motion] / st_work.a[motion];
 
 	//加速時振れ中心
 	st_work.pp_th0[motion][ACC] = pEnvironment->cal_arad_acc(motion, FWD);
 	st_work.pp_th0[motion][DEC] = pEnvironment->cal_arad_dec(motion, REV);
-
-//	st_work.pp_th0[motion][ACC] = pCraneStat->spec.accdec[motion][FWD][ACC] / GA;
-//	st_work.pp_th0[motion][DEC] = pCraneStat->spec.accdec[motion][FWD][DEC] / GA;
-//	if (motion == ID_SLEW) { //旋回の加速度はRθで計算 取り敢えず半径は変化は無い前提とする
-//		st_work.pp_th0[motion][ACC] *= R;
-//		st_work.pp_th0[motion][DEC] *= R;
-//	}
 
 	//振角振幅が加速振角よりも大きいか判定
 	double rad_acc2 = pEnvironment->cal_arad2(motion, FWD);	//加速振れ角2乗
