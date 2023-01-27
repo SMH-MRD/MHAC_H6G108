@@ -7,8 +7,7 @@
 #define PLC_IO_HELTHY_NG_COUNT      8
 #define SIM_HELTHY_NG_COUNT         8
 #define SWAY_HELTHY_NG_COUNT        8
-#define SEMI_AUTO_TG_RESET_TIME     200
-#define SEMI_AUTO_TG_SELECT_TIME    20
+
 
 
 class CEnvironment :public CTaskObj
@@ -30,10 +29,11 @@ public:
     double cal_hp_dec(int motion, int dir);                 //’İ“_‚ÌŒ¸‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼ŒaŒ»İˆÊ’u
     double cal_hp_dec(int motion, int dir, double R);       //’İ“_‚ÌŒ¸‘¬“xŒvZ(ù‰ñ‚Ím/s2jù‰ñ”¼Œaw’èR
     double cal_arad_acc(int motion, int dir);               //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼ŒaŒ»İˆÊ’u
-    double cal_arad_acc(int motion, int dir, double R);     //‰ÁŒ¸‘¬U‚êUŠpŒvZradjù‰ñ”¼Œaw’èR
+    double cal_arad_acc(int motion, int dir, double R);     //‰ÁŒ¸‘¬U‚êUŠpŒvZradù‰ñ”¼Œaw’èR
     double cal_arad_dec(int motion, int dir);               //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼ŒaŒ»İˆÊ’u
-    double cal_arad_dec(int motion, int dir, double R);     //‰ÁŒ¸‘¬U‚êUŠpŒvZradjù‰ñ”¼Œaw’èR
+    double cal_arad_dec(int motion, int dir, double R);     //‰ÁŒ¸‘¬U‚êUŠpŒvZrad ù‰ñ”¼Œaw’èR
     double cal_arad2(int motion, int dir);                  //‰ÁŒ¸‘¬U‚êUŠp‚Ì2æŒvZrad
+    double cal_arad2(int motion, int dir, double R);        //‰ÁŒ¸‘¬U‚êUŠp‚Ì2æŒvZrad ù‰ñ”¼Œaw’èR
     bool is_sway_larger_than_accsway(int motion);           //U‚êŠp‚ª‰Á‘¬U‚ê‚æ‚è‚à‘å‚«‚¢‚©”»’è
     double cal_dist4stop(int motion, bool is_abs_answer);   //’â~‹——£ŒvZ
     double cal_dist4target(int motion, bool is_abs_answer); //–Ú•WˆÊ’u‚Ü‚Å‚Ì‹——£

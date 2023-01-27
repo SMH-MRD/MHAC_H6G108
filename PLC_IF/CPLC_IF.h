@@ -7,7 +7,8 @@
 #define PLC_IF_PLC_IO_MEM_NG        0x8000
 #define PLC_IF_CRANE_MEM_NG         0x4000
 #define PLC_IF_SIM_MEM_NG           0x2000
-#define PLC_IF_AGENT_MEM_NG          0x1000
+#define PLC_IF_AGENT_MEM_NG         0x1000
+#define PLC_IF_CS_MEM_NG            0x0800
 
 typedef struct st_PLCreadB_tag {                //今回未使用
     INT16 spare[PLC_IF_SPARE_B_BUFSIZE];
@@ -75,7 +76,6 @@ typedef struct st_PLCwriteW_tag {
 #define MEL_FORCE_PC_W              3    //IO強制セットID
 #define MEL_FORCE_RESET             4    //IO強制セットID
 
-
 typedef struct st_MelsecNet_tag {
     short chan=0;                         //通信回線のチャネルNo.
     short mode=0;                         //ダミー
@@ -110,7 +110,6 @@ typedef struct st_MelsecNet_tag {
     BOOL is_forced_emulate;						//強制出力有効フラグ
 
 }ST_MELSEC_NET, * LPST_MELSEC_NET;
-
 
 class CPLC_IF :    public CBasicControl
 {
@@ -163,6 +162,7 @@ private:
     CSharedMem* pCraneStatusObj;
     CSharedMem* pSimulationStatusObj;
     CSharedMem* pAgentInfObj;
+    CSharedMem* pCSInfObj;
 
  
     ST_PLC_IO plc_io_workbuf;   //共有メモリへの出力セット作業用バッファ
@@ -170,6 +170,7 @@ private:
     LPST_SIMULATION_STATUS pSim;    //シミュレータステータス
     LPST_CRANE_STATUS pCrane;
     LPST_AGENT_INFO pAgentInf;
+    LPST_CS_INFO pCSInf;
 
     int parse_notch_com();
     int parse_ope_com();

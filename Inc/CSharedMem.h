@@ -80,13 +80,15 @@ using namespace std;
 #define PLC_IO_LAMP_FLICKER_COUNT    40 //ランプフリッカの間隔カウント
 #define PLC_IO_LAMP_FLICKER_CHANGE   20 //ランプフリッカの間隔カウント
 
+#define PLC_IO_OFF_DELAY_COUNT		 4	//PB操作オフディレイカウント値
+
 // PLC_User IF信号構造体（機上運転室IO)
 // IO割付内容は、PLC_IO_DEF.hに定義
 typedef struct StPLCUI {
 	int notch_pos[MOTION_ID_MAX];
-	bool PB[N_PLC_PB];
-	bool PBsemiauto[SEMI_AUTO_TARGET_MAX];
-	bool LAMP[N_PLC_LAMP];
+	int PB[N_PLC_PB];
+	int PBsemiauto[SEMI_AUTO_TARGET_MAX];
+	int LAMP[N_PLC_LAMP];
 }ST_PLC_UI, * LPST_PLC_UI;
 
 // PLC_状態信号構造体（機上センサ信号)
@@ -244,18 +246,12 @@ typedef struct StCraneStatus {
 //Event Update				:イベント条件で更新
 	bool is_tasks_standby_ok;												//タスクの立ち上がり確認
 	ST_SPEC spec;															//クレーン仕様
-	bool	auto_standby;													//自動モード
-	double semi_auto_setting_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];	//半自動設定目標位置
-	double auto_target[MOTION_ID_MAX];									    //自動目標位置
-	int	 semi_auto_selected;												//選択中の半自動ID
 
 
 //Periodical Update			：定周期更新
 	DWORD env_act_count=0;													//ヘルシー信号
 	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
 	WORD operation_mode;													//運転モード　機上,リモート
-	int	 semi_auto_pb_count[SEMI_AUTO_TARGET_MAX];							//半自動PB　ON時間カウント
-	int	 auto_start_pb_count;												//自動開始PB　ON時間カウント
 	bool is_notch_0[MOTION_ID_MAX];											//0ノッチ判定
 	Vector3 rc;																//クレーン吊点のクレーン基準点とのx,y,z相対座標
 	Vector3 rl;																//吊荷のクレーン吊点とのx,y,z相対座標
@@ -294,58 +290,62 @@ typedef struct StCraneStatus {
 /*   COMMAND:1つのJOBを、複数のコマンドで構成	PICK GRAND PARK						*/
 /* 　JOB	:From-Toの搬送作業													*/
 /************************************************************************************/
-#define COM_STEP_MAX		10					//　JOBを構成するコマンド最大数
+#define JOB_REGIST_MAX			10					//　JOB登録最大数
+#define JOB_COMMAND_MAX			10					//　JOBを構成するコマンド最大数
 #define JOB_TYPE_HANDLING	0x00000001
 
-//Recipe
-#define JOB_STEP_TYPE_NULL	0
-#define JOB_STEP_TYPE_PICK	1
-#define JOB_STEP_TYPE_GRAND	2
-#define JOB_STEP_TYPE_PARK	3
+#define COMMAND_TYPE_NULL		0
+#define COMMAND_TYPE_SEMI_AUTO	1
+#define COMMAND_TYPE_PICK		2
+#define COMMAND_TYPE_GRAND		3
+#define COMMAND_TYPE_PARK		4
+
+#define JOB_N_STEP_SEMIAUTO		1
+
+
+typedef struct StPosTargets {
+	double pos[MOTION_ID_MAX];
+	bool to_be_hold[MOTION_ID_MAX];
+}ST_POS_TARGETS, * LPST_POS_TARGETS;
 
 typedef struct _stJobRecipe {
-	SYSTEMTIME time_start_planed;				//予定開始時間
-	int n_step;									//ステップ数
-	int step_type[COM_STEP_MAX];				//各ステップのタイプ
-	double target[COM_STEP_MAX][MOTION_ID_MAX];//各STEP毎　各軸目標
-	int option[COM_STEP_MAX][MOTION_ID_MAX];	//各軸STEP毎　オプション条件
+	int n_step;									//コマンド数
+	int step_type[JOB_COMMAND_MAX];				//各ステップのタイプ
+	ST_POS_TARGETS target[JOB_COMMAND_MAX];		//各STEP毎　各軸目標
 }ST_JOB_RECIPE, * LPST_JOB_RECIPE;
 
-#define JOB_STAT_STANDBY			0x0001
-#define JOB_STAT_ON_GOING			0x0002
-#define JOB_STAT_COMPLETE			0x0004
-
-#define JOB_STEP_STANDBY			0x0001
-#define JOB_STEP_ON_GOING			0x0002
-#define JOB_STEP_COMPLE_NORMAL		0x0004
-#define JOB_STEP_COMPLE_ABNORMAL	0x0008
-#define JOB_STEP_ABOTED				0x0010
-#define JOB_STEP_SUSPENDED			0x0020
-
 //Status
-typedef struct stJobStat {						//JOB実行状態
-	int status;									//完了コード　異常完了時エラーコード
-	int current_step;							//実行中ステップ
-	int step_status[COM_STEP_MAX];				//step実行状況
-	DWORD step_elapsed[COM_STEP_MAX];			//step経過時間ms
+typedef struct stJobStat {						
+	int status;									//JOB実行状態
+	int current_step;							//実行中コマンド
+	int step_status[JOB_COMMAND_MAX];			//step実行状況
+	DWORD step_elapsed[JOB_COMMAND_MAX];		//step経過時間ms
 	SYSTEMTIME time_start;
 	SYSTEMTIME time_end;
-
 }ST_JOB_STAT, * LPST_JOB_STAT;
 
-//Set
-#define JOB_TYPE_NULL		0
-#define JOB_TYPE_OPEROOM	1
-#define JOB_TYPE_CLIENT_PC	2
-#define JOB_TYPE_REMOTE		3
-#define JOB_TYPE_MAINTE_PC	4
+
 
 typedef struct stJobSet {
-	int id;									//JOB No
-	int type;								//JOB種別（搬送、移動、操作)
+	int no;											//JOB No(シーケンス番号）
+	int type;										//JOB種別
+	int n_command;									//JOB構成コマンド数
+	ST_POS_TARGETS target[JOB_COMMAND_MAX];			//各コマンドの目標位置	
+
 	ST_JOB_RECIPE	recipe;
 	ST_JOB_STAT		status;
 }ST_JOB_SET, * LPST_JOB_SET;
+
+//JOB LIST
+typedef struct _stJobList {
+	int job_wait_n;									//完了待ち登録Job数
+	int semiauto_wait_n;							//完了待ち登録Semiauto数
+	int i_job_next;									//次完了待ちJob(実行中or待機中）	  id
+	int i_semiauto_next;							//次完了待ちSemiauto(実行中or待機中） id
+	ST_JOB_RECIPE job[JOB_REGIST_MAX];				//登録job
+	ST_JOB_RECIPE semiauto[JOB_REGIST_MAX];			//登録job
+}ST_JOB_LIST, * LPST_JOB_LIST;
+
 
 /****************************************************************************/
 /*   運動要素定義構造体                                                     */
@@ -361,35 +361,40 @@ typedef struct stJobSet {
 
 
 
-// Control Type
-#define CTR_TYPE_TIME_WAIT					1  //待機（時間経過待ち）
-#define CTR_TYPE_SINGLE_PHASE_WAIT			2  //位相待ち１カ所(振れ止め用）
-#define CTR_TYPE_DOUBLE_PHASE_WAIT			3  //位相待ち２カ所(振れ止め用）
-#define CTR_TYPE_OTHER_POS_WAIT				4	//他軸位置到達待ち
-#define CTR_TYPE_ADJUST_MOTION_TRIGGER		5	//動作起動調整(振れ止め移動用）
-
-#define CTR_TYPE_CONST_V_TIME				10  //定速固定時間出力
-#define CTR_TYPE_CONST_V_ACC_STEP			11  //定速出力 加速中
-#define CTR_TYPE_CONST_V_DEC_STEP			12  //定速出力 減速中
-#define CTR_TYPE_CONST_V_TOP_STEP			13  //定速出力 トップ速度
-#define CTR_TYPE_FINE_POSITION				14	//微小位置合わせ
-
-#define CTR_TYPE_ACC_TIME					20  //Specified time acceleration
-#define CTR_TYPE_ACC_V						21  //Toward specified speed acceleration
-#define CTR_TYPE_ACC_AS						23	//振れ止め加速
-#define CTR_TYPE_DEC_TIME					30  //Specified time deceleration
-#define CTR_TYPE_DEC_V						31  //Toward specified speed deceleration
+//レシピ　Type
+#define CTR_TYPE_WAIT_TIME					0	//待機（時間経過待ち）
+#define CTR_TYPE_WAIT_HST					1	//巻位置待ち
+#define CTR_TYPE_WAIT_GNT					2	//走行位置待ち
+#define CTR_TYPE_WAIT_TRY					4	//横行位置待ち
+#define CTR_TYPE_WAIT_BH					8	//引込位置待ち
+#define CTR_TYPE_WAIT_SLEW					16	//旋回位置待ち
+#define CTR_TYPE_WAIT_LAND					32	//着床待ち
+#define CTR_TYPE_WAIT_SWAY1					64	//振れ位相待ち1点
+#define CTR_TYPE_WAIT_SWAY2					65	//振れ位相待ち2点
 
 
-#define PTN_CONFIRMATION_TIME				0.1		//パターン出力調整時間
-#define PTN_FINE_POS_LIMIT_TIME				5.0		//微小位置合わせ制限時間
+
+#define CTR_TYPE_VOUT_TIME					100  //ステップ速度　時間完了
+#define CTR_TYPE_VOUT_V						101  //ステップ速度　速度到達完了
+#define CTR_TYPE_VOUT_POS					102  //ステップ速度　位置到達完了
+#define CTR_TYPE_VOUT_PHASE     			104  //ステップ速度　位相到達完了
+#define CTR_TYPE_VOUT_LAND					105  //ステップ速度　着床完了
+
+#define CTR_TYPE_AOUT_TIME					110  //加速速度　時間完了
+#define CTR_TYPE_AOUT_V						111  //加速速度　速度到達完了
+#define CTR_TYPE_AOUT_POS					112  //加速速度　位置到達完了
+#define CTR_TYPE_AOUT_PHASE     			114  //加速速度　位相到達完了
+#define CTR_TYPE_AOUT_LAND					115  //加速速度　着床完了
+
+
+#define CTR_TYPE_FINE_POS					200	//微小位置合わせ
+#define CTR_TYPE_FB_SWAY					300	//FB振れ止め
+#define CTR_TYPE_FB_SWAY_POS				301	//FB振れ止め位置決め
+
+
+#define PTN_CONFIRMATION_TIME				0.1		//パターン出力調整時間 秒
+#define PTN_FINE_POS_LIMIT_TIME				10.0	//微小位置合わせ制限時間 秒
 #define PTN_ERROR_CHECK_TIME				60		//異常検出時間
-
-#define PTN_STEP_STANDBY					0
-#define PTN_STEP_FIN						1
-#define PTN_STEP_ON_GOING					2
-#define PTN_STEP_ERROR						-1
-#define PTN_STEP_TIME_OVER					-2
 
 typedef struct stMotionElement {	//運動要素
 	int type;				//制御種別
@@ -419,16 +424,6 @@ typedef struct stMotionRecipe {					//移動パターン
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
 //Status
-#define COMMAND_STAT_ERROR		-1
-#define COMMAND_STAT_END		0
-#define COMMAND_STAT_STANDBY	1
-#define COMMAND_STAT_ACTIVE		2
-#define COMMAND_STAT_PAUSE		3
-#define COMMAND_STAT_ABORT		4
-
-#define MOTION_STAT_FLG_N		4 
-#define MOTION_ACC_STEP_BYPASS	0 
-#define MOTION_DEC_STEP_BYPASS	1 
 
 typedef struct stMotionStat {
 	int status;									//動作実行状況
@@ -437,7 +432,6 @@ typedef struct stMotionStat {
 	int elapsed;								//MOTION開始後経過時間
 	int error_code;								//エラーコード　異常完了時
 	int direction;								//動作方向
-	int flg[MOTION_STAT_FLG_N];				//実行ステータスオプションフラグ
 }ST_MOTION_STAT, * LPST_MOTION_STAT;
 
 /********************************************************************************/
@@ -447,11 +441,11 @@ typedef struct stMotionStat {
 
 typedef struct stCommandBlock {
 	//POLICY SET
-	int id;									//コマンドID
+	int id;									//コマンドID(Seq no)
 	int type;								//コマンド種別
-	int job_id;
-	int job_step;
-	bool is_active_axis[MOTION_ID_MAX];
+	int job_id;								//紐付けられているjobのシーケンス番号
+	int job_step;							//紐付けられているjob中のステップ
+	bool is_active_axis[MOTION_ID_MAX];		//動作対象軸　特定の軸を動作させない時に使用
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
 
 	//AGENT SET
@@ -478,13 +472,18 @@ typedef struct stCommandBlock {
 
 typedef struct stCSInfo {
 
-	int n_job_standby;
-	int i_current_job;							//実行中のJOBインデックス  -1:実行無し
-	ST_JOB_SET	job_list[JOB_HOLD_MAX];
+	ST_JOB_LIST	job_list;
 
-	//for Client
-	DWORD req_status;
-	DWORD n_job_hold;							//未完JOB数
+	//UI関連
+	int plc_lamp[N_PLC_LAMP];
+	int plc_pb[N_PLC_PB];
+	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];
+	int semiauto_pb[SEMI_AUTO_TARGET_MAX];
+	ST_POS_TARGETS semi_auto_setting_target[SEMI_AUTO_TARGET_MAX];		//半自動設定目標位置
+	int	 semi_auto_selected;											//選択中の半自動ID
+
+	//自動,遠隔設定（モード）
+	bool auto_standby;													//自動モード
 
 }ST_CS_INFO, * LPST_CS_INFO;
 
@@ -492,13 +491,12 @@ typedef struct stCSInfo {
 /*   Policy	情報定義構造体                                   　			  　*/
 /* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
 /****************************************************************************/
+
+#define FAULT_MAP_W_SIZE	64	//フォルトマップサイズ
+
 typedef struct stPolicyInfo {
 
-	int i_jobcom;							//現在のコマンドINDEX
-	int i_com;								//現在のコマンドINDEX
-	ST_COMMAND_BLOCK job_com[COM_STEP_MAX];
-	ST_COMMAND_BLOCK com[COM_STEP_MAX];
-	int auto_ctrl_ptn[MOTION_ID_MAX];
+	WORD fault_map[FAULT_MAP_W_SIZE];
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;
 
@@ -514,19 +512,17 @@ typedef struct stPolicyInfo {
 
 typedef struct stAgentInfo {
 
-	WORD pc_ctrl_mode; //PCからの指令で動作させる軸の指定
+	WORD pc_ctrl_mode;								//PCからの指令で動作させる軸の指定
+	ST_POS_TARGETS auto_pos_target;					//自動目標位置
+	int auto_on_going;								//実行中の自動種別
+	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中フラグ(軸毎)
 
-	double v_ref[MOTION_ID_MAX];
-	int PLC_PB_com[N_PLC_PB];
-	int PLC_LAMP_com[N_PLC_LAMP];
-	int PLC_LAMP_semiauto_com[SEMI_AUTO_TARGET_MAX];
+	double v_ref[MOTION_ID_MAX];					//速度指令出力値
+	int PLC_PB_com[N_PLC_PB];						//PLCのPB入力相当指令出力
 
-	int auto_on_going;								//実行中の自動
-	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中(軸毎)
 	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
-	double pos_target[MOTION_ID_MAX];				//位置決め目標位置
-	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め速度FB条件
-	bool be_hold_target[MOTION_ID_MAX];				//目標位置キープフラグ
+	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め起動判定用速度FB条件
+	bool be_hold_target[MOTION_ID_MAX];				//目標位置キープフラグ（自動開始から完了までKeep）
 	double gap_from_target[MOTION_ID_MAX];			//目標位置からのずれ
 	double gap2_from_target[MOTION_ID_MAX];			//目標位置からのずれ2乗
 	double sway_amp2m[MOTION_ID_MAX];				//振れ振幅の2乗m2

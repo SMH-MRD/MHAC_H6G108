@@ -50,7 +50,7 @@ void CAgent::init_task(void* pobj) {
 	pEnv = (CEnvironment*)VectpCTaskObj[g_itask.environment];
 	
 	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
-	for (int i = 0;i < N_PLC_LAMP;i++) AgentInf_workbuf.PLC_LAMP_com[i] = 0;
+
 	AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 
 	for (int i = 0;i < NUM_OF_AS_AXIS;i++) ph_chk_range[i] = PHASE_CHECK_RANGE;
@@ -800,42 +800,42 @@ bool CAgent::can_auto_complete() {
 /****************************************************************************/
 void CAgent::set_auto_active(int type) {
 	if (type == AUTO_TYPE_ANTI_SWAY) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_ANTI_SWAY;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_ANTI_SWAY;
+		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_ANTI_SWAY;
 		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
 	}
 	else if (type == AUTO_TYPE_SEMI_AUTO) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_SEMI_AUTO;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_SEMI_AUTO;
+		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_SEMI_AUTO;
 		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
 	}
 	else if (type == AUTO_TYPE_JOB) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_JOB;
+		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_JOB;
 		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_JOB;
 		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_JOB;
+		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_JOB;
 		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
 	}
 	else {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM]ｗ= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
 	}
@@ -849,12 +849,12 @@ int CAgent::update_auto_setting() {
 	dbg_mont[0] = 0;//@@@ debug/
 
 	//自動起動処理
-	if (pCraneStat->auto_standby == false) {//自動（振れ止め）モードでない
+	if (pCSInf->auto_standby == false) {//自動（振れ止め）モードでない
 	
 		//手動時目標位置
 		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
-			AgentInf_workbuf.pos_target[i] = pPLC_IO->status.pos[i];
-			AgentInf_workbuf.be_hold_target[i] = false;
+			AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
+			AgentInf_workbuf.auto_pos_target.to_be_hold[i] = false;
 		}
 
 		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
@@ -994,71 +994,15 @@ int CAgent::update_auto_setting() {
 /****************************************************************************/
 /*  PB,ランプ指令更新														*/
 /****************************************************************************/
-static bool ctr_soure1_on_last, ctr_soure1_off_last, ctr_soure2_on_last, ctr_soure2_off_last;
 
 void CAgent::update_pb_lamp_com() {
-	//操作PB
-	//PB ON状態を一定時間ホールド
-	//カウンタ値セット
-	if (pPLC_IO->ui.PB[ID_PB_ESTOP]) AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] = AGENT_PB_OFF_DELAY;
-	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON] == true) && (ctr_soure1_on_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = AGENT_PB_OFF_DELAY;
-	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF] == true) && (ctr_soure1_off_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] = AGENT_PB_OFF_DELAY;
-	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON] == true) && (ctr_soure2_on_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = AGENT_PB_OFF_DELAY;
-	if ((pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF] == true) && (ctr_soure2_off_last == false))AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = AGENT_PB_OFF_DELAY;
-
-	ctr_soure1_on_last = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON];
-	ctr_soure1_off_last = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF];
-	ctr_soure2_on_last = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON];
-	ctr_soure2_off_last= pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF];
-
-
-
-
-	if (pPLC_IO->ui.PB[ID_PB_FAULT_RESET] ==true)AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] = AGENT_PB_OFF_DELAY;
-
-	//OFFディレイ
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP]--;
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON]--;
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF]--;
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON]--;
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF]--;
-
-	if (AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] > 0)AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET]--;
-
-	//振れ止めランプ
-	if (pCraneStat->auto_standby) {
-		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_ON;
-		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_OFF;
-	}
-	else {
-		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_ON] = AGENT_LAMP_OFF;
-		AgentInf_workbuf.PLC_LAMP_com[ID_PB_ANTISWAY_OFF] = AGENT_LAMP_ON;
-	}
-
-	//自動開始ランプ
-	if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] = AGENT_LAMP_ON;
-	else AgentInf_workbuf.PLC_LAMP_com[ID_PB_AUTO_START] = AGENT_LAMP_OFF;
-
-	//半自動ランプ	
-	//LAMP　カウント値　0：消灯　カウント値%PLC_IO_LAMP_FLICKER_COUNT　が　PLC_IO_LAMP_FLICKER_CHANGE以下でOFF,以上でON（PLC_IFにて出力）
-	for (int i = 0;i < SEMI_AUTO_TG_CLR;i++) {
-		if (i == pCraneStat->semi_auto_selected) {
-			if((pCraneStat->semi_auto_pb_count[i] > SEMI_AUTO_TG_SELECT_TIME) && (pCraneStat->semi_auto_pb_count[i] < SEMI_AUTO_TG_RESET_TIME)) {
-				AgentInf_workbuf.PLC_LAMP_semiauto_com[i]++;
-			}
-			else {
-				AgentInf_workbuf.PLC_LAMP_semiauto_com[i] = AGENT_LAMP_ON;
-			}
-
-		}
-		else if (pCraneStat->semi_auto_pb_count[i]) {
-			AgentInf_workbuf.PLC_LAMP_semiauto_com[i]++;
-
-		}
-		else {
-			AgentInf_workbuf.PLC_LAMP_semiauto_com[i] = AGENT_LAMP_OFF;
-		}
-	}
+	//操作PB(取り敢えずPLC入力値取り込み（PLC IOにてOFF DELAY組み込み済）
+	AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] = pPLC_IO->ui.PB[ID_PB_ESTOP];
+	AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_ON] = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_ON];
+	AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE_OFF] = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE_OFF];
+	AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_ON] = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_ON];
+	AgentInf_workbuf.PLC_PB_com[ID_PB_CTRL_SOURCE2_OFF] = pPLC_IO->ui.PB[ID_PB_CTRL_SOURCE2_OFF];
+	AgentInf_workbuf.PLC_PB_com[ID_PB_FAULT_RESET] = pPLC_IO->ui.PB[ID_PB_FAULT_RESET];
 	
 	return;
 };

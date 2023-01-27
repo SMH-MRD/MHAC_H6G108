@@ -92,7 +92,6 @@ void CEnvironment::routine_work(void* param) {
 
 //’èüŠúˆ—è‡1@ŠO•”M†“ü—Í
 void CEnvironment::input(){
-	
 
 	return;
 
@@ -135,12 +134,8 @@ void CEnvironment::main_proc() {
 
 void CEnvironment::output() {
 
-	
-
 	//‹¤—Lƒƒ‚ƒŠo—Í
 	memcpy_s(pCraneStat, sizeof(ST_CRANE_STATUS), &stWorkCraneStat, sizeof(ST_CRANE_STATUS));
-
-
 	
 	return;
 
@@ -198,42 +193,6 @@ int CEnvironment::parse_for_auto_ctrl() {
 
 
 
-
-	//###################
-
-	//”¼©“®İ’èXV
-	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
-		//PB ONŠÔƒJƒEƒ“ƒg
-		if (pPLC_IO->ui.PBsemiauto[i] == false) stWorkCraneStat.semi_auto_pb_count[i] = 0;
-		else stWorkCraneStat.semi_auto_pb_count[i]++;
-
-		//–Ú•Wİ’è
-		if (stWorkCraneStat.semi_auto_pb_count[i] == SEMI_AUTO_TG_RESET_TIME) {//”¼©“®–Ú•Wİ’è
-			stWorkCraneStat.semi_auto_setting_target[i][ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
-			stWorkCraneStat.semi_auto_setting_target[i][ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
-			stWorkCraneStat.semi_auto_setting_target[i][ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
-
-		}
-		else if (stWorkCraneStat.semi_auto_pb_count[i] == SEMI_AUTO_TG_SELECT_TIME) {//”¼©“®–Ú•Wİ’è
-
-			if (i == stWorkCraneStat.semi_auto_selected)//İ’è’†‚Ìƒ{ƒ^ƒ“‚ğ‰Ÿ‚µ‚½‚ç‰ğœ
-				stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
-			else
-				stWorkCraneStat.semi_auto_selected = i;
-		}
-		else;
-	}
-
-	//”¼©“®İ’è‰ğœ
-
-	if (pPLC_IO->ui.PB[ID_PB_AUTO_RESET])
-		stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
-
-	//©“®ŠJnPB
-	if (pPLC_IO->ui.PB[ID_PB_AUTO_START])stWorkCraneStat.auto_start_pb_count++;
-	else stWorkCraneStat.auto_start_pb_count = 0;
-
-
 	return 0;
 }
 
@@ -280,6 +239,7 @@ int CEnvironment::mode_set() {
 */
 /****************************************************************************/
 
+//ù‰ñ”¼ŒaŒ»İˆÊ’u
 double CEnvironment::cal_hp_acc(int motion, int dir ) {
 
 	double ans = spec.accdec[motion][dir][ACC];
@@ -297,26 +257,7 @@ double CEnvironment::cal_hp_acc(int motion, int dir ) {
 
 	return ans;      //’İ“_‚Ì‰Á‘¬“xŒvZ
 }
-
-double CEnvironment::cal_hp_acc(int motion, int dir,double R) {
-
-	double ans = spec.accdec[motion][dir][ACC];
-	double r = R;
-
-	switch (motion) {
-	case ID_BOOM_H: {
-		ans *= (0.0008 * r * r - 0.0626 * r + 1.9599);
-	}break;
-	case ID_SLEW: {
-		ans *= r;
-	}break;
-	default:break;
-	}
-
-	return ans;      //’İ“_‚Ì‰Á‘¬“xŒvZ
-}
-
-double CEnvironment::cal_hp_dec(int motion, int dir){
+double CEnvironment::cal_hp_dec(int motion, int dir) {
 
 	double ans = spec.accdec[motion][dir][DEC];
 	double r = stWorkCraneStat.R;
@@ -334,6 +275,24 @@ double CEnvironment::cal_hp_dec(int motion, int dir){
 	return ans;      //’İ“_‚ÌŒ¸‘¬“xŒvZ
 }
 
+//ù‰ñ”¼Œaw’è
+double CEnvironment::cal_hp_acc(int motion, int dir,double R) {
+
+	double ans = spec.accdec[motion][dir][ACC];
+	double r = R;
+
+	switch (motion) {
+	case ID_BOOM_H: {
+		ans *= (0.0008 * r * r - 0.0626 * r + 1.9599);
+	}break;
+	case ID_SLEW: {
+		ans *= r;
+	}break;
+	default:break;
+	}
+
+	return ans;      //’İ“_‚Ì‰Á‘¬“xŒvZ
+}
 double CEnvironment::cal_hp_dec(int motion, int dir, double R) {
 
 	double ans = spec.accdec[motion][dir][DEC];
@@ -356,15 +315,9 @@ double CEnvironment::cal_hp_dec(int motion, int dir, double R) {
 /*@ ‰ÁŒ¸‘¬U‚êŒvZ											         @@   */
 /****************************************************************************/
 
+//ù‰ñ”¼ŒaŒ»İˆÊ’u
 double CEnvironment::cal_arad_acc(int motion, int dir) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
 	double ans = cal_hp_acc(motion, dir);
-	ans /= GA;
-	return ans;      //’İ“_‚Ì‰Á‘¬U‚êŒvZ
-
-}
-
-double CEnvironment::cal_arad_acc(int motion, int dir, double R) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
-	double ans = cal_hp_acc(motion, dir, R);
 	ans /= GA;
 	return ans;      //’İ“_‚Ì‰Á‘¬U‚êŒvZ
 
@@ -374,18 +327,33 @@ double CEnvironment::cal_arad_dec(int motion, int dir) {     //‰ÁŒ¸‘¬U‚êU•Œv
 	ans /= GA;
 	return ans;      //’İ“_‚Ì‰Á‘¬U‚êŒvZ
 }
+double CEnvironment::cal_arad2(int motion, int dir) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
+	double ans = cal_hp_acc(motion, dir);
+	ans /= GA;
+	return (ans * ans); //’İ“_‚Ì‰Á‘¬U‚ê2æŒvZ
+
+}
+
+
+//ù‰ñ”¼Œaw’è
+double CEnvironment::cal_arad_acc(int motion, int dir, double R) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
+	double ans = cal_hp_acc(motion, dir, R);
+	ans /= GA;
+	return ans;      //’İ“_‚Ì‰Á‘¬U‚êŒvZ
+
+}
 double CEnvironment::cal_arad_dec(int motion, int dir, double R) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
 	double ans = cal_hp_dec(motion, dir, R);
 	ans /= GA;
 	return ans;      //’İ“_‚Ì‰Á‘¬U‚êŒvZ
 }
-
-double CEnvironment::cal_arad2(int motion, int dir) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
-	double ans = cal_hp_acc(motion, dir);
+double CEnvironment::cal_arad2(int motion, int dir, double R) {     //‰ÁŒ¸‘¬U‚êU•ŒvZrad
+	double ans = cal_hp_acc(motion, dir, R);
 	ans /= GA;
-	return (ans*ans); //’İ“_‚Ì‰Á‘¬U‚ê2æŒvZ
-
+	return (ans * ans); //’İ“_‚Ì‰Á‘¬U‚ê2æŒvZ
 }
+
+
 
 bool CEnvironment::is_sway_larger_than_accsway(int motion){
 	//UŠpU•‚ª‰Á‘¬UŠp‚æ‚è‚à‘å‚«‚¢‚©”»’è
@@ -397,7 +365,8 @@ bool CEnvironment::is_sway_larger_than_accsway(int motion){
 /****************************************************************************/
 /*@ ©“®ŠÖ˜AŒvZ											         @@   */
 /****************************************************************************/
-double CEnvironment::cal_dist4stop(int motion, bool is_abs_answer) {					//’â~‹——£ŒvZ
+//’â~‹——£ŒvZ
+double CEnvironment::cal_dist4stop(int motion, bool is_abs_answer) {
 	
 	int dir;
 	double v = pPLC_IO->status.v_fb[motion];
@@ -421,10 +390,9 @@ double CEnvironment::cal_dist4stop(int motion, bool is_abs_answer) {					//’â~‹
 	}
 }
 
-double CEnvironment::cal_dist4target(int motion, bool is_abs_answer) {					//–Ú•WˆÊ’u‚Ü‚Å‚Ì‹——£
+//–Ú•WˆÊ’u‚Ü‚Å‚Ì‹——£
+double CEnvironment::cal_dist4target(int motion, bool is_abs_answer) {
 	double dist=pPLC_IO->status.pos[motion] - stWorkCraneStat.auto_target[motion];
-//	if (dist < 0.0) return -dist;
-//	else return dist;
 
 	if (motion == ID_SLEW) {
 		if (dist > PI180) dist -= PI360;

@@ -74,6 +74,12 @@ int CPLC_IF::init_proc() {
 
     pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
+    if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_CS_INFO_NAME)) {
+        mode |= PLC_IF_CS_MEM_NG;
+    }
+
+    pCSInf = (LPST_CS_INFO)pCSInfObj->get_pMap();
+
     for (int i = 0;i < 4;i++) {
         this->melnet.is_force_set_active[i] = false;
         this->melnet.forced_dat[i] = 0;
@@ -267,26 +273,6 @@ int CPLC_IF::set_debug_status() {
 
     plc_io_workbuf.ui.PB[ID_PB_FAULT_RESET] = pWorkWindow->stOpePaneStat.button_fault_reset;
  
-    /*
-    //########################## デバッグ用　SimFBモード時は、自動関連操作はPLC入力で上書き
-    if (pWorkWindow->stOpePaneStat.chk_sim_fb) {
-        plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] = melnet.plc_b_out[melnet.plc_b_map.PB_as_on[ID_WPOS]] & melnet.plc_b_map.PB_as_on[ID_BPOS];
-        plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] = melnet.plc_b_out[melnet.plc_b_map.PB_as_off[ID_WPOS]] & melnet.plc_b_map.PB_as_off[ID_BPOS];
-        plc_io_workbuf.ui.PB[ID_PB_AUTO_START] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_start[ID_WPOS]] & melnet.plc_b_map.PB_auto_start[ID_BPOS];
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG1] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG2] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target2[ID_WPOS]] & melnet.plc_b_map.PB_auto_target2[ID_BPOS];;
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG3] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target3[ID_WPOS]] & melnet.plc_b_map.PB_auto_target3[ID_BPOS];
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG4] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target4[ID_WPOS]] & melnet.plc_b_map.PB_auto_target4[ID_BPOS];
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG5] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target5[ID_WPOS]] & melnet.plc_b_map.PB_auto_target5[ID_BPOS];
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG6] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target6[ID_WPOS]] & melnet.plc_b_map.PB_auto_target6[ID_BPOS];
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG7] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target7[ID_WPOS]] & melnet.plc_b_map.PB_auto_target7[ID_BPOS];
-        plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG8] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target8[ID_WPOS]] & melnet.plc_b_map.PB_auto_target8[ID_BPOS];
-    }
-    //##########################    
-
-*/
-
-
     return 0;
 }
 
@@ -510,7 +496,7 @@ int CPLC_IF::set_notch_ref() {
 
 //*********************************************************************************************
 //set_bit_coms()
-// AGENTタスク, 操作パネルのビット指令に応じてIO出力を設定
+//CSランプ表示, AGENTタスク, 操作パネルのビット指令に応じてIO出力を設定
 //*********************************************************************************************
 int CPLC_IF::set_bit_coms() {
     CWorkWindow_PLC* pWorkWindow;
@@ -560,50 +546,50 @@ int CPLC_IF::set_bit_coms() {
     
     //ランプ類
     //振れ止めOFFランプ
-    if ((pAgentInf->PLC_LAMP_com[ID_PB_ANTISWAY_OFF]%PLC_IO_LAMP_FLICKER_COUNT) >= PLC_IO_LAMP_FLICKER_CHANGE) 
+    if ((pCSInf->plc_lamp[ID_PB_ANTISWAY_OFF]%PLC_IO_LAMP_FLICKER_COUNT) >= PLC_IO_LAMP_FLICKER_CHANGE) 
         melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] |= melnet.pc_b_map.lamp_as_off[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] &= ~melnet.pc_b_map.lamp_as_off[ID_BPOS];
 
     //振れ止めONランプ
-    if ((pAgentInf->PLC_LAMP_com[ID_PB_ANTISWAY_ON] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if ((pCSInf->plc_lamp[ID_PB_ANTISWAY_ON] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
         melnet.pc_b_out[melnet.pc_b_map.lamp_as_on[ID_WPOS]] |= melnet.pc_b_map.lamp_as_on[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_as_on[ID_WPOS]] &= ~melnet.pc_b_map.lamp_as_on[ID_BPOS];
 
     //自動スタートランプ
-    if ((pAgentInf->PLC_LAMP_com[ID_PB_AUTO_START] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if ((pCSInf->plc_lamp[ID_PB_AUTO_START] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_start[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_start[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_start[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_start[ID_BPOS];
     
     //半自動ランプ
-    if ((pAgentInf->PLC_LAMP_semiauto_com [SEMI_AUTO_TG1] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if (pCSInf->semiauto_lamp [SEMI_AUTO_TG1])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg1[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg1[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg1[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg1[ID_BPOS];
 
-    if ((pAgentInf->PLC_LAMP_semiauto_com[SEMI_AUTO_TG2] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if (pCSInf->semiauto_lamp[SEMI_AUTO_TG2])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg2[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg2[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg2[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg2[ID_BPOS];
 
-    if ((pAgentInf->PLC_LAMP_semiauto_com[SEMI_AUTO_TG3] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if (pCSInf->semiauto_lamp[SEMI_AUTO_TG3])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg3[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg3[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg3[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg3[ID_BPOS];
 
-    if ((pAgentInf->PLC_LAMP_semiauto_com[SEMI_AUTO_TG4] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if (pCSInf->semiauto_lamp[SEMI_AUTO_TG4])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg4[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg4[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg4[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg4[ID_BPOS];
 
-    if ((pAgentInf->PLC_LAMP_semiauto_com[SEMI_AUTO_TG5] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if (pCSInf->semiauto_lamp[SEMI_AUTO_TG5])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg5[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg5[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg5[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg5[ID_BPOS];
 
-    if ((pAgentInf->PLC_LAMP_semiauto_com[SEMI_AUTO_TG6] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if (pCSInf->semiauto_lamp[SEMI_AUTO_TG6])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg6[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg6[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg6[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg6[ID_BPOS];
 
-    if ((pAgentInf->PLC_LAMP_semiauto_com[SEMI_AUTO_TG7] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if (pCSInf->semiauto_lamp[SEMI_AUTO_TG7])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg7[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg7[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg7[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg7[ID_BPOS];
 
-    if ((pAgentInf->PLC_LAMP_semiauto_com[SEMI_AUTO_TG8] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+    if ((pCSInf->semiauto_lamp[SEMI_AUTO_TG8] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg8[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg8[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg8[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg8[ID_BPOS];
 
@@ -728,25 +714,80 @@ int CPLC_IF::parse_notch_com() {
 //*********************************************************************************************
 int CPLC_IF::parse_ope_com() {
 
-    //既設PB類はWレジスタより
-    plc_io_workbuf.ui.PB[ID_PB_ESTOP] = melnet.plc_w_out[melnet.plc_w_map.com_estop[ID_WPOS]] & melnet.plc_w_map.com_estop[ID_BPOS];
-    plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_ON] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source_on[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source_on[ID_BPOS];
-    plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_OFF] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source_off[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source_off[ID_BPOS];
-    plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_ON] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source2_on[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source2_on[ID_BPOS];
-    plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_OFF] = melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source2_off[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source2_off[ID_BPOS];
+    //PB取り込みはOFF Delay ON検出でカウント値セット→0まで減算
     
+    //既設PB類はWレジスタより
+    if (melnet.plc_w_out[melnet.plc_w_map.com_estop[ID_WPOS]] & melnet.plc_w_map.com_estop[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_ESTOP] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_ESTOP] > 0) plc_io_workbuf.ui.PB[ID_PB_ESTOP]--;
+    else;
+
+    if (melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source_on[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source_on[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_ON] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_ON] > 0) plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_ON]--;
+    else;
+
+    if (melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source_off[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source_off[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_OFF] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_OFF] > 0)plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_OFF]--;
+    else;
+
+    if (melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source_off[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source_off[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_OFF] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_OFF] > 0)plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE_OFF]--;
+    else;
+
+    if (melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source2_on[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source2_on[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_ON] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_ON] > 0)plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_ON]--;
+    else;
+
+    if (melnet.plc_w_out[melnet.plc_w_map.com_ctrl_source2_off[ID_WPOS]] & melnet.plc_w_map.com_ctrl_source2_off[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_OFF] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_OFF] > 0)plc_io_workbuf.ui.PB[ID_PB_CTRL_SOURCE2_OFF]--;
+    else;
+
+ 
+      
     //追加PB類はBレジスタより
-    plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] = melnet.plc_b_out[melnet.plc_b_map.PB_as_on[ID_WPOS]] & melnet.plc_b_map.PB_as_on[ID_BPOS];
-    plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] = melnet.plc_b_out[melnet.plc_b_map.PB_as_off[ID_WPOS]] & melnet.plc_b_map.PB_as_off[ID_BPOS];
-    plc_io_workbuf.ui.PB[ID_PB_AUTO_START] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_start[ID_WPOS]] & melnet.plc_b_map.PB_auto_start[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG1] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG2] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target2[ID_WPOS]] & melnet.plc_b_map.PB_auto_target2[ID_BPOS];;
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG3] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target3[ID_WPOS]] & melnet.plc_b_map.PB_auto_target3[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG4] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target4[ID_WPOS]] & melnet.plc_b_map.PB_auto_target4[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG5] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target5[ID_WPOS]] & melnet.plc_b_map.PB_auto_target5[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG6] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target6[ID_WPOS]] & melnet.plc_b_map.PB_auto_target6[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG7] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target7[ID_WPOS]] & melnet.plc_b_map.PB_auto_target7[ID_BPOS];
-    plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG8] = melnet.plc_b_out[melnet.plc_b_map.PB_auto_target8[ID_WPOS]] & melnet.plc_b_map.PB_auto_target8[ID_BPOS];
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_as_on[ID_WPOS]] & melnet.plc_b_map.PB_as_on[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON] > 0)plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_as_off[ID_WPOS]] & melnet.plc_b_map.PB_as_off[ID_BPOS])  plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF] > 0)plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_OFF]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_start[ID_WPOS]] & melnet.plc_b_map.PB_auto_start[ID_BPOS]) plc_io_workbuf.ui.PB[ID_PB_AUTO_START] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PB[ID_PB_AUTO_START] > 0)plc_io_workbuf.ui.PB[ID_PB_AUTO_START]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target1[ID_WPOS]] & melnet.plc_b_map.PB_auto_target1[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG1] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG1] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG1]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target2[ID_WPOS]] & melnet.plc_b_map.PB_auto_target2[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG2] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG2] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG2]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target3[ID_WPOS]] & melnet.plc_b_map.PB_auto_target3[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG3] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG3] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG3]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target4[ID_WPOS]] & melnet.plc_b_map.PB_auto_target4[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG4] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG4] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG4]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target5[ID_WPOS]] & melnet.plc_b_map.PB_auto_target5[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG5] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG5] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG5]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target6[ID_WPOS]] & melnet.plc_b_map.PB_auto_target6[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG6] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG6] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG6]--;
+    else;
+
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target7[ID_WPOS]] & melnet.plc_b_map.PB_auto_target7[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG7] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG7] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG7]--;
+    else;
+ 
+    if (melnet.plc_b_out[melnet.plc_b_map.PB_auto_target8[ID_WPOS]] & melnet.plc_b_map.PB_auto_target8[ID_BPOS]) plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG8] = PLC_IO_OFF_DELAY_COUNT;
+    else if (plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG8] > 0)plc_io_workbuf.ui.PBsemiauto[SEMI_AUTO_TG8]--;
+    else;
+
     plc_io_workbuf.ui.PB[ID_PB_CRANE_MODE];
     plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE];
 
@@ -793,7 +834,6 @@ int CPLC_IF::parse_sensor_fb() {
     plc_io_workbuf.status.pos[ID_SLEW] = (3600.0-(double)melnet.plc_w_out[melnet.plc_w_map.pos_slw_fb[ID_WPOS]]) * PI1DEG/10.0;  //rad PLCからは0.1deg単位）
     return 0;
 }
-
 
 int CPLC_IF::mel_set_force(int id, bool bset, int index, WORD value) {
 

@@ -76,12 +76,16 @@
 /*** 配列参照用　方向インデックス ***/
 #define ID_UP           0   //左側
 #define ID_DOWN         1   //右側
+
 #define ID_FWD          0   //前進
 #define ID_REV          1   //後進
+
 #define ID_LEFT         0   //左側
 #define ID_RIGHT        1   //右側
+
 #define ID_ACC          0   //加速
 #define ID_DEC          1   //減速
+
 #define SID_X           0   // X方向
 #define SID_Y           1   // Y方向
 #define SID_R			2   // 半径方向
@@ -95,13 +99,23 @@
 #define USE_REMOTE_SIM_COMMAND          0x0010//遠隔操作入力にリモートシミュレータの出力値を使う
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
-/*** 自動制御 ***/
-//振れ止めパターン
-#define AS_PTN_1P           1   //1パルス
-#define AS_PTN_2P           2   //2パルス
-#define AS_PTN_TR           3   //1台形動作
-#define AS_PTN_3TR          4   //3台形動作
-#define AS_PTN_TRTR         5   //台形＋台形動作(2段加減速）
+/*** ステータス ***/
+#define REQ_STANDBY          1       //準備完了
+#define REQ_ACTIVE           2       //実行中
+#define REQ_PAUSED           3       //一時停止
+#define FIN_NORMAL           4       //正常完了
+#define FIN_ABORT           10      //中断完了
+#define FIN_ERROR           -1      //異常完了
+#define FIN_TIME_OVER       -2      //タイムオーバー
+
+/*** 応答 ***/
+#define ID_ACCEPTED          1        //受付完了
+#define ID_REJECTED          -1       //受付不可
+#define ID_NO_REQUEST        0        //要求無し
+#define ID_EXIST              1       //有り
+#define ID_NA                 0       //特になし
+#define ID_OK                 1       //有り
+#define ID_NG                -1       //特になし
 
 class CBasicControl //基本制御クラス
 {

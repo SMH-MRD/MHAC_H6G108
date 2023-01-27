@@ -39,13 +39,13 @@ void CClientService::init_task(void* pobj) {
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap()); 
 	pCSinf = (LPST_CS_INFO)(pCSInfObj->get_pMap());
+	pAgent_Inf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 
 	for (int i = 0;i < N_PLC_PB;i++) PLC_PBs_last[i] = false;
 
 	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
 	pEnvironment = (CEnvironment*)VectpCTaskObj[g_itask.environment];
 
-	semi_auto_target = SEMI_AUTO_TG_CLR;//半自動目標未設定
 
 	set_panel_tip_txt();
 
@@ -68,6 +68,11 @@ void CClientService::routine_work(void* param) {
 
 void CClientService::input() {
 
+	//自動開始PB
+	if (pPLC_IO->ui.PB[ID_PB_AUTO_START])CS_workbuf.plc_pb[ID_PB_AUTO_START]++;
+	else CS_workbuf.plc_pb[ID_PB_AUTO_START] = 0;
+
+
 	return;
 
 };
@@ -78,6 +83,49 @@ static DWORD PLC_Dbg_last_input = 0;
 
 void CClientService::main_proc() {
 
+	/*### モード管理 ###*/
+	//振れ止めモードセット
+	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF]) CS_workbuf.auto_standby = L_OFF;
+	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON]) CS_workbuf.auto_standby = L_ON;
+	else;
+	
+	/*### 半自動処理 ###*/
+	//半自動設定更新,半自動ジョブセット
+	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
+		//PB ON時間カウント 半自動リセット時間まで
+		if (pPLC_IO->ui.PBsemiauto[i] <= 0) CS_workbuf.semiauto_pb[i] = 0;
+		else if (CS_workbuf.semiauto_pb[i] < SEMI_AUTO_TG_RESET_TIME) CS_workbuf.semiauto_pb[i]++;
+		else;
+
+		//目標設定
+		if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_RESET_TIME) {//半自動目標位置設定値更新
+			CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+			CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+			CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+		}
+		else if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_SELECT_TIME) {						 //半自動目標設定
+			if (i == CS_workbuf.semi_auto_selected){//設定中のボタンを押したら解除
+				CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
+				update_semiauto_joblist(CS_SEMIAUTO_LIST_CLEAR,i);
+			}
+			else {
+				CS_workbuf.semi_auto_selected = i;
+				update_semiauto_joblist(CS_SEMIAUTO_LIST_ADD, i);
+
+			}
+		}
+		else;
+
+	}
+
+	//半自動設定解除
+	if (pPLC_IO->ui.PB[ID_PB_AUTO_RESET])
+		CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
+
+
+	/*### Job処理 ###*/
+
+
 	return;
 
 }
@@ -85,19 +133,96 @@ void CClientService::main_proc() {
 //定周期処理手順3　信号出力処理
 void CClientService::output() {
 
+/*### 自動関連ランプ表示　###*/
+	//振れ止めランプ　自動開始ランプ(JOB実行中点灯,JOB実行中でなく登録JOB有で点滅、その他消灯）
+	if (CS_workbuf.auto_standby) {//自動モード時
+		//自動開始ランプ
+		if ((pAgent_Inf->auto_on_going == AUTO_TYPE_JOB) || (pAgent_Inf->auto_on_going == AUTO_TYPE_SEMI_AUTO)) {//JOB実行中
+			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;//マニュアル
+		}
+		else {
+			if ((CS_workbuf.job_list.job_wait_n + CS_workbuf.job_list.semiauto_wait_n)>0) {						//待機JOBがある時点滅
+				if (inf.act_count % PLC_IO_LAMP_FLICKER_COUNT > PLC_IO_LAMP_FLICKER_CHANGE) CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
+				else CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_OFF;
+			}
+			else {												//JOB無しで消灯
+				CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_OFF;
+			}
+		}
+		//振れ止めランプ
+		CS_workbuf.plc_lamp[ID_PB_ANTISWAY_OFF] = L_OFF;
+		if (pAgent_Inf->auto_on_going == AUTO_TYPE_MANUAL) {
+			CS_workbuf.plc_lamp[ID_PB_ANTISWAY_ON] = L_ON;
+		}
+		else {//振れ止め起動中は点滅
+			if (inf.act_count % PLC_IO_LAMP_FLICKER_COUNT > PLC_IO_LAMP_FLICKER_CHANGE) CS_workbuf.plc_lamp[ID_PB_ANTISWAY_ON] = L_ON;
+			else CS_workbuf.plc_lamp[ID_PB_ANTISWAY_ON] = L_OFF;
+		}
+	}
+	else {
+		CS_workbuf.plc_lamp[ID_PB_ANTISWAY_ON] = L_OFF;
+		CS_workbuf.plc_lamp[ID_PB_ANTISWAY_OFF] = L_ON;
+
+		CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_OFF;
+	}
+
+
+	//半自動ランプ	LAMP　カウント値　0：消灯　カウント値%PLC_IO_LAMP_FLICKER_COUNT　が　PLC_IO_LAMP_FLICKER_CHANGE以下でOFF,以上でON
+	for (int i = 0;i < SEMI_AUTO_TG_CLR;i++) {
+		if (i == CS_workbuf.semi_auto_selected) {	//半自動選択中のPB
+			if ((CS_workbuf.semiauto_pb[i] > SEMI_AUTO_TG_SELECT_TIME) && (CS_workbuf.semiauto_pb[i] < SEMI_AUTO_TG_RESET_TIME)) {//目標位置更新中は点滅
+				if ((CS_workbuf.semiauto_lamp[i] % PLC_IO_LAMP_FLICKER_COUNT) > PLC_IO_LAMP_FLICKER_CHANGE)
+					CS_workbuf.semiauto_lamp[i] = L_OFF;
+				else 
+					CS_workbuf.semiauto_lamp[i] = L_ON;
+			}
+			else {//目標位置確定で点灯
+				CS_workbuf.semiauto_lamp[i] = L_ON;
+			}
+		}
+		else {	//半自動選択中でないPB
+			CS_workbuf.semiauto_lamp[i] = L_OFF;
+		}
+	}
+
+
 	//共有メモリ出力
-	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CSinf_workbuf, sizeof(ST_CS_INFO));
+	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CS_workbuf, sizeof(ST_CS_INFO));
 
 	wostrs << L" --Scan " << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
 
 };
+/****************************************************************************/
+/*   半自動関連																*/
+/****************************************************************************/
+int CClientService:: update_semiauto_joblist(int command, int code){
+	switch (command) {
+	case CS_SEMIAUTO_LIST_CLEAR: {	//半自動ジョブクリア
+		CS_workbuf.job_list.semiauto_wait_n = 0;
+		CS_workbuf.job_list.i_semiauto_next = 0;
+		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_next].n_step = 0;
+		return ID_OK;
+	}break;
+	case CS_SEMIAUTO_LIST_ADD: {	//更新
+		if ((code < SEMI_AUTO_TG1) || (code >= SEMI_AUTO_TG_CLR)) {
+			return ID_NG;
+		}
+		else {
+			CS_workbuf.job_list.semiauto_wait_n = 1;
+			CS_workbuf.job_list.i_semiauto_next = 0;
+			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_next].n_step = JOB_N_STEP_SEMIAUTO;
+			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_next].target[0] = CS_workbuf.semi_auto_setting_target[code];
 
-//Job実行状態受付
-int CClientService :: receipt_job_feedback() {
-	return 0;
-};
+			return ID_OK;
+		}
+	}break;
+	default:
+		return ID_NA;
+		break;
+	}
+}
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
