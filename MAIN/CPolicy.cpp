@@ -1,6 +1,7 @@
 #include "CPolicy.h"
 #include "CAgent.h"
 #include "CEnvironment.h"
+#include "CClientService.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -39,6 +40,7 @@ int (CPolicy::*pfunc_set_recipe[N_AS_PTN])(LPST_MOTION_RECIPE, int);
 
 static CAgent* pAgent;
 static CEnvironment* pEnvironment;
+static CClientService* pCS;
 
 void CPolicy::init_task(void* pobj) {
 
@@ -49,20 +51,13 @@ void CPolicy::init_task(void* pobj) {
 	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
 	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
+	pCSInf = (LPST_CS_INFO)(pCSInfObj->get_pMap());
 
 	pAgent = (CAgent*)VectpCTaskObj[g_itask.agent];
 	pEnvironment = (CEnvironment*)VectpCTaskObj[g_itask.environment];
+	pCS = (CClientService*)VectpCTaskObj[g_itask.client];
 
 	set_panel_tip_txt();
-
-	pPolicyInf->i_com = 0;
-	pPolicyInf->i_jobcom = 0;
-
-	for (int i = 0; i < COM_STEP_MAX;i++) {
-		pPolicyInf->com[i].com_status = COMMAND_STAT_END;
-		pPolicyInf->job_com[i].com_status = COMMAND_STAT_END;
-	}
-
 
 	inf.is_init_complete = true;
 	return;

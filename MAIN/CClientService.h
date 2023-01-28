@@ -11,10 +11,10 @@
 #define SEMI_AUTO_TG_RESET_TIME     200
 #define SEMI_AUTO_TG_SELECT_TIME    20
 
-#define CS_SEMIAUTO_LIST_CLEAR      1
-#define CS_SEMIAUTO_LIST_ADD        2
-#define CS_JOB_LIST_CLEAR           3
-#define CS_JOB_LIST_ADD             4
+#define CS_CLEAR_SEMIAUTO      1
+#define CS_ADD_SEMIAUTO        2
+#define CS_CLEAR_JOB           3
+#define CS_ADD_JOB             4
 
 
 class CClientService :public CTaskObj
@@ -32,7 +32,8 @@ public:
 
 private:
 
-    int update_semiauto_joblist(int command, int code);
+    int update_semiauto_list(int command, int code);//command:CLEAR ADD, code
+    int update_job_list(int command, int code);
    
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;

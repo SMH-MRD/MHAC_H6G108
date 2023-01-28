@@ -863,7 +863,7 @@ int CAgent::update_auto_setting() {
 			pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_END;
 			pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_END;
 		}
-	}
+	}x
 	else if (can_auto_complete()) {
 		pCom->com_status = COMMAND_STAT_END;
 		pCom = NULL;

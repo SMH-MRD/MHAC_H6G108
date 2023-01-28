@@ -160,7 +160,6 @@ typedef struct StSwayIO {
 	double ph[MOTION_ID_MAX];		//位相平面位相	rad
 	double rad_amp2[MOTION_ID_MAX];		//振幅の2乗		rad2
 
-
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
 /****************************************************************************/
@@ -263,8 +262,6 @@ typedef struct StCraneStatus {
 	double w2;																//振角周波数の2乗
 	double R;																//旋回半径
 
-//	double r0[MOTION_ID_MAX];												//加速振 rad
-
 	WORD faultPC[N_PC_FAULT_WORDS];											//PLC検出異常
 	WORD faultPLC[N_PLC_FAULT_WORDS];										//制御PC検出異常
 
@@ -305,7 +302,7 @@ typedef struct StCraneStatus {
 
 typedef struct StPosTargets {
 	double pos[MOTION_ID_MAX];
-	bool to_be_hold[MOTION_ID_MAX];
+	bool is_held[MOTION_ID_MAX];		//目標位置ホールド中フラグ
 }ST_POS_TARGETS, * LPST_POS_TARGETS;
 
 typedef struct _stJobRecipe {
@@ -518,14 +515,8 @@ typedef struct stAgentInfo {
 	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中フラグ(軸毎)
 
 	double v_ref[MOTION_ID_MAX];					//速度指令出力値
-	int PLC_PB_com[N_PLC_PB];						//PLCのPB入力相当指令出力
-
-	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
+	int PLC_PB_com[N_PLC_PB];						//PLCへのDO指令（PB入力相当指令）
 	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め起動判定用速度FB条件
-	bool be_hold_target[MOTION_ID_MAX];				//目標位置キープフラグ（自動開始から完了までKeep）
-	double gap_from_target[MOTION_ID_MAX];			//目標位置からのずれ
-	double gap2_from_target[MOTION_ID_MAX];			//目標位置からのずれ2乗
-	double sway_amp2m[MOTION_ID_MAX];				//振れ振幅の2乗m2
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

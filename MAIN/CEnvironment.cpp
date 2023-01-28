@@ -52,11 +52,7 @@ void CEnvironment::init_task(void* pobj) {
 	stWorkCraneStat.spec = this->spec;
 	stWorkCraneStat.is_tasks_standby_ok = false;
 
-	//半自動目標初期値セット
-	for (int i = 0;i < SEMI_AUTO_TARGET_MAX;i++)
-		for (int j = 0;j < MOTION_ID_MAX;j++)
-			stWorkCraneStat.semi_auto_setting_target[i][j] = spec.semi_target[i][j];
-	stWorkCraneStat.semi_auto_selected = SEMI_AUTO_TG_CLR;
+
 	set_panel_tip_txt();
 
 	inf.is_init_complete = true;
@@ -115,8 +111,8 @@ void CEnvironment::main_proc() {
 	//サブプロセスチェック
 	chk_subproc();
 
-	//モードセット
-	mode_set();
+	//システムのモードセット
+	sys_mode_set();
 
 	//ノッチ指令状態セット
 	parse_notch_com();
@@ -124,7 +120,7 @@ void CEnvironment::main_proc() {
 	//位置情報セット
 	pos_set();
 	
-	//自動情報セット
+	//自動用情報セット
 	parse_for_auto_ctrl();
 
 	return;
@@ -173,29 +169,34 @@ int CEnvironment::parse_notch_com() {
 
 };
 /****************************************************************************/
-/*　 自動制御設定											            */
+/*　 振れ周期関連　　											            */
 /****************************************************************************/
-int CEnvironment::parse_for_auto_ctrl() {
+double CEnvironment::cal_T(double pos_hst){   //振れ周期計算　巻き位置指定
+	double ans = cal_w(pos_hst);
+	ans = PI360 / ans;
+	return ans;
+};
 
-	//###################
-	//角周波数
-	if (stWorkCraneStat.mh_l > 1.0) {	//ロープ長下限
-		stWorkCraneStat.w2 = GA / stWorkCraneStat.mh_l;
-		stWorkCraneStat.w = sqrt(stWorkCraneStat.w2);
-	}
-	else {
-		stWorkCraneStat.w2 = GA;
-		stWorkCraneStat.w = sqrt(stWorkCraneStat.w2);
-	}
+double CEnvironment::cal_w(double pos_hst){  //振れ角周波数計算　巻き位置指定
+	double ans = spec.boom_high - pos_hst;
+	if (ans > 1.0) ans = GA / ans; 	//ロープ長下限より大
+	else ans = GA;
+	ans = sqrt(ans);
+	return ans;
+}; 
 
-	//周期
-	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
+double CEnvironment::cal_w2(double pos_hst) {  //振れ角周波数の2乗計算　巻き位置指定
+	double ans = spec.boom_high - pos_hst;
+	if (ans > 1.0) ans = GA / ans; 	//ロープ長下限より大
+	else ans = GA;
 
+	return ans;
+};
 
-
-	return 0;
-}
-
+double CEnvironment::cal_l(double pos_hst){  //ロープ長計算　巻き位置指定
+	double ans = spec.boom_high - pos_hst;
+	return ans;
+};
 
 /****************************************************************************/
 /*　 各種状態量計算											            */
@@ -204,11 +205,10 @@ double CEnvironment::get_vmax(int motion) {//最大速度
 	return pCraneStat->spec.notch_spd_f[motion][NOTCH_5];
 }
 /****************************************************************************/
-/*　 制御用振れ状態計算											            */
+/*　システムモードセット										            */
 /****************************************************************************/
 
-static bool as_off_pb_last;
-int CEnvironment::mode_set() {
+int CEnvironment::sys_mode_set() {
 	//リモートモードセット
 	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
 	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_REMOTE;
@@ -221,25 +221,16 @@ int CEnvironment::mode_set() {
 	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_PLC_DBGIO;
 	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_PLC_DBGIO; 
 
-
-	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] == true) {
-		stWorkCraneStat.auto_standby = true;
-	}
-	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF] != as_off_pb_last) { //前回値から変化有
-		stWorkCraneStat.auto_standby = false;
-	}
-	as_off_pb_last = pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF];
-
 	return 0;
 
 }
 
 /****************************************************************************/
-/*　吊点の加減速度計算（※旋回はm/s)
+/*　吊点の加減速度計算（※旋回はm/s)　オーバーロード（旋回半径現在値 or 指定）
 */
 /****************************************************************************/
 
-//旋回半径現在位置
+//旋回半径現在位置での計算
 double CEnvironment::cal_hp_acc(int motion, int dir ) {
 
 	double ans = spec.accdec[motion][dir][ACC];
@@ -275,7 +266,7 @@ double CEnvironment::cal_hp_dec(int motion, int dir) {
 	return ans;      //吊点の減速度計算
 }
 
-//旋回半径指定
+//旋回半径を指定しての計算
 double CEnvironment::cal_hp_acc(int motion, int dir,double R) {
 
 	double ans = spec.accdec[motion][dir][ACC];
@@ -312,10 +303,10 @@ double CEnvironment::cal_hp_dec(int motion, int dir, double R) {
 }
 
 /****************************************************************************/
-/*　 加減速振れ計算											         　　   */
+/*　 加減速振れ角計算		オーバーロード（旋回半径現在値 or 指定） 　　   */
 /****************************************************************************/
 
-//旋回半径現在位置
+///旋回半径現在位置での加速振れ計算　a/g
 double CEnvironment::cal_arad_acc(int motion, int dir) {     //加減速振れ振幅計算rad
 	double ans = cal_hp_acc(motion, dir);
 	ans /= GA;
@@ -335,7 +326,7 @@ double CEnvironment::cal_arad2(int motion, int dir) {     //加減速振れ振幅計算ra
 }
 
 
-//旋回半径指定
+//旋回半径指定での加速振れ計算　a/g
 double CEnvironment::cal_arad_acc(int motion, int dir, double R) {     //加減速振れ振幅計算rad
 	double ans = cal_hp_acc(motion, dir, R);
 	ans /= GA;
@@ -353,14 +344,14 @@ double CEnvironment::cal_arad2(int motion, int dir, double R) {     //加減速振れ
 	return (ans * ans); //吊点の加速振れ2乗計算
 }
 
-
-
 bool CEnvironment::is_sway_larger_than_accsway(int motion){
 	//振角振幅が加速振角よりも大きいか判定
 	double rad_acc2 = cal_arad2(motion, FWD);	//加速振れ角2乗
 	if (pSway_IO->rad_amp2[motion] > rad_acc2) return true;
 	else return false;
 }
+
+
 
 /****************************************************************************/
 /*　 自動関連計算											         　　   */
@@ -392,7 +383,7 @@ double CEnvironment::cal_dist4stop(int motion, bool is_abs_answer) {
 
 //目標位置までの距離
 double CEnvironment::cal_dist4target(int motion, bool is_abs_answer) {
-	double dist=pPLC_IO->status.pos[motion] - stWorkCraneStat.auto_target[motion];
+	double dist=pPLC_IO->status.pos[motion] - pAgentInf->auto_pos_target.pos[motion];
 
 	if (motion == ID_SLEW) {
 		if (dist > PI180) dist -= PI360;
@@ -402,11 +393,6 @@ double CEnvironment::cal_dist4target(int motion, bool is_abs_answer) {
 
 	if ((is_abs_answer == true) && (dist < 0.0)) dist *= -1.0;
 	return dist;
-}
-
-int    CEnvironment::set_auto_target(int motion, double target){	//自動目標位置セット
-	stWorkCraneStat.auto_target[motion] = pCraneStat->auto_target[motion] = target;
-	return 0;
 }
 
 /****************************************************************************/
@@ -423,8 +409,7 @@ int CEnvironment::pos_set() {
 	stWorkCraneStat.rc.y = pPLC_IO->status.pos[ID_BOOM_H] * sin_slew;
 	stWorkCraneStat.rc.z = spec.boom_high;
 
-	//ロープ長
-	stWorkCraneStat.mh_l = spec.boom_high - pPLC_IO->status.pos[ID_HOIST];
+
 
 	//旋回半径
 	stWorkCraneStat.R = pPLC_IO->status.pos[ID_BOOM_H];
@@ -458,6 +443,20 @@ int CEnvironment::pos_set() {
 	return 0;
 
 }
+/****************************************************************************/
+/*　 自動用情報セット											            */
+/****************************************************************************/
+int CEnvironment::parse_for_auto_ctrl() {
+	//ロープ長
+	stWorkCraneStat.mh_l = cal_l(pPLC_IO->status.pos[ID_HOIST]);
+	//角周期
+	stWorkCraneStat.w2 = cal_w2(pPLC_IO->status.pos[ID_HOIST]);
+	stWorkCraneStat.w = sqrt(stWorkCraneStat.w2);
+	//周期
+	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
+	return 0;
+}
+
 /****************************************************************************/
 /*　　サブプロセスの状態確認			            */
 /****************************************************************************/
@@ -500,12 +499,6 @@ void CEnvironment::chk_subproc() {
 /****************************************************************************/
 void CEnvironment::tweet_update() {
 
-	if (pCraneStat->auto_standby) wostrs << L" # AS:ON";
-	else  wostrs << L" # AS:OFF";
-
-	wostrs << L" #Semi: " << stWorkCraneStat.semi_auto_selected;
-
-	wostrs << L" #PB Auto: " << stWorkCraneStat.auto_start_pb_count;
 #if 0
 	//PLC
 	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {

@@ -197,15 +197,15 @@ void CClientService::output() {
 /****************************************************************************/
 /*   半自動関連																*/
 /****************************************************************************/
-int CClientService:: update_semiauto_joblist(int command, int code){
+int CClientService:: update_semiauto_list(int command, int code){
 	switch (command) {
-	case CS_SEMIAUTO_LIST_CLEAR: {	//半自動ジョブクリア
+	case CS_CLEAR_SEMIAUTO: {	//半自動ジョブクリア
 		CS_workbuf.job_list.semiauto_wait_n = 0;
 		CS_workbuf.job_list.i_semiauto_next = 0;
 		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_next].n_step = 0;
 		return ID_OK;
 	}break;
-	case CS_SEMIAUTO_LIST_ADD: {	//更新
+	case CS_ADD_SEMIAUTO: {	//更新
 		if ((code < SEMI_AUTO_TG1) || (code >= SEMI_AUTO_TG_CLR)) {
 			return ID_NG;
 		}
@@ -224,6 +224,25 @@ int CClientService:: update_semiauto_joblist(int command, int code){
 	}
 }
 
+/****************************************************************************/
+/*   JOB関連																*/
+/****************************************************************************/
+int CClientService::update_job_list(int command, int code) {
+	switch (command) {
+	case CS_CLEAR_SEMIAUTO: {	//ジョブクリア
+		CS_workbuf.job_list.job_wait_n = 0;
+		CS_workbuf.job_list.i_job_next = 0;
+		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_next].n_step = 0;
+		return ID_OK;
+	}break;
+	case CS_ADD_SEMIAUTO: {	//更新
+		return ID_NG;
+	}break;
+	default:
+		return ID_NA;
+		break;
+	}
+}
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
 /****************************************************************************/
