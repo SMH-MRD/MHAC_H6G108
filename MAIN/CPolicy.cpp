@@ -91,8 +91,9 @@ void CPolicy::main_proc() {
 void CPolicy::output() {
 	
 	
-	wostrs << L" #AUTO_PTN SLW: " << pPolicyInf->com[pPolicyInf->i_com].recipe[ID_SLEW].motion_type;
-	wostrs << L" #AUTO_PTN BH: " << pPolicyInf->com[pPolicyInf->i_com].recipe[ID_BOOM_H].motion_type;
+	//共有メモリ出力処理
+	memcpy_s(pPolicyInf, sizeof(ST_POLICY_INFO), &PolicyInf_workbuf, sizeof(ST_POLICY_INFO));
+
 	wostrs << L" --Scan " << dec << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
@@ -102,24 +103,65 @@ void CPolicy::output() {
 /****************************************************************************/
 /*　　COMMAND 処理															*/
 /****************************************************************************/
-// Command バッファのインデックス更新
-LPST_COMMAND_BLOCK CPolicy::next_command(int type) {
-	if (type == AUTO_TYPE_JOB) {		//JOB用コマンドバッファ
-		pPolicyInf->i_jobcom++;
-		if (pPolicyInf->i_jobcom >= COM_STEP_MAX) pPolicyInf->i_jobcom = 0;
-		command_id++;
-		(pPolicyInf->job_com + pPolicyInf->i_jobcom)->id = command_id;
-		return (pPolicyInf->job_com + pPolicyInf->i_jobcom);
+// AGENTからのコマンド要求処理
+LPST_COMMAND_BLOCK CPolicy::get_command() {
+
+	if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status != REQ_ACTIVE) {							// Job実行中でない
+		if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == REQ_STANDBY) {			// 半自動準備完了（自動開始入力済）
+			return create_semiauto_command();																//　半自動コマンドを作成してポインタを返す
+		}
+		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == REQ_ACTIVE) {		// 半自動実行中
+			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);	//実行中コマンドのポインタを返す
+		}
+		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status == REQ_STANDBY) {				// JOB準備完了（クライアントからのJOB受信済）
+			return create_job_command();																	// JOBコマンドを作成してポインタを返す
+		}
+		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == REQ_WAITING) {		// 半自動要求待ち（自動開始入力待ち）
+			return NULL;																					//NULLポインタを返す
+		}
+		else {
+			return NULL;
+		}
 	}
-	else {								//半自動,振れ止め用コマンドバッファ
-		pPolicyInf->i_com++;
-		if (pPolicyInf->i_com >= COM_STEP_MAX) pPolicyInf->i_com = 0;
-		command_id++;
-		(pPolicyInf->com + pPolicyInf->i_com)->id = command_id;
-		return (pPolicyInf->com + pPolicyInf->i_com);
+	else {
+		if ((PolicyInf_workbuf.command_list.job_type == AUTO_TYPE_JOB)										// コマンドリスト内容がJOB
+			&& (PolicyInf_workbuf.command_list.job_id == pCSInf->job_list.i_job_active)){					// コマンドリストの対象Jobが実行中Jobと一致
+			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);	//実行中コマンドのポインタを返す
+		}
+		else {																								//実行中jobとセット中のコマンドが一致しない　→　異常
+			return NULL;
+		}
 	}
 	return	NULL;
 };
+
+LPST_COMMAND_BLOCK CPolicy::create_semiauto_command() {	//実行する半自動コマンドをセットする
+	
+	LPST_COMMAND_BLOCK lp_semiauto_com = NULL;
+
+	set_com_workbuf();
+
+
+
+
+	return lp_semiauto_com;
+};        
+LPST_COMMAND_BLOCK CPolicy::create_job_command() {		//実行するJOBコマンドをセットする
+
+	LPST_COMMAND_BLOCK lp_job_com = NULL;
+
+	return lp_job_com;
+};        
+
+LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS trgets) {
+
+
+
+
+
+	return &st_com_work;
+}
+
 
 // Command生成更新
 LPST_COMMAND_BLOCK CPolicy::generate_command(int type, double* ptarget_pos) {
@@ -127,8 +169,7 @@ LPST_COMMAND_BLOCK CPolicy::generate_command(int type, double* ptarget_pos) {
 	LPST_COMMAND_BLOCK lp_com = next_command(type); 
 
 	//パターン計算ベースデータの設定
-	st_work.T = pCraneStat->T;
-	st_work.w = pCraneStat->w;
+
 	set_pattern_cal_base(type, ID_BOOM_H);		
 	set_pattern_cal_base(type, ID_SLEW);
 
@@ -149,21 +190,7 @@ LPST_COMMAND_BLOCK CPolicy::generate_command(int type, double* ptarget_pos) {
 	return lp_com;
 }
 
-int  CPolicy::update_com_status(LPST_COMMAND_BLOCK pcom) {
 
-	if (pcom->type == AUTO_TYPE_ANTI_SWAY) {
-		;
-	}
-	else if (pcom->type == AUTO_TYPE_SEMI_AUTO) {
-		;
-	}
-	else if (pcom->type == AUTO_TYPE_JOB) {
-		;
-	}
-	else;
-
-	return 0;
-}
 
 /****************************************************************************/
 /*　　パターン計算用の素材データ計算,セット									*/

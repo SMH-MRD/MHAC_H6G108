@@ -35,11 +35,12 @@ typedef struct stPolicyWork {
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //モータの速度
     double a[MOTION_ID_MAX];	                //モータの加速度
-    double vmax[MOTION_ID_MAX];                 //最大速度
+    double a_hp[MOTION_ID_MAX];	                //モータの加速度
+    double vmax[MOTION_ID_MAX];                 //吊点の加速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
     double pp_th0[NUM_OF_AS_AXIS][ACCDEC_MAX];  //位相平面の回転中心
-    ST_POS_TARGETS pos_targe;                   //目標位置
+    ST_POS_TARGETS pos_target;                  //目標位置
     int motion_dir[NUM_OF_AS_AXIS];             //移動方向
     double as_gain_phase[NUM_OF_AS_AXIS];       //振れ止めゲイン位相(位相平面上の加速時の位相変化量）
     double as_gain_time[NUM_OF_AS_AXIS];        //振れ止めゲイン加速時間
@@ -62,8 +63,7 @@ public:
    void routine_work(void* param);
  
    LPST_COMMAND_BLOCK generate_command(int type, double* ptarget_pos);
-   int  update_com_status(LPST_COMMAND_BLOCK pcom);
-
+ 
 
    LPST_COMMAND_BLOCK get_command();        //Agentからの要求に応じて実行コマンドをセットして返す
  
@@ -81,8 +81,12 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-   
-    LPST_COMMAND_BLOCK next_command(int type); //次のコマンドへ
+    LPST_COMMAND_BLOCK create_semiauto_command();        //実行する半自動コマンドをセットする
+    LPST_COMMAND_BLOCK create_job_command();        //実行する半自動コマンドをセットする
+
+    LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trgets);
+
+     
     int set_pattern_cal_base(int auto_type, int motion);
     int judge_auto_ctrl_ptn(int auto_type, int motion); //振れ止めパターン判定
     void set_as_gain(int motion, int as_type);          //振れ止めゲイン計算
@@ -101,7 +105,8 @@ private:
    //タブパネルのFunctionボタンのStaticテキストを設定
    void set_panel_pb_txt();
 
-   ST_POLICY_WORK   st_work;
+   ST_POLICY_INFO   PolicyInf_workbuf;
+   ST_POLICY_WORK   st_com_work;
    int command_id = 0;
     
    const double param_auto[NUM_OF_AS_AXIS][N_AUTO_PARAM] =

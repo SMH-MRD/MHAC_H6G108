@@ -106,16 +106,14 @@ void CClientService::main_proc() {
 		else if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_SELECT_TIME) {						 //半自動目標設定
 			if (i == CS_workbuf.semi_auto_selected){//設定中のボタンを押したら解除
 				CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
-				update_semiauto_joblist(CS_SEMIAUTO_LIST_CLEAR,i);
+				update_semiauto_list(CS_CLEAR_SEMIAUTO,i);
 			}
 			else {
 				CS_workbuf.semi_auto_selected = i;
-				update_semiauto_joblist(CS_SEMIAUTO_LIST_ADD, i);
-
+				update_semiauto_list(CS_ADD_SEMIAUTO, i);
 			}
 		}
 		else;
-
 	}
 
 	//半自動設定解除
@@ -201,8 +199,8 @@ int CClientService:: update_semiauto_list(int command, int code){
 	switch (command) {
 	case CS_CLEAR_SEMIAUTO: {	//半自動ジョブクリア
 		CS_workbuf.job_list.semiauto_wait_n = 0;
-		CS_workbuf.job_list.i_semiauto_next = 0;
-		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_next].n_step = 0;
+		CS_workbuf.job_list.i_semiauto_active = 0;
+		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status = REQ_WAITING;
 		return ID_OK;
 	}break;
 	case CS_ADD_SEMIAUTO: {	//更新
@@ -211,9 +209,9 @@ int CClientService:: update_semiauto_list(int command, int code){
 		}
 		else {
 			CS_workbuf.job_list.semiauto_wait_n = 1;
-			CS_workbuf.job_list.i_semiauto_next = 0;
-			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_next].n_step = JOB_N_STEP_SEMIAUTO;
-			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_next].target[0] = CS_workbuf.semi_auto_setting_target[code];
+			CS_workbuf.job_list.i_semiauto_active = 0;
+			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].n_step = JOB_N_STEP_SEMIAUTO;
+			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].target[0] = CS_workbuf.semi_auto_setting_target[code];
 
 			return ID_OK;
 		}
@@ -229,13 +227,14 @@ int CClientService:: update_semiauto_list(int command, int code){
 /****************************************************************************/
 int CClientService::update_job_list(int command, int code) {
 	switch (command) {
-	case CS_CLEAR_SEMIAUTO: {	//ジョブクリア
+	case CS_CLEAR_JOB: {	//ジョブクリア
 		CS_workbuf.job_list.job_wait_n = 0;
-		CS_workbuf.job_list.i_job_next = 0;
-		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_next].n_step = 0;
+		CS_workbuf.job_list.i_job_active = 0;
+		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].n_step = 0;
+		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].status = REQ_WAITING;
 		return ID_OK;
 	}break;
-	case CS_ADD_SEMIAUTO: {	//更新
+	case CS_ADD_JOB: {	//更新
 		return ID_NG;
 	}break;
 	default:

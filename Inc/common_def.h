@@ -100,6 +100,7 @@
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
 /*** ステータス ***/
+#define REQ_WAITING          0       //受け待ち
 #define REQ_STANDBY          1       //準備完了
 #define REQ_ACTIVE           2       //実行中
 #define REQ_PAUSED           3       //一時停止
