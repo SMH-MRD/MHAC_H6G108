@@ -10,6 +10,7 @@
 
 #define SEMI_AUTO_TG_RESET_TIME     200
 #define SEMI_AUTO_TG_SELECT_TIME    20
+#define AUTO_START_CHECK_TIME       20
 
 #define CS_CLEAR_SEMIAUTO      1
 #define CS_ADD_SEMIAUTO        2
@@ -32,7 +33,7 @@ public:
 
 private:
 
-    int update_semiauto_list(int command, int code);//command:CLEAR ADD, code
+    int update_semiauto_list(int command, int type, int code);   //command:CLEAR ADD, code, type:JOB_SEMI_PARK...
     int update_job_list(int command, int code);
    
     LPST_CRANE_STATUS pCraneStat;

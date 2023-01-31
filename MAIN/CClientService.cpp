@@ -106,14 +106,17 @@ void CClientService::main_proc() {
 		else if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_SELECT_TIME) {						 //半自動目標設定
 			if (i == CS_workbuf.semi_auto_selected){//設定中のボタンを押したら解除
 				CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
-				update_semiauto_list(CS_CLEAR_SEMIAUTO,i);
 			}
 			else {
 				CS_workbuf.semi_auto_selected = i;
-				update_semiauto_list(CS_ADD_SEMIAUTO, i);
 			}
 		}
 		else;
+	}
+
+	if (CS_workbuf.plc_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
+		if(CS_workbuf.semi_auto_selected != SEMI_AUTO_TG_CLR) update_semiauto_list(CS_ADD_SEMIAUTO,JOB_TYPE_SEMI_PARK, CS_workbuf.semi_auto_selected);
+		else update_semiauto_list(CS_CLEAR_SEMIAUTO, JOB_TYPE_NULL, CS_workbuf.semi_auto_selected);
 	}
 
 	//半自動設定解除
@@ -195,12 +198,13 @@ void CClientService::output() {
 /****************************************************************************/
 /*   半自動関連																*/
 /****************************************************************************/
-int CClientService:: update_semiauto_list(int command, int code){
+int CClientService:: update_semiauto_list(int command, int type, int code){
 	switch (command) {
 	case CS_CLEAR_SEMIAUTO: {	//半自動ジョブクリア
 		CS_workbuf.job_list.semiauto_wait_n = 0;
 		CS_workbuf.job_list.i_semiauto_active = 0;
 		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status = REQ_WAITING;
+		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].type = type;
 		return ID_OK;
 	}break;
 	case CS_ADD_SEMIAUTO: {	//更新
@@ -209,9 +213,10 @@ int CClientService:: update_semiauto_list(int command, int code){
 		}
 		else {
 			CS_workbuf.job_list.semiauto_wait_n = 1;
-			CS_workbuf.job_list.i_semiauto_active = 0;
+			CS_workbuf.job_list.i_semiauto_active = 0;		//当面半自動はid=0のみ使用
 			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].n_step = JOB_N_STEP_SEMIAUTO;
 			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].target[0] = CS_workbuf.semi_auto_setting_target[code];
+			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].type = type;
 
 			return ID_OK;
 		}

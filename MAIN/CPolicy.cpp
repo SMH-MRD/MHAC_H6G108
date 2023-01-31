@@ -36,8 +36,6 @@ CPolicy::~CPolicy() {
 /* 　メインスレッドでインスタンス化した後に呼びます。                       */
 /****************************************************************************/
 
-int (CPolicy::*pfunc_set_recipe[N_AS_PTN])(LPST_MOTION_RECIPE, int);
-
 static CAgent* pAgent;
 static CEnvironment* pEnvironment;
 static CClientService* pCS;
@@ -75,29 +73,22 @@ void CPolicy::routine_work(void* param) {
 
 //定周期処理手順1　外部信号入力
 void CPolicy::input() {
-
 	return;
-
 };
 
 //定周期処理手順2　メイン処理
 void CPolicy::main_proc() {
-	
 	return;
-
 }
 
 //定周期処理手順3　信号出力処理
 void CPolicy::output() {
-	
-	
 	//共有メモリ出力処理
 	memcpy_s(pPolicyInf, sizeof(ST_POLICY_INFO), &PolicyInf_workbuf, sizeof(ST_POLICY_INFO));
 
 	wostrs << L" --Scan " << dec << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
-
 };
 
 /****************************************************************************/
@@ -135,121 +126,336 @@ LPST_COMMAND_BLOCK CPolicy::get_command() {
 	return	NULL;
 };
 
-LPST_COMMAND_BLOCK CPolicy::create_semiauto_command() {	//実行する半自動コマンドをセットする
+int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
+
+	LPST_MOTION_STEP pelement;
+	int id = ID_BOOM_H;
+	int ptn = 0;
+
+	double D = pwork->dist_for_target[id]; //残り移動距離
 	
-	LPST_COMMAND_BLOCK lp_semiauto_com = NULL;
+	/*### 作成パターンタイプの判定 ###*/
+	//FBありなしと１回のインチングで移動可能な距離かで区別
+	if (pwork->a[id] == 0.0) return -1;
+	double dist_inch_max = pwork->vmax[id] * pwork->vmax[id] / pwork->a[id];//V^2/α
+	if (is_fbtype) {
+		if (D > dist_inch_max) ptn = PTN_NO_FBSWAY_FULL;
+		else ptn = PTN_NO_FBSWAY_2INCH;
+	}
+	else {
+		if (D > dist_inch_max) ptn = PTN_FBSWAY_FULL;
+		else ptn = PTN_FBSWAY_AS;
+	}
 
-	set_com_workbuf();
+	/*### パターン作成 ###*/
+	/*### STEP0  ###*/
+	switch (ptn) {
+	case PTN_NO_FBSWAY_FULL:		//巻、旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し
+	case PTN_NO_FBSWAY_2INCH:
+	case PTN_FBSWAY_AS:
+	{										
+		pelement->type = CTR_TYPE_WAIT_POS_OTHERS;								// 他軸位置待ち
+		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
+		pelement->_v = 0.0;														// 速度0
+		pelement->_p = pwork->pos[id];											// 目標位置
+	}break;
+
+	case PTN_FBSWAY_FULL:			//巻、旋回,位置位相待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し、減衰位相到達
+	{	
+		pelement->type = CTR_TYPE_WAIT_POS_AND_PH;								// 他軸位置待ち
+		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
+		pelement->_v = 0.0;														// 速度0
+		pelement->_p = pwork->pos[id];											// 目標位置
+	}break;
+	default:return -1;
+	}
+
+	/*### STEP1  ###*/
+	/*### STEP1+ ###*/
+	/*### STEP2  ###*/
+	/*### STEP3  ###*/
+	/*### STEP4  ###*/
+	/*### STEP5  ###*/
+	/*### STEP6  ###*/
+	/*### STEP7  ###*/
 
 
 
+	double v_top = pCraneStat->spec.notch_spd_f[motion][NOTCH_5];
+	double v_half = pCraneStat->spec.notch_spd_f[motion][NOTCH_3];
+	double ta = v_top / a;
+	double ta_half = ta / 2.0;
+	double tc_half = (T - ta) / 2.0;
+	if (ta > T) tc_half += T;										//加速時間が振れ周期よりも長いときは＋T
+	double dmin = v_top * ta + 2.0 * tc_half * v_half;
+	double d = st_work.pos[motion] - st_work.pos_target[motion];	//移動距離
+	if (d < 0.0) d *= -1.0;
+
+	double t_expected = 2.0 * (ta + tc_half);	//予定移動時間
+	if (st_work.dist_for_target[motion] > dmin) t_expected += (st_work.dist_for_target[motion] - dmin) / v_top;
+
+	double dir;
+
+	//移動方向セット
+	if (motion == ID_SLEW) {
+		if ((st_work.pos_target[motion] - st_work.pos[motion]) < -PI180) {
+			st_work.motion_dir[motion] = POLICY_FWD;
+			dir = 1.0;
+		}
+		else if ((st_work.pos_target[motion] - st_work.pos[motion]) > PI180) {
+			st_work.motion_dir[motion] = POLICY_REW;
+			dir = -1.0;
+		}
+		else if (st_work.pos[motion] < st_work.pos_target[motion]) {
+			st_work.motion_dir[motion] = POLICY_FWD;
+			dir = 1.0;
+		}
+		else if (st_work.pos[motion] > st_work.pos_target[motion]) {
+			st_work.motion_dir[motion] = POLICY_REW;
+			dir = -1.0;
+		}
+		else {
+			st_work.motion_dir[motion] = POLICY_STOP;
+			dir = 0.0;
+		}
+	}
+	else {
+		if (st_work.pos[motion] < st_work.pos_target[motion]) {
+			st_work.motion_dir[motion] = POLICY_FWD;
+			dir = 1.0;
+		}
+		else if (st_work.pos[motion] > st_work.pos_target[motion]) {
+			st_work.motion_dir[motion] = POLICY_REW;
+			dir = -1.0;
+		}
+		else {
+			st_work.motion_dir[motion] = POLICY_STOP;
+			dir = 0.0;
+		}
+	}
+	precipe->n_step = 0;																//ステップ数初期化
+	precipe->motion_type = AS_PTN_2ACCDEC;
+
+	//Step 1　他軸位置待ち
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->_p = st_work.pos[motion];												// 現在位置
+	pelement->_t = 0.0;																// 予定時間
+	pelement->_v = 0.0;
+
+	//待ち位置(目標までの距離）計算
+	double ta_other, a_other, v_other, d_max_other;
+	bool is_slew_first = false;
+
+	//動作が引込方向か引出方向か判定して旋回、引込どちらを先に動かすか決定する
+	if (st_work.pos_target[ID_BOOM_H] > st_work.pos[ID_BOOM_H] + 1.0) {
+		is_slew_first = true;	//引出時は、半径が小さいうちに先に旋回を掛ける
+	}
+
+	if (motion == ID_BOOM_H) {	//引込動作用
+		pelement->type = CTR_TYPE_OTHER_POS_WAIT;
+		a_other = pCraneStat->spec.accdec[ID_SLEW][FWD][ACC];
+		v_other = pCraneStat->spec.notch_spd_f[ID_SLEW][NOTCH_5];
+		ta_other = v_other / a_other;					//加速時間最大値
+		d_max_other = PI360;								//待ち無しとなる条件
+
+		if (is_slew_first) {
+			//				if (ta_other > t_expected)		//予定時間が相手軸の減速時間より短い時、相手の目標までの距離が減速停止距離内に入ったら動作開始
+			//					pelement->opt_d[MOTHION_OPT_WAIT_POS] = 0.5 * ta_other * v_other;
+			//				else							//所要時間が相手軸の加速時間より長い
+			//					pelement->opt_d[MOTHION_OPT_WAIT_POS] = 0.5 * ta_other * ta_other + v_other * (ta_other - t_expected);
+
+							//当面固定値にする
+			pelement->opt_d[MOTHION_OPT_WAIT_POS] = PI15;
+		}
+		else 	pelement->opt_d[MOTHION_OPT_WAIT_POS] = d_max_other;	//待ち無しとなる
+
+	}
+	else if (motion == ID_SLEW) {	//旋回動作用
+		pelement->type = CTR_TYPE_OTHER_POS_WAIT;
+		a_other = pCraneStat->spec.accdec[ID_BOOM_H][FWD][ACC];
+		v_other = pCraneStat->spec.notch_spd_f[ID_BOOM_H][NOTCH_5];
+		ta_other = v_other / a_other;					//加速時間最大値
+		d_max_other = pCraneStat->spec.boom_pos_max;	//待ち無しとなる条件
+		if (is_slew_first == true) {
+			pelement->opt_d[MOTHION_OPT_WAIT_POS] = d_max_other;	//待ち無しとなる
+		}
+		else {
+			//			if (ta_other > t_expected)		//所要時間が相手軸の加速時間より短い
+			//				pelement->opt_d[MOTHION_OPT_WAIT_POS] = 0.5 * t_expected * t_expected * a_other;
+			//			else							//所要時間が相手軸の加速時間より長い
+			//				pelement->opt_d[MOTHION_OPT_WAIT_POS] = 0.5 * ta_other * ta_other + v_other * (ta_other - t_expected);
+
+						//当面減速距離値にする
+			pelement->opt_d[MOTHION_OPT_WAIT_POS] = 0.5 * ta_other * v_other;
+
+		}
+	}
+	else {
+		pelement->type = CTR_TYPE_TIME_WAIT;
+		a_other = 1.0;
+		v_other = 0.0;
+		ta_other = v_other / a_other;
+		d_max_other = 0.0;
+	}
+	}
+	//Step 2　起動調整（初期振れが大きいとき加速開始タイミングを調整）
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_ADJUST_MOTION_TRIGGER;								// TOP速度定速出力
+	pelement->_t = pCraneStat->T;													// 最大１周期待機
+	pelement->_v = 0.0;																// トップ速度
+	pelement->_p = st_work.pos[motion];												// 目標位置
+	}
+	//Step 3　加速中定速
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_CONST_V_ACC_STEP;										// 加速中定速出力
+	pelement->_t = ta_half + tc_half;												// ハーフ速度出力時間
+	pelement->_v = dir * v_half;													// ハーフ速度
+	pelement->_p = (pelement - 1)->_p + dir * v_half * (0.5 * ta_half + tc_half);	// 目標位置
+	}
+	//Step 4　定速TOP速度
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_CONST_V_TOP_STEP;										// TOP速度定速出力
+	pelement->_t = ta_half + (d - dmin) / v_top;									// トップ速度出力時間
+	pelement->_v = dir * v_top;														// トップ速度
+	pelement->_p = st_work.pos_target[motion] - dir * (0.5 * v_top * ta + v_half * tc_half);	// 目標位置
+	}
+	//Step 5　減速中定速
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_CONST_V_DEC_STEP;										// 加速中定速出力
+	pelement->_t = ta_half + tc_half;												// ハーフ速度出力時間
+	pelement->_v = dir * v_half;													// ハーフ速度
+	pelement->_p = st_work.pos_target[motion] - dir * v_half * 0.5 * ta_half;		// 目標位置
+	}
+
+	//Step 6　停止
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_DEC_V;												// 開始時速度に減速
+	pelement->_t = ta_half;															// 減速時間
+	pelement->_v = 0.0;																// 目標現在速度
+	pelement->_p = st_work.pos_target[motion];										// 目標位置
+	}
+	//Step 7　動作停止待機
+	{	pelement = &(precipe->steps[precipe->n_step++]);
+	pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
+	pelement->_p = st_work.pos_target[motion];										// 目標位置
+	pelement->_t = PTN_CONFIRMATION_TIME;											// パターン出力調整時間
+	pelement->_v = 0.0;																// 
+	}
+
+	//予定時間をAGENTのスキャンカウント値に変換,パターンタイプセット
+	for (int i = 0; i < precipe->n_step; i++) {
+		precipe->steps[i].time_count = (int)(precipe->steps[i]._t * 1000) / (int)st_work.agent_scan_ms;
+		precipe->steps[i].opt_i[MOTHION_OPT_AS_TYPE] = AS_PTN_2ACCDEC;			//パターン出力時判定用
+	}
+	return AS_PTN_OK;
+
+
+
+
+
+
+
+	return 0;
+}
+int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
+	return 0;
+}
+int CPolicy::set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
+	return 0;
+}
+
+
+LPST_COMMAND_BLOCK CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {	//実行する半自動コマンドをセットする
+	
+	LPST_COMMAND_BLOCK lp_semiauto_com = pPolicyInf->command_list[0];
+
+	set_com_workbuf(pjob->target[0], AUTO_TYPE_SEMI_AUTO);											//半自動パターン作成用データ取り込み
+
+	set_receipe_semiauto_bh(pjob->type, &(lp_semiauto_com->recipe[ID_BOOM_H]), true, &st_com_work);
+	set_receipe_semiauto_slw(pjob->type, &(lp_semiauto_com->recipe[ID_SLEW]), true, &st_com_work);
+	set_receipe_semiauto_mh(pjob->type, &(lp_semiauto_com->recipe[ID_HOIST]), true, &st_com_work);
 
 	return lp_semiauto_com;
-};        
-LPST_COMMAND_BLOCK CPolicy::create_job_command() {		//実行するJOBコマンドをセットする
+
+};
+
+LPST_COMMAND_BLOCK CPolicy::create_job_command(LPST_JOB_SET pjob) {		//実行するJOBコマンドをセットする
 
 	LPST_COMMAND_BLOCK lp_job_com = NULL;
 
 	return lp_job_com;
 };        
 
-LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS trgets) {
-
-
-
-
-
-	return &st_com_work;
-}
-
-
-// Command生成更新
-LPST_COMMAND_BLOCK CPolicy::generate_command(int type, double* ptarget_pos) {
-
-	LPST_COMMAND_BLOCK lp_com = next_command(type); 
-
-	//パターン計算ベースデータの設定
-
-	set_pattern_cal_base(type, ID_BOOM_H);		
-	set_pattern_cal_base(type, ID_SLEW);
-
-	//振れ止めパターンの判定
-	pPolicyInf->auto_ctrl_ptn[ID_BOOM_H] = judge_auto_ctrl_ptn(type, ID_BOOM_H);
-	pPolicyInf->auto_ctrl_ptn[ID_SLEW] = judge_auto_ctrl_ptn(type, ID_SLEW);
-
-	//パターンの計算
-	if(AS_PTN_NG == set_recipe(lp_com, ID_BOOM_H, pPolicyInf->auto_ctrl_ptn[ID_BOOM_H]))
-		return NULL;
-	if(AS_PTN_NG == set_recipe(lp_com, ID_SLEW  , pPolicyInf->auto_ctrl_ptn[ID_SLEW]  ))
-		return NULL;
-
-	if (lp_com != NULL) {//Command Set OKでAGENTの目標位置更新
-		*(ptarget_pos + ID_BOOM_H) = st_work.pos_target[ID_BOOM_H];
-		*(ptarget_pos + ID_SLEW) = st_work.pos_target[ID_SLEW];
-	}
-	return lp_com;
-}
-
-
-
 /****************************************************************************/
-/*　　パターン計算用の素材データ計算,セット									*/
+/*　　コマンドパターン計算用の素材データ計算,セット									*/
 /*　　目標位置,目標までの距離,最大速度,加速度,加速時間,加速振れ中心,振れ振幅*/
 /****************************************************************************/
-int CPolicy::set_pattern_cal_base(int auto_type, int motion) {
+LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS targets, int type) {
 
-	double R = pCraneStat->R;
-	
-	//目標位置設定
-	if (auto_type == AUTO_TYPE_SEMI_AUTO) {
+	st_com_work.agent_scan_ms = pAgent->inf.cycle_ms;;                 //AGENTタスクのスキャンタイム
+	switch(type){
+	case AUTO_TYPE_SEMI_AUTO: {
 
-		pEnvironment->set_auto_target(motion, pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][motion]);
-		st_work.pos_target[motion] = pCraneStat->auto_target[motion];
+		st_com_work.target = targets;																//目標位置
 
-	}
-	else if (auto_type == AUTO_TYPE_JOB) {
-		pEnvironment->set_auto_target(motion, pPLC_IO->status.pos[motion]);
-		st_work.pos_target[motion] = pCraneStat->auto_target[motion];
-	}
-	else {
-		if(pAgentInf->be_hold_target[motion] == false){ //半自動,JOB後、目標位置キープ条件でないとき
-			pEnvironment->set_auto_target(motion, pPLC_IO->status.pos[motion] + pEnvironment->cal_dist4stop(motion,false));
-			st_work.pos_target[motion] = pCraneStat->auto_target[motion];
+
+
+		double temp_d;
+		for (int i = 0; i < MOTION_ID_MAX; i++) {
+			if ((i == ID_HOIST) || (i == ID_BOOM_H) || (i == ID_SLEW)) {
+				st_com_work.pos[i] = pPLC_IO->status.pos[i];										//現在位置
+				st_com_work.v[i] = pPLC_IO->status.v_fb[i];											//現在速度
+				temp_d = st_com_work.target.pos[i] - st_com_work.pos[i];
+
+				if (i == ID_SLEW) {		//旋回は、180を越えるときは逆方向が近い
+					if (temp_d > PI180)	temp_d -= PI360;
+					else if (temp_d < -PI180) temp_d += PI360;
+					else;
+				}
+
+				if (temp_d < 0.0) {
+					st_com_work.motion_dir[i] = ID_REV;												//移動方向
+					st_com_work.dist_for_target[i] = -1.0 * temp_d;									//移動距離
+				}
+				else {
+					st_com_work.motion_dir[i] = ID_FWD;												//移動方向
+					st_com_work.dist_for_target[i] = temp_d;										//移動距離
+				}
+				st_com_work.a[i] = pCraneStat->spec.accdec[i][st_com_work.motion_dir[i]][ID_ACC];	//動作軸加速度
+				st_com_work.vmax[i]= pCraneStat->spec.notch_spd_f[i][NOTCH_MAX - 1];				//最大速度
+				st_com_work.acc_time2Vmax[MOTION_ID_MAX] = st_com_work.vmax[i]/ st_com_work.a[i];   //最大加速時間
+			}
+			if ((i == ID_BOOM_H) || (i == ID_SLEW)) {
+				st_com_work.a_hp[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);		//吊点の加速度
+				st_com_work.pp_th0[i][ACC] = pEnvironment->cal_arad_acc(i, FWD);					//加速時振れ中心
+				st_com_work.pp_th0[i][DEC] = pEnvironment->cal_arad_dec(i, REV);					//減速時振れ中心
+				st_com_work.sway_amp[i] = pSway_IO->rad_amp2[i];									//振れ振幅2乗
+				st_com_work.sway_amp[i] = sqrt(pSway_IO->rad_amp2[i]);		;						//振れ振幅
+			}
+
 		}
+
+		//巻きの目標位置が上の時は、巻上後に旋回引き込み動作をするので目標位置の周期でパターンを作る
+		if (targets.pos[ID_HOIST] > st_com_work.pos[ID_HOIST]) {
+			st_com_work.T = pEnvironment->cal_T(targets.pos[ID_HOIST]);								//振れ周期
+			st_com_work.w = pEnvironment->cal_w(targets.pos[ID_HOIST]);								//振れ角周波数
+			st_com_work.w2 = pEnvironment->cal_w2(targets.pos[ID_HOIST]);							//振れ角周波数2乗
+		}
+		else {
+			st_com_work.T = pCraneStat->T;															//振れ周期
+			st_com_work.w = pCraneStat->w;															//振れ角周波数
+			st_com_work.w2 = pCraneStat->w2;														//振れ角周波数2乗
+		}
+		break;
 	}
-	
-	//目標位置までの距離設定
-	st_work.dist_for_target[motion] = pEnvironment->cal_dist4target(motion,true);
+	case AUTO_TYPE_JOB: {
+		return NULL;
+		break;
+	}
+	default:return NULL;
 
-	//最大速度
-	st_work.vmax[motion] = pEnvironment->get_vmax(motion);
-
-	//加速度
-	st_work.a[motion] = pCraneStat->spec.accdec[motion][FWD][ACC];			//モータの加速度
-	st_work.a_hp[motion] = pEnvironment->cal_hp_acc(motion,FWD);			//吊点の加速度
-
-
-
-	//0->Vmax 加速時間
-	st_work.acc_time2Vmax[motion] = st_work.vmax[motion] / st_work.a[motion];
-
-	//加速時振れ中心
-	st_work.pp_th0[motion][ACC] = pEnvironment->cal_arad_acc(motion, FWD);
-	st_work.pp_th0[motion][DEC] = pEnvironment->cal_arad_dec(motion, REV);
-
-	//振角振幅が加速振角よりも大きいか判定
-	double rad_acc2 = pEnvironment->cal_arad2(motion, FWD);	//加速振れ角2乗
-	if (pSway_IO->rad_amp2[motion] > rad_acc2) st_work.is_sway_over_r0[motion] = true;
-	else st_work.is_sway_over_r0[motion] = false;
-
-	//現在位置、速度
-	st_work.pos[motion] = pPLC_IO->status.pos[motion];
-	st_work.v[motion] = pPLC_IO->status.v_fb[motion];
-
-	//AGENTスキャンタイム
-	st_work.agent_scan_ms = pAgent->inf.cycle_ms;
-
-	return 0;
+	}
+	return &st_com_work;
 }
 
 /****************************************************************************/
@@ -359,40 +565,8 @@ int CPolicy::judge_auto_ctrl_ptn(int auto_type, int motion) {
 	return ptn; 
 }
 
-/****************************************************************************/
-/*　　移動パターンタイプの計算,セット										*/
-/****************************************************************************/
-int CPolicy::set_recipe(LPST_COMMAND_BLOCK pcom, int motion, int ptn) {
-	//動作初期化
-	
-	LPST_MOTION_RECIPE precipe = &(pcom->recipe[motion]);
-	if (ptn == AS_PTN_2ACCDEC)		return set_recipe2ad(precipe, motion);
-	else if (ptn == AS_PTN_1STEP)	return set_recipe1step(precipe, motion);
-	else if (ptn == AS_PTN_2PP)		return set_recipe2pp(precipe, motion);
-	else if (ptn == AS_PTN_1ACCDEC)	return set_recipe1ad(precipe, motion);
-	else return AS_PTN_0; 
-};
 
-/****************************************************************************/
-/*　　振れ止めパターン　１stepタイプの計算,セット							*/
-/****************************************************************************/
-int CPolicy::set_recipe0step(LPST_MOTION_RECIPE precipe, int motion) {
 
-	LPST_MOTION_STEP pelement;
-
-	st_work.motion_dir[motion] = POLICY_NA;												//移動方向不定(移動方向が実行時に決まる）
-	set_as_gain(motion, AS_PTN_1STEP);													//振れ止めゲイン計算
-	precipe->n_step = 0;																//ステップ数初期化
-	precipe->motion_type = AS_PTN_0;
-
-	//Step 1　動作停止待機
-	{	pelement = &(precipe->steps[precipe->n_step++]);
-		pelement->type = CTR_TYPE_TIME_WAIT;											// 時間調整
-		pelement->_p = st_work.pos_target[motion];										// 目標位置(開始時位置）移動方向不定の為
-		pelement->_t = 0.0;																// パターン出力調整時間
-		pelement->_v = 0.0;																// 開始時速度 
-	}
-	return AS_PTN_OK;
 }
 /****************************************************************************/
 /*　　振れ止めパターン　１stepタイプの計算,セット							*/

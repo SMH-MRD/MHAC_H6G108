@@ -286,24 +286,14 @@ typedef struct StCraneStatus {
 /*   運動要素定義構造体                                                     */
 /* 　加速、定速、減速等の一連の動作は、この要素の組み合わせで構成します。   */
 /****************************************************************************/
-#define MOTHION_OPT_V_MAX	0
-#define MOTHION_OPT_V_MIN		0
-#define MOTHION_OPT_PHASE_F		1
-#define MOTHION_OPT_PHASE_R		2
-#define MOTHION_OPT_WAIT_POS	3
 
-#define MOTHION_OPT_AS_TYPE		0
 
 //レシピ　Type
 #define CTR_TYPE_WAIT_TIME					0	//待機（時間経過待ち）
-#define CTR_TYPE_WAIT_HST					1	//巻位置待ち
-#define CTR_TYPE_WAIT_GNT					2	//走行位置待ち
-#define CTR_TYPE_WAIT_TRY					4	//横行位置待ち
-#define CTR_TYPE_WAIT_BH					8	//引込位置待ち
-#define CTR_TYPE_WAIT_SLEW					16	//旋回位置待ち
-#define CTR_TYPE_WAIT_LAND					32	//着床待ち
-#define CTR_TYPE_WAIT_SWAY1					64	//振れ位相待ち1点
-#define CTR_TYPE_WAIT_SWAY2					65	//振れ位相待ち2点
+#define CTR_TYPE_WAIT_POS_OTHERS			1	//他軸到達待ち
+#define CTR_TYPE_WAIT_POS_AND_PH			2	//他軸到達+位相待ち
+#define CTR_TYPE_WAIT_LAND					4	//着床待ち
+#define CTR_TYPE_WAIT_PH					8	//振れ位相待ち
 
 #define CTR_TYPE_VOUT_TIME					100  //ステップ速度　時間完了
 #define CTR_TYPE_VOUT_V						101  //ステップ速度　速度到達完了
@@ -323,9 +313,9 @@ typedef struct StCraneStatus {
 #define CTR_TYPE_FB_SWAY_POS				301	//FB振れ止め位置決め
 
 
-#define PTN_CONFIRMATION_TIME				0.1		//パターン出力調整時間 秒
-#define PTN_FINE_POS_LIMIT_TIME				10.0	//微小位置合わせ制限時間 秒
-#define PTN_ERROR_CHECK_TIME				60		//異常検出時間
+#define TIME_LIMIT_CONFIRMATION				0.1		//パターン出力調整時間 秒
+#define TIME_LIMIT_FINE_POS					10.0	//微小位置合わせ制限時間 秒
+#define TIME_LIMIT_ERROR_DETECT				120		//異常検出時間
 
 typedef struct stMotionElement {	//運動要素
 	int type;				//制御種別
@@ -413,14 +403,17 @@ typedef struct stCommandList {
 #define JOB_REGIST_MAX			10					//　JOB登録最大数
 #define JOB_TYPE_HANDLING	0x00000001
 
-#define COMMAND_TYPE_NULL		0
-#define COMMAND_TYPE_SEMI_AUTO	1
-#define COMMAND_TYPE_PICK		2
-#define COMMAND_TYPE_GRAND		3
-#define COMMAND_TYPE_PARK		4
+#define JOB_TYPE_NULL		0
+#define JOB_TYPE_SEMI_PICK	1
+#define JOB_TYPE_SEMI_GRND	2
+#define JOB_TYPE_SEMI_PARK	3
+#define JOB_TYPE_FROM_TO	4
+
+#define COMMAND_TYPE_PICK	2
+#define COMMAND_TYPE_GRAND	3
+#define COMMAND_TYPE_PARK	4
 
 #define JOB_N_STEP_SEMIAUTO		1
-
 
 typedef struct StPosTargets {
 	double pos[MOTION_ID_MAX];
@@ -437,8 +430,7 @@ typedef struct stJobSet {
 	int n_step;									//コマンド数
 	int step_type[JOB_COMMAND_MAX];				//各ステップのタイプ
 	ST_POS_TARGETS target[JOB_COMMAND_MAX];		//各コマンドの目標位置	
-
-	
+		
 	//status
 	int status;									//JOB実行状態
 	DWORD step_elapsed[JOB_COMMAND_MAX];		//step経過時間ms
@@ -550,18 +542,5 @@ protected:
 
 	HANDLE hMutex;
 };
-
-//コマンド要求応答コード
-#define REQ_ACCEPTED			0
-
-
-//オペレーションコマンド
-#define OPE_COM_PB_SET				1
-#define OPE_COM_LAMP_ON				2
-#define OPE_COM_LAMP_OFF			3
-#define OPE_COM_LAMP_FLICKER		4
-#define OPE_COM_SEMI_LAMP_ON		5
-#define OPE_COM_SEMI_LAMP_OFF		6
-#define OPE_COM_SEMI_LAMP_FLICKER	7
 
 

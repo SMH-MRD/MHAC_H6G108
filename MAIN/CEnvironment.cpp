@@ -207,7 +207,6 @@ double CEnvironment::get_vmax(int motion) {//最大速度
 /****************************************************************************/
 /*　システムモードセット										            */
 /****************************************************************************/
-
 int CEnvironment::sys_mode_set() {
 	//リモートモードセット
 	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;

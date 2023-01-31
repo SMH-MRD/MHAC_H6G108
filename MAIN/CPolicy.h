@@ -4,34 +4,23 @@
 #include "Spec.h"
 #include "CSharedMem.h"
 
-#define POLICY_REQ_REMOTE       0x00000001
-#define POLICY_REQ_ANTISWAY     0x00000002
-#define POLICY_REQ_JOB          0x00000004
-#define POLICY_REQ_DEBUG        0x00000008
+#define PTN_NO_FBSWAY_FULL          0x00000001
+#define PTN_FBSWAY_FULL             0x00000002
+#define PTN_NO_FBSWAY_2INCH         0x00000004
+#define PTN_FBSWAY_AS               0x00000008
 
-//#define POLICY_TYPE_AS          0
-//#define POLICY_TYPE_SEMI        1
-//#define POLICY_TYPE_JOB         2
+#define PTN_FBSWAY_AS               0x00000008
 
-#define N_AS_PTN                8
-#define AS_PTN_0                0
-#define AS_PTN_1STEP            1
-#define AS_PTN_2STEP            2
-#define AS_PTN_2PP              2
-#define AS_PTN_2PN              3
-#define AS_PTN_2ACCDEC          4
-#define AS_PTN_1ACCDEC          5
-#define AS_PTN_3STEP            6
 #define AS_PTN_OK               1
 #define AS_PTN_NG               0
 
 #define N_AUTO_PARAM            8
-#define POLICY_FWD              1
-#define POLICY_REW              2
-#define POLICY_STOP             0
-#define POLICY_NA               0
+
 
 typedef struct stPolicyWork {
+    double T;	                                //振れ周期
+    double w;	                                //振れ角周波数
+    double w2;	                                //振れ角周波数2乗
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //モータの速度
     double a[MOTION_ID_MAX];	                //モータの加速度
@@ -39,14 +28,12 @@ typedef struct stPolicyWork {
     double vmax[MOTION_ID_MAX];                 //吊点の加速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
-    double pp_th0[NUM_OF_AS_AXIS][ACCDEC_MAX];  //位相平面の回転中心
-    ST_POS_TARGETS pos_target;                  //目標位置
-    int motion_dir[NUM_OF_AS_AXIS];             //移動方向
-    double as_gain_phase[NUM_OF_AS_AXIS];       //振れ止めゲイン位相(位相平面上の加速時の位相変化量）
-    double as_gain_time[NUM_OF_AS_AXIS];        //振れ止めゲイン加速時間
-    bool is_sway_over_r0[MOTION_ID_MAX];        //振れ振幅が加速振れ以上
+    double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
+    ST_POS_TARGETS target;                      //目標位置
+    int motion_dir[MOTION_ID_MAX];              //移動方向
+    double sway_amp[MOTION_ID_MAX];             //振れ振幅
+    double sway_amp2[MOTION_ID_MAX];             //振れ振幅２乗
     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
-
 }ST_POLICY_WORK, * LPST_POLICY_WORK;
 
 
@@ -62,10 +49,8 @@ public:
 
    void routine_work(void* param);
  
-   LPST_COMMAND_BLOCK generate_command(int type, double* ptarget_pos);
- 
+    LPST_COMMAND_BLOCK get_command();        //Agentからの要求に応じて実行コマンドをセットして返す
 
-   LPST_COMMAND_BLOCK get_command();        //Agentからの要求に応じて実行コマンドをセットして返す
  
 private:
 
@@ -81,25 +66,19 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    LPST_COMMAND_BLOCK create_semiauto_command();        //実行する半自動コマンドをセットする
-    LPST_COMMAND_BLOCK create_job_command();        //実行する半自動コマンドをセットする
+    LPST_COMMAND_BLOCK create_semiauto_command(LPST_JOB_SET pjob);                      //実行する半自動コマンドをセットする
+    LPST_COMMAND_BLOCK create_job_command(LPST_JOB_SET pjob);                           //実行するジョブコマンドをセットする
 
-    LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trgets);
+    int set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
 
-     
-    int set_pattern_cal_base(int auto_type, int motion);
+    LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trgets, int type);
+
     int judge_auto_ctrl_ptn(int auto_type, int motion); //振れ止めパターン判定
     void set_as_gain(int motion, int as_type);          //振れ止めゲイン計算
-
-
-    int set_recipe(LPST_COMMAND_BLOCK pcom, int motion, int ptn);
-    int set_recipe1step(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe3step(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe0step(LPST_MOTION_RECIPE precipe, int motion);
-     
+                                                            
+                                                        
    //タブパネルのStaticテキストを設定
    void set_panel_tip_txt();
    //タブパネルのFunctionボタンのStaticテキストを設定
