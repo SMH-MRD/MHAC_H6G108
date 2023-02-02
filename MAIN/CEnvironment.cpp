@@ -350,7 +350,21 @@ bool CEnvironment::is_sway_larger_than_accsway(int motion){
 	else return false;
 }
 
+double CEnvironment::cal_sway_r_amp2_m() { return pCraneStat->mh_l * pCraneStat->mh_l * sqrt(pSway_IO->rad_amp2[ID_BOOM_H]); }			//振れ振幅2乗半径方向 m
+double CEnvironment::cal_sway_th_amp2_m() { return pCraneStat->mh_l * pCraneStat->mh_l * sqrt(pSway_IO->rad_amp2[ID_SLEW]); }			//振れ振幅2乗円周方向 m
+double CEnvironment::cal_sway_x_amp2_m() { return 0.0; }																				//振れ振幅2乗x方向 m
+double CEnvironment::cal_sway_y_amp2_m() { return 0.0; }																				//振れ振幅2乗y方向 m
 
+bool CEnvironment::is_speed_0(int motion) { 
+
+	if (pCraneStat->is_notch_0[motion] == false) return false;//ノッチ0で無い
+
+	if ((pPLC_IO->status.v_fb[motion] >= pCraneStat->spec.notch_spd_f[motion][NOTCH_1] * SPD0_CHECK_RETIO) ||		// 0速チェック
+		(pPLC_IO->status.v_fb[motion] <= pCraneStat->spec.notch_spd_r[motion][NOTCH_1] * SPD0_CHECK_RETIO)) {		//1ノッチの10％速度以上
+		return false;	//0速でない
+	}
+	return true;
+}
 
 /****************************************************************************/
 /*　 自動関連計算											         　　   */

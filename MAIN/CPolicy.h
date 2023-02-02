@@ -11,10 +11,14 @@
 
 #define PTN_FBSWAY_AS               0x00000008
 
-#define AS_PTN_OK               1
-#define AS_PTN_NG               0
+#define POLICY_PTN_OK               1
+#define POLICY_PTN_NG               0
 
-#define N_AUTO_PARAM            8
+#define N_AUTO_PARAM                8
+
+#define SPD_FB_DELAY_TIME           0.3             //速度指令-FB遅れ時間
+#define FINE_POS_TIMELIMIT          5.0             //ファインポジショニング制限時間
+
 
 
 typedef struct stPolicyWork {
@@ -24,15 +28,15 @@ typedef struct stPolicyWork {
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //モータの速度
     double a[MOTION_ID_MAX];	                //モータの加速度
-    double a_hp[MOTION_ID_MAX];	                //モータの加速度
-    double vmax[MOTION_ID_MAX];                 //吊点の加速度
+    double a_hp[MOTION_ID_MAX];	                //吊点の加速度
+    double vmax[MOTION_ID_MAX];                 //モータの最大速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
     double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
     ST_POS_TARGETS target;                      //目標位置
     int motion_dir[MOTION_ID_MAX];              //移動方向
     double sway_amp[MOTION_ID_MAX];             //振れ振幅
-    double sway_amp2[MOTION_ID_MAX];             //振れ振幅２乗
+    double sway_amp2[MOTION_ID_MAX];            //振れ振幅２乗
     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
 }ST_POLICY_WORK, * LPST_POLICY_WORK;
 
@@ -49,7 +53,8 @@ public:
 
    void routine_work(void* param);
  
-    LPST_COMMAND_BLOCK get_command();        //Agentからの要求に応じて実行コマンドをセットして返す
+   LPST_COMMAND_BLOCK req_command();                                        //Agentからの要求に応じて実行コマンドをセットして返す
+   int report_command_status(LPST_COMMAND_BLOCK pcom, int code);             //Agentからのコマンド実行状況報告を受付
 
  
 private:
@@ -74,19 +79,17 @@ private:
     int set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
 
     LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trgets, int type);
+    ST_POLICY_INFO   PolicyInf_workbuf;
+    ST_POLICY_WORK   st_com_work;
+    int command_id = 0;
 
-    int judge_auto_ctrl_ptn(int auto_type, int motion); //振れ止めパターン判定
-    void set_as_gain(int motion, int as_type);          //振れ止めゲイン計算
-                                                            
-                                                        
+                                                         
    //タブパネルのStaticテキストを設定
    void set_panel_tip_txt();
    //タブパネルのFunctionボタンのStaticテキストを設定
    void set_panel_pb_txt();
 
-   ST_POLICY_INFO   PolicyInf_workbuf;
-   ST_POLICY_WORK   st_com_work;
-   int command_id = 0;
+
     
    const double param_auto[NUM_OF_AS_AXIS][N_AUTO_PARAM] =
    { 

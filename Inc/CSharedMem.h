@@ -367,6 +367,7 @@ typedef struct stMotionStat {
 
 typedef struct stCommandBlock {
 	//POLICY SET
+
 	bool is_active_axis[MOTION_ID_MAX];		//動作対象軸　特定の軸を動作させない時に使用
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
 
@@ -501,14 +502,16 @@ typedef struct stPolicyInfo {
 
 typedef struct stAgentInfo {
 
-	WORD pc_ctrl_mode;								//PCからの指令で動作させる軸の指定
+	ST_COMMAND_BLOCK comset_as;						//振れ止め用コマンドセット
 	ST_POS_TARGETS auto_pos_target;					//自動目標位置
+	double dist_for_target[MOTION_ID_MAX];			//目標までの距離
 	int auto_on_going;								//実行中の自動種別
 	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中フラグ(軸毎)
+	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め起動判定用速度FB条件
 
+	WORD pc_ctrl_mode;								//PCからの指令で動作させる軸の指定
 	double v_ref[MOTION_ID_MAX];					//速度指令出力値
 	int PLC_PB_com[N_PLC_PB];						//PLCへのDO指令（PB入力相当指令）
-	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め起動判定用速度FB条件
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

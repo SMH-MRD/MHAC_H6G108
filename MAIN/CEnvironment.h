@@ -37,8 +37,15 @@ public:
     double cal_arad2(int motion, int dir);                  //‰ÁŒ¸‘¬U‚êUŠp‚Ì2æŒvZrad
     double cal_arad2(int motion, int dir, double R);        //‰ÁŒ¸‘¬U‚êUŠp‚Ì2æŒvZrad ù‰ñ”¼Œaw’èR
 
+    double cal_sway_r_amp2_m();                              //U‚êU•”¼Œa•ûŒü m
+    double cal_sway_th_amp2_m();                             //U‚êU•‰~ü•ûŒü m
+    double cal_sway_x_amp2_m();                              //U‚êU•x•ûŒü m
+    double cal_sway_y_amp2_m();                              //U‚êU•y•ûŒü m
+
     double cal_dist4stop(int motion, bool is_abs_answer);   //’â~‹——£ŒvZ
     double cal_dist4target(int motion, bool is_abs_answer); //–Ú•WˆÊ’u‚Ü‚Å‚Ì‹——£
+
+    bool is_speed_0(int motion);                            // 0‘¬ƒ`ƒFƒbƒN
 
     double cal_T(double pos_hst);                            //U‚êüŠúŒvZ@Šª‚«ˆÊ’uw’è
     double cal_w(double pos_hst);                            //U‚êŠpü”g”ŒvZ@Šª‚«ˆÊ’uw’è

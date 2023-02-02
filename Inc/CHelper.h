@@ -33,5 +33,6 @@ public:
 	static UINT	bits_count(UINT16 x);
 	static UINT	bits_count(UINT32 x);
 	static UINT	bits_count(UINT64 x);
+	static void fit_slew_axis(double* th); //@ù‰ñÀ•W‚ÉZ³‚·‚é
 
 };

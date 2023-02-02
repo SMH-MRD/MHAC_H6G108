@@ -104,7 +104,7 @@ void CAgent::output() {
 	//共有メモリ出力処理
 	memcpy_s(pAgentInf, sizeof(ST_AGENT_INFO), &AgentInf_workbuf, sizeof(ST_AGENT_INFO));
 
-	wostrs << L" #SL TG:" << fixed<<setprecision(3) << AgentInf_workbuf.pos_target[ID_SLEW];
+	wostrs << L" #SL TG:" << fixed<<setprecision(3) << AgentInf_workbuf.auto_pos_target.pos[ID_SLEW];
 	wostrs << L",GAP: " << AgentInf_workbuf.gap_from_target[ID_SLEW];;
 
 	wostrs << L"#BH TG: " << AgentInf_workbuf.pos_target[ID_BOOM_H];
@@ -128,51 +128,9 @@ int CAgent::parse_indata() {
 	//0速チェック,減速距離計算
 	for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
 		//0速チェック
-		if ((pPLC_IO->status.v_fb[i] >= pCraneStat->spec.notch_spd_f[i][NOTCH_1] * SPD0_CHECK_RETIO) ||
-			(pPLC_IO->status.v_fb[i] <= pCraneStat->spec.notch_spd_r[i][NOTCH_1] * SPD0_CHECK_RETIO)) {//1ノッチの10％速度以上
-			AgentInf_workbuf.is_spdfb_0[i] = false;	//0速でない
-		}
-		else if (pCraneStat->is_notch_0[i] == false) {//ノッチ0で無い
-			AgentInf_workbuf.is_spdfb_0[i] = false;
-		}
-		else {
-			AgentInf_workbuf.is_spdfb_0[i] = true;
-		}
 
-		//減速距離
-		if (pPLC_IO->status.v_fb[i] < 0.0) {
-			AgentInf_workbuf.dist_for_stop[i]
-				= pPLC_IO->status.v_fb[i] * (-0.5 * pPLC_IO->status.v_fb[i] / pCraneStat->spec.accdec[i][ID_REV][ID_DEC] + pCraneStat->spec.delay_time[i][ID_DELAY_CNT_DEC]);
-
-		}
-		else {
-			AgentInf_workbuf.dist_for_stop[i]
-				= pPLC_IO->status.v_fb[i] * (-0.5 * pPLC_IO->status.v_fb[i] / pCraneStat->spec.accdec[i][ID_FWD][ID_DEC] + pCraneStat->spec.delay_time[i][ID_DELAY_CNT_DEC]);
-		}
 	}
 
-	//自動完了条件
-
-	//振れ振幅の2乗ｍ
-	double k = pCraneStat->mh_l * pCraneStat->mh_l;
-	AgentInf_workbuf.sway_amp2m[ID_BOOM_H] = k * pSway_IO->rad_amp2[ID_BOOM_H];
-	AgentInf_workbuf.sway_amp2m[ID_SLEW] = k * pSway_IO->rad_amp2[ID_SLEW];
-
-	for (int i = 0;i < MOTION_ID_MAX;i++) { //目標位置までの距離
-		AgentInf_workbuf.gap_from_target[i] = AgentInf_workbuf.pos_target[i] - pPLC_IO->status.pos[i];
-		if (i == ID_SLEW){
-			if (AgentInf_workbuf.gap_from_target[i] > PI180) AgentInf_workbuf.gap_from_target[i] -= PI360;
-			else if(AgentInf_workbuf.gap_from_target[i] < - PI180) AgentInf_workbuf.gap_from_target[i] += PI360;
-		}
-	}
-
-	AgentInf_workbuf.gap2_from_target[ID_BOOM_H] = AgentInf_workbuf.gap_from_target[ID_BOOM_H] * AgentInf_workbuf.gap_from_target[ID_BOOM_H];
-	AgentInf_workbuf.gap2_from_target[ID_SLEW] = AgentInf_workbuf.gap_from_target[ID_SLEW]* AgentInf_workbuf.gap_from_target[ID_SLEW];
-
-	//起動開始位相判定範囲（起動遅れ時間補正）
-	ph_chk_range[ID_BOOM_H] = pCraneStat->w * pCraneStat->spec.delay_time[ID_BOOM_H][ID_DELAY_0START];
-	ph_chk_range[ID_SLEW] = pCraneStat->w * pCraneStat->spec.delay_time[ID_SLEW][ID_DELAY_0START];
-	
 	return 0;
 }
 
@@ -810,7 +768,7 @@ void CAgent::set_auto_active(int type) {
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
 	}
 	else if (type == AUTO_TYPE_SEMI_AUTO) {
-		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_SEMI_AUTO;
 		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_SEMI_AUTO;
 		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_SEMI_AUTO;
@@ -835,7 +793,7 @@ void CAgent::set_auto_active(int type) {
 		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM]ｗ= AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
 	}

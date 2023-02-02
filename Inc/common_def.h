@@ -77,9 +77,9 @@
 #define ID_UP           0   //左側
 #define ID_DOWN         1   //右側
 
-#define ID_FWD          0   //前進
-#define ID_REV          1   //後進
-
+#define ID_FWD          1   //前進
+#define ID_REV          -1   //後進
+#define ID_STOP         0   //停止
 #define ID_LEFT         0   //左側
 #define ID_RIGHT        1   //右側
 
