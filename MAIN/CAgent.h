@@ -16,6 +16,11 @@
 #define AGENT_AUTO_TRIG_ACK_COUNT   10
 #define AGENT_CHECK_LARGE_SWAY_m2   1.0     //起動時に初期振れ大とみなす振れ量mの2乗
 
+#define AS_COMPLETE_0               0x0000
+#define AS_COMPLETE_BH              0x0001
+#define AS_COMPLETE_SLEW            0x0002
+#define AS_ALL_COMPLETE             0x0003
+
 
 typedef struct stAgentWork {
     double T;	                                //振れ周期
@@ -62,10 +67,18 @@ public:
     ST_AGENT_INFO   AgentInf_workbuf;
     ST_AGENT_WORK   st_as_work;                     //振れ止めパターン作成用
 
+    bool can_job_trigger();                         //ジョブの起動可否判定
+    bool can_auto_trigger();
+    int update_auto_control();                      //自動条件の更新
+    
+    
+    
     LPST_AGENT_WORK set_as_workbuf(ST_POS_TARGETS trgets, int type);
     
     bool can_auto_trigger();
-    bool can_auto_complete();
+    bool is_command_completed(LPST_COMMAND_BLOCK pCom);
+    int  check_antisway();
+   
     int cleanup_command(LPST_COMMAND_BLOCK pcom);
 
     LPST_COMMAND_BLOCK pCom;
@@ -89,8 +102,7 @@ public:
     
     void update_pb_lamp_com();                              //ランプ表示出力
 
-    int parse_indata();                                     //入力信号の分析
-    int update_auto_setting();                              //自動条件の更新
+ 
     void set_auto_active(int type);                         //各軸のauto_activeフラグセット
     double cal_step(LPST_COMMAND_BLOCK pCom, int motion);     //自動指令出力値の計算
 

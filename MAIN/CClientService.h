@@ -24,17 +24,18 @@ public:
     CClientService(); 
     ~CClientService();
   
-   LRESULT CALLBACK PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
+    LRESULT CALLBACK PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
 
-   void init_task(void* pobj);
-   void routine_work(void* param);
-
-
+    void init_task(void* pobj);
+    void routine_work(void* param);
+    int report_job_fb(LPST_JOB_SET job, int fb_code);               //Jobの実行状況アンサバック
 
 private:
 
-    int update_semiauto_list(int command, int type, int code);   //command:CLEAR ADD, code, type:JOB_SEMI_PARK...
-    int update_job_list(int command, int code);
+
+
+    int update_semiauto_list(int command, int type, int code);      //半自動のジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...
+    int update_job_list(int command, int code);                     //クライアントジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...
    
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;
@@ -46,12 +47,9 @@ private:
 
     ST_CS_INFO CS_workbuf;
 
- 
    void input();               //外部データ取り込み
    void main_proc();           //処理内容
    void output();              //出力データ更新
-
-
                                   
    //タブパネルのStaticテキストを設定
    void set_panel_tip_txt();

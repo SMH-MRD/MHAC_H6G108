@@ -50,12 +50,10 @@ public:
    LRESULT CALLBACK PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
 
    void init_task(void* pobj);
-
    void routine_work(void* param);
  
    LPST_COMMAND_BLOCK req_command();                                        //Agentからの要求に応じて実行コマンドをセットして返す
-   int report_command_status(LPST_COMMAND_BLOCK pcom, int code);             //Agentからのコマンド実行状況報告を受付
-
+   int report_command_fb(LPST_COMMAND_BLOCK pcom, int fb_code);             //Agentからのコマンド実行状況報告を受付
  
 private:
 

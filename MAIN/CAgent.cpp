@@ -53,7 +53,6 @@ void CAgent::init_task(void* pobj) {
 
 	AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 
-	for (int i = 0;i < NUM_OF_AS_AXIS;i++) ph_chk_range[i] = PHASE_CHECK_RANGE;
 	set_panel_tip_txt();
 
 	inf.is_init_complete = true;
@@ -72,8 +71,23 @@ void CAgent::routine_work(void* param) {
 
 //定周期処理手順1　外部信号入力加工処理
 void CAgent::input() {
+	
+	//ジョブリストのチェック →　コマンドの取り込み
+	if (can_job_trigger()) {														//ジョブ可否判定
+		if ((pCSInf->job_list.semiauto_wait_n + pCSInf->job_list.job_wait_n) > 0) {	//ジョブ待ちあり
+			pCom = pPolicy->req_command();											//コマンド取り込み
+			if (pCom != NULL) {														//コマンドステータス初期化											
+				AgentInf_workbuf.auto_on_going = pCom->type;
+				for (int i = 0;i < MOTION_ID_MAX;i++) {
+					if (pCom->is_active_axis[i] == true) pCom->motion_stat[i].iAct = MOTION_ACT_STANDBY;
+					else pCom->motion_stat[i].iAct = MOTION_ACT_COMPLETE;
+				}
+				pCom->com_status = STAT_STANDBY;
+			}
+		}
+	}
 
-	parse_indata();
+
 	return;
 
 };
@@ -81,7 +95,8 @@ void CAgent::input() {
 //定周期処理手順2　メイン処理
 void CAgent::main_proc() {
 
-	update_auto_setting();	//自動実行モードの設定と自動レシピのセット
+	update_auto_control();	//自動実行モードの設定と自動レシピのセット
+
 	set_pc_control();		//PLCがPC指令で動作する軸の選択,
 
 	//PLCへの出力計算
@@ -97,15 +112,20 @@ void CAgent::main_proc() {
 
 //定周期処理手順3　信号出力処理
 /****************************************************************************/
-/*   信号出力	共有メモリ出力								*/
+/*   信号出力	共有メモリ出力												*/
 /****************************************************************************/
 void CAgent::output() {
+
+	//自動関連報告処理
+	
+
 
 	//共有メモリ出力処理
 	memcpy_s(pAgentInf, sizeof(ST_AGENT_INFO), &AgentInf_workbuf, sizeof(ST_AGENT_INFO));
 
+	//タスクパネルへの表示出力
 	wostrs << L" #SL TG:" << fixed<<setprecision(3) << AgentInf_workbuf.auto_pos_target.pos[ID_SLEW];
-	wostrs << L",GAP: " << AgentInf_workbuf.gap_from_target[ID_SLEW];;
+	wostrs << L",GAP: " << pEnv->cal_dist4target(ID_SLEW,false);
 
 	wostrs << L"#BH TG: " << AgentInf_workbuf.pos_target[ID_BOOM_H];
 	wostrs << L",GAP: " << AgentInf_workbuf.gap_from_target[ID_BOOM_H];
@@ -120,18 +140,80 @@ void CAgent::output() {
 };
 
 /****************************************************************************/
-/*   入力信号の分析															*/
-/*   減速距離,　0速判定,　目標までの距離,　自動完了判定用データ				*/
+/*   JOB関連処理															*/
 /****************************************************************************/
-int CAgent::parse_indata() {
+//ジョブの起動可否判定
+bool CAgent::can_job_trigger() { 
+	if (AgentInf_workbuf.auto_on_going | CODE_TYPE_JOB) return false;
+	return true; 
+}
 
-	//0速チェック,減速距離計算
-	for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
-		//0速チェック
+//コマンド完了判定
+bool CAgent::is_command_completed(LPST_COMMAND_BLOCK pCom) {
 
+	bool ans = true;
+	
+	if (pCom == NULL) return true;
+	
+	for (int i = 0;i < MOTION_ID_MAX;i++) {
+		if (pCom->is_active_axis[i] == true) {
+			if(pCom->motion_stat[i].iAct != MOTION_ACT_COMPLETE) ans = false;
+			break;
+		}
 	}
 
-	return 0;
+	return ans;
+}
+
+//振れ止め完了判定
+int CAgent::check_antisway() {
+
+	int ans = 0;
+
+	if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
+		&& (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE]))
+
+		return ans |= 
+
+
+		;
+	else return false;
+	
+	if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
+		&& (AgentInf_workbuf.sway_amp2m[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE])
+		&& (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
+		&& (AgentInf_workbuf.gap2_from_target[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE]))
+		return true;
+	else return false;
+
+
+		//実行中または実行待ちコマンド有
+		if ((pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_ACTIVE) ||
+			(pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_STANDBY) ||
+			(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_ACTIVE) ||
+			(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_STANDBY)) {
+			return false;
+		}
+		//振れ止めは振れ振幅小かつ目標位置到着で完了
+		else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_ANTI_SWAY) {
+
+		}
+		//半自動は目標位置到着で完了
+		else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_SEMI_AUTO) {
+			if ((AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
+				&& (AgentInf_workbuf.gap2_from_target[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE]))
+				return true;
+			else return false;
+		}
+		else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_JOB) {
+			if (pCSInf->n_job_standby < 1) //待機ジョブ無し
+				return true;
+			else
+				return false;
+		}
+		else return false;
+
+	return ans;
 }
 
 /****************************************************************************/
@@ -714,43 +796,6 @@ bool CAgent::can_auto_trigger()
 	}
 
 	return false;
-}
-
-/****************************************************************************/
-/*  自動完了判定															*/
-/****************************************************************************/
-bool CAgent::can_auto_complete() {
-		
-	//実行中または実行待ちコマンド有
-	if ((pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_ACTIVE) ||
-		(pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_STANDBY) ||
-		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_ACTIVE) ||
-		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_STANDBY)){ 
-		return false;
-	}
-	//振れ止めは振れ振幅小かつ目標位置到着で完了
-	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_ANTI_SWAY) {
-		if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-			&& (AgentInf_workbuf.sway_amp2m[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE])
-			&& (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-			&& (AgentInf_workbuf.gap2_from_target[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE]))
-			return true;
-		else return false;
-	}
-	//半自動は目標位置到着で完了
-	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_SEMI_AUTO) {
-		if ((AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-			&& (AgentInf_workbuf.gap2_from_target[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE]))
-			return true;
-		else return false;
-	}
-	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_JOB) {
-		if (pCSInf->n_job_standby < 1) //待機ジョブ無し
-			return true;
-		else 
-			return false;
-	}
-	else return false;
 }
 
 /****************************************************************************/

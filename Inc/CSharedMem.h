@@ -335,6 +335,9 @@ typedef struct stMotionElement {	//運動要素
 /****************************************************************************/
 #define M_STEP_MAX	32
 
+#define MOTION_ACT_COMPLETE	-1
+#define MOTION_ACT_STANDBY	0
+
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン
 	DWORD motion_type;							//動作種別、
@@ -362,13 +365,24 @@ typedef struct stMotionStat {
 /********************************************************************************/
 
 #define JOB_COMMAND_MAX			10			//　JOBを構成するコマンド最大数
-#define JOB_TYPE_SEMIAUTO		1			//　SEMIAUTO
-#define JOB_TYPE_JOB			2			//　JOB
+#define	CODE_TYPE_JOB			0x8000
+#define AUTO_TYPE_ANTI_SWAY		0x0100
+#define AUTO_TYPE_MANUAL		0x0000
+#define AUTO_TYPE_SEMIAUTO		0x8200
+#define AUTO_TYPE_JOB			0x8400
+#define COM_TYPE_PICK			0x0001
+#define COM_TYPE_GRND			0x0002
+#define COM_TYPE_PARK			0x0004
+#define COM_TYPE_FROM_TO		0x0008
+
+#define COM_NO_SEMIAUTO			0
+
 
 typedef struct stCommandBlock {
 	//POLICY SET
-
-	bool is_active_axis[MOTION_ID_MAX];		//動作対象軸　特定の軸を動作させない時に使用
+	int no;											//コマンド No(シーケンス番号）
+	int type;										//コマンド種別
+	bool is_active_axis[MOTION_ID_MAX];				//動作対象軸　特定の軸を動作させない時に使用
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
 
 	//AGENT SET
@@ -402,18 +416,6 @@ typedef struct stCommandList {
 /* 　JOB	:From-Toの搬送作業													*/
 /************************************************************************************/
 #define JOB_REGIST_MAX			10					//　JOB登録最大数
-#define JOB_TYPE_HANDLING	0x00000001
-
-#define JOB_TYPE_NULL		0
-#define JOB_TYPE_SEMI_PICK	1
-#define JOB_TYPE_SEMI_GRND	2
-#define JOB_TYPE_SEMI_PARK	3
-#define JOB_TYPE_FROM_TO	4
-
-#define COMMAND_TYPE_PICK	2
-#define COMMAND_TYPE_GRAND	3
-#define COMMAND_TYPE_PARK	4
-
 #define JOB_N_STEP_SEMIAUTO		1
 
 typedef struct StPosTargets {
@@ -423,16 +425,15 @@ typedef struct StPosTargets {
 
 
 typedef struct stJobSet {
-	int no;											//JOB No(シーケンス番号）
-	int type;										//JOB種別
-	int n_command;									//JOB構成コマンド数
 
-	//Recipe
-	int n_step;									//コマンド数
+	//CS SET
+	int no;										//JOB No(シーケンス番号）
+	int type;									//JOB種別（JOB,半自動,PARK,PICK,GRAND））
+	int n_command;								//JOB構成コマンド数
 	int step_type[JOB_COMMAND_MAX];				//各ステップのタイプ
 	ST_POS_TARGETS target[JOB_COMMAND_MAX];		//各コマンドの目標位置	
 		
-	//status
+	//POLICY SET
 	int status;									//JOB実行状態
 	DWORD step_elapsed[JOB_COMMAND_MAX];		//step経過時間ms
 	SYSTEMTIME time_start;
@@ -494,12 +495,6 @@ typedef struct stPolicyInfo {
 /*   Agent	情報定義構造体                                   　   　		*/
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
-
-#define AUTO_TYPE_ANTI_SWAY	0x01
-#define AUTO_TYPE_SEMI_AUTO	0x11
-#define AUTO_TYPE_JOB		0x21
-#define AUTO_TYPE_MANUAL	0x00
-
 typedef struct stAgentInfo {
 
 	ST_COMMAND_BLOCK comset_as;						//振れ止め用コマンドセット

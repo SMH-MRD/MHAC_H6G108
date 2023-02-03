@@ -63,8 +63,8 @@ void CClientService::routine_work(void* param) {
 	output();
 };
 
-//定周期処理手順1　外部信号入力
-
+//# 定周期処理手順1　外部信号入力
+/***  JOB関連入力信号処理（自動開始PB)   ***/
 
 void CClientService::input() {
 
@@ -72,14 +72,12 @@ void CClientService::input() {
 	if (pPLC_IO->ui.PB[ID_PB_AUTO_START])CS_workbuf.plc_pb[ID_PB_AUTO_START]++;
 	else CS_workbuf.plc_pb[ID_PB_AUTO_START] = 0;
 
-
 	return;
-
 };
 
-//定周期処理手順2　メイン処理
 
-static DWORD PLC_Dbg_last_input = 0;
+//# 定周期処理手順2　メイン処理
+/***  モード管理,JOB/半自動監視更新処理   ***/
 
 void CClientService::main_proc() {
 
@@ -90,7 +88,7 @@ void CClientService::main_proc() {
 	else;
 	
 	/*### 半自動処理 ###*/
-	//半自動設定更新,半自動ジョブセット
+	//半自動設定操作処理
 	for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
 		//PB ON時間カウント 半自動リセット時間まで
 		if (pPLC_IO->ui.PBsemiauto[i] <= 0) CS_workbuf.semiauto_pb[i] = 0;
@@ -114,9 +112,11 @@ void CClientService::main_proc() {
 		else;
 	}
 
+	//JOB登録処理（自動開始PB処理）
+	//半自動ジョブ登録
 	if (CS_workbuf.plc_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
-		if(CS_workbuf.semi_auto_selected != SEMI_AUTO_TG_CLR) update_semiauto_list(CS_ADD_SEMIAUTO,JOB_TYPE_SEMI_PARK, CS_workbuf.semi_auto_selected);
-		else update_semiauto_list(CS_CLEAR_SEMIAUTO, JOB_TYPE_NULL, CS_workbuf.semi_auto_selected);
+		if(CS_workbuf.semi_auto_selected != SEMI_AUTO_TG_CLR) update_semiauto_list(CS_ADD_SEMIAUTO, AUTO_TYPE_SEMIAUTO | COM_TYPE_PARK, CS_workbuf.semi_auto_selected);
+		else update_semiauto_list(CS_CLEAR_SEMIAUTO, AUTO_TYPE_MANUAL, CS_workbuf.semi_auto_selected);
 	}
 
 	//半自動設定解除
@@ -131,14 +131,15 @@ void CClientService::main_proc() {
 
 }
 
-//定周期処理手順3　信号出力処理
+//# 定周期処理手順3　信号出力, 上位レスポンス処理
+//ジョブ関連ランプ表示他
 void CClientService::output() {
 
 /*### 自動関連ランプ表示　###*/
 	//振れ止めランプ　自動開始ランプ(JOB実行中点灯,JOB実行中でなく登録JOB有で点滅、その他消灯）
 	if (CS_workbuf.auto_standby) {//自動モード時
 		//自動開始ランプ
-		if ((pAgent_Inf->auto_on_going == AUTO_TYPE_JOB) || (pAgent_Inf->auto_on_going == AUTO_TYPE_SEMI_AUTO)) {//JOB実行中
+		if ((pAgent_Inf->auto_on_going == AUTO_TYPE_JOB) || (pAgent_Inf->auto_on_going == AUTO_TYPE_SEMIAUTO)) {//JOB実行中
 			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;//マニュアル
 		}
 		else {
@@ -195,15 +196,19 @@ void CClientService::output() {
 	return;
 
 };
+
 /****************************************************************************/
-/*   半自動関連																*/
+/*   半自動関連処理															*/
+/*   command	:追加,削除等												*/
+/*   type		:半自動種類　PARK,PICK,GRAND								*/
+/*   code		:半自動動作指定コード　選択中半自動PB  						*/
 /****************************************************************************/
 int CClientService:: update_semiauto_list(int command, int type, int code){
 	switch (command) {
 	case CS_CLEAR_SEMIAUTO: {	//半自動ジョブクリア
 		CS_workbuf.job_list.semiauto_wait_n = 0;
 		CS_workbuf.job_list.i_semiauto_active = 0;
-		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status = REQ_WAITING;
+		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status = STAT_STANDBY;
 		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].type = type;
 		return ID_OK;
 	}break;
@@ -214,7 +219,7 @@ int CClientService:: update_semiauto_list(int command, int type, int code){
 		else {
 			CS_workbuf.job_list.semiauto_wait_n = 1;
 			CS_workbuf.job_list.i_semiauto_active = 0;		//当面半自動はid=0のみ使用
-			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].n_step = JOB_N_STEP_SEMIAUTO;
+			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].n_command = JOB_N_STEP_SEMIAUTO;
 			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].target[0] = CS_workbuf.semi_auto_setting_target[code];
 			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].type = type;
 
@@ -235,8 +240,8 @@ int CClientService::update_job_list(int command, int code) {
 	case CS_CLEAR_JOB: {	//ジョブクリア
 		CS_workbuf.job_list.job_wait_n = 0;
 		CS_workbuf.job_list.i_job_active = 0;
-		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].n_step = 0;
-		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].status = REQ_WAITING;
+		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].n_command = 0;
+		CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].status = STAT_WAITING;
 		return ID_OK;
 	}break;
 	case CS_ADD_JOB: {	//更新

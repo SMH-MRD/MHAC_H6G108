@@ -99,24 +99,31 @@
 #define USE_REMOTE_SIM_COMMAND          0x0010//遠隔操作入力にリモートシミュレータの出力値を使う
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
-/*** ステータス ***/
-#define REQ_WAITING          0       //受け待ち
-#define REQ_STANDBY          1       //準備完了
-#define REQ_ACTIVE           2       //実行中
-#define REQ_PAUSED           3       //一時停止
-#define FIN_NORMAL           4       //正常完了
-#define FIN_ABORT           10      //中断完了
-#define FIN_ERROR           -1      //異常完了
-#define FIN_TIME_OVER       -2      //タイムオーバー
+/*** ジョブ,コマンドステータス ***/
+#define STAT_WAITING     0       //受け待ち報告
+#define STAT_STANDBY     1       //準備完了報告
+#define STAT_ACTIVE      2       //実行中報告
+#define STAT_PAUSED      3       //一時停止報告
+
+/*** ジョブ,コマンドFBコード ***/
+#define FB_FIN           1       //受け待ち報告
+#define FB_FAULT         2       //異常報告（実行不可等）
+#define FB_STATUS        3       //ステータス情報更新（コマンド進行状況等）
+
+/*** ジョブ,コマンド完了コード ***/
+#define FIN_NORMAL       4       //正常完了
+#define FIN_ABORT        10      //中断完了
+#define FIN_ERROR        -1      //異常完了
+#define FIN_TIME_OVER    -2      //タイムオーバー
 
 /*** 応答 ***/
-#define ID_ACCEPTED          1        //受付完了
-#define ID_REJECTED          -1       //受付不可
-#define ID_NO_REQUEST        0        //要求無し
-#define ID_EXIST              1       //有り
-#define ID_NA                 0       //特になし
-#define ID_OK                 1       //有り
-#define ID_NG                -1       //特になし
+#define ID_ACCEPTED      1        //受付完了
+#define ID_REJECTED      -1       //受付不可
+#define ID_NO_REQUEST    0        //要求無し
+#define ID_EXIST         1       //有り
+#define ID_NA            0       //特になし
+#define ID_OK            1       //有り
+#define ID_NG            -1       //特になし
 
 class CBasicControl //基本制御クラス
 {

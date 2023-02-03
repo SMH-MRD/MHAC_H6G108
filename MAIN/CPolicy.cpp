@@ -82,11 +82,11 @@ void CPolicy::main_proc() {
 	return;
 }
 
-//定周期処理手順3　信号出力処理
+//定周期処理手順3　表示,信号出力処理
 void CPolicy::output() {
 	//共有メモリ出力処理
 	memcpy_s(pPolicyInf, sizeof(ST_POLICY_INFO), &PolicyInf_workbuf, sizeof(ST_POLICY_INFO));
-
+	//タスクパネルへの表示出力
 	wostrs << L" --Scan " << dec << inf.period;
 	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
 	return;
@@ -98,18 +98,18 @@ void CPolicy::output() {
 // AGENTからのコマンド要求処理
 LPST_COMMAND_BLOCK CPolicy::req_command() {
 
-	if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status != REQ_ACTIVE) {							// Job実行中でない
-		if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == REQ_STANDBY) {			// 半自動準備完了（自動開始入力済）
-			return create_semiauto_command(&(pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active]));																//　半自動コマンドを作成してポインタを返す
+	if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status != STAT_ACTIVE) {							// Job実行中でない
+		if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_STANDBY) {				// 半自動準備完了（自動開始入力済）
+			return create_semiauto_command(&(pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active]));	//　半自動コマンドを作成してポインタを返す
 		}
-		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == REQ_ACTIVE) {		// 半自動実行中
-			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);	//実行中コマンドのポインタを返す
+		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_ACTIVE) {			// 半自動実行中
+			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);		//実行中コマンドのポインタを返す
 		}
-		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status == REQ_STANDBY) {				// JOB準備完了（クライアントからのJOB受信済）
-			return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_active]));																	// JOBコマンドを作成してポインタを返す
+		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status == STAT_STANDBY) {					// JOB準備完了（クライアントからのJOB受信済）
+			return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_active]));					// JOBコマンドを作成してポインタを返す
 		}
-		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == REQ_WAITING) {		// 半自動要求待ち（自動開始入力待ち）
-			return NULL;																					//NULLポインタを返す
+		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_WAITING) {		// 半自動要求待ち（自動開始入力待ち）
+			return NULL;																						//NULLポインタを返す
 		}
 		else {
 			return NULL;
@@ -739,13 +739,19 @@ int CPolicy::set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 }
 
 
-LPST_COMMAND_BLOCK CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {	//実行する半自動コマンドをセットする
+LPST_COMMAND_BLOCK CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {							//実行する半自動コマンドをセットする
 	
-	LPST_COMMAND_BLOCK lp_semiauto_com = &(pPolicyInf->command_list.commands[0]);//コマンドリストのポインタセット
+	LPST_COMMAND_BLOCK lp_semiauto_com = &(pPolicyInf->command_list.commands[0]);					//コマンドブロックのポインタセット
 	
-	lp_semiauto_com->p_comlist = &(pPolicyInf->command_list);
+	lp_semiauto_com->no = COM_NO_SEMIAUTO;
+	lp_semiauto_com->type = AUTO_TYPE_SEMIAUTO;
 
-	set_com_workbuf(pjob->target[0], AUTO_TYPE_SEMI_AUTO);											//半自動パターン作成用データ取り込み
+	for (int i = 0;i < MOTION_ID_MAX;i++) lp_semiauto_com->is_active_axis[i]= false;
+	lp_semiauto_com->is_active_axis[ID_HOIST] = true;
+	lp_semiauto_com->is_active_axis[ID_SLEW] = true;
+	lp_semiauto_com->is_active_axis[ID_BOOM_H] = true;
+	
+	set_com_workbuf(pjob->target[0], AUTO_TYPE_SEMIAUTO);											//半自動パターン作成用データ取り込み
 
 	set_receipe_semiauto_bh(pjob->type, &(lp_semiauto_com->recipe[ID_BOOM_H]), true, &st_com_work);
 	set_receipe_semiauto_slw(pjob->type, &(lp_semiauto_com->recipe[ID_SLEW]), true, &st_com_work);
@@ -770,7 +776,7 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS targets, int type) {
 
 	st_com_work.agent_scan_ms = pAgent->inf.cycle_ms;;                 //AGENTタスクのスキャンタイム
 	switch(type){
-	case AUTO_TYPE_SEMI_AUTO: {
+	case AUTO_TYPE_SEMIAUTO: {
 
 		st_com_work.target = targets;																//目標位置
 
