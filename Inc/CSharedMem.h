@@ -307,11 +307,9 @@ typedef struct StCraneStatus {
 #define CTR_TYPE_AOUT_PHASE     			114  //加速速度　位相到達完了
 #define CTR_TYPE_AOUT_LAND					115  //加速速度　着床完了
 
-
 #define CTR_TYPE_FINE_POS					200	//微小位置合わせ
 #define CTR_TYPE_FB_SWAY					300	//FB振れ止め
 #define CTR_TYPE_FB_SWAY_POS				301	//FB振れ止め位置決め
-
 
 #define TIME_LIMIT_CONFIRMATION				0.1		//パターン出力調整時間 秒
 #define TIME_LIMIT_FINE_POS					10.0	//微小位置合わせ制限時間 秒
@@ -499,6 +497,7 @@ typedef struct stAgentInfo {
 
 	ST_COMMAND_BLOCK comset_as;						//振れ止め用コマンドセット
 	ST_POS_TARGETS auto_pos_target;					//自動目標位置
+	int antisway_comple_status;						//振れ止め完了状態
 	double dist_for_target[MOTION_ID_MAX];			//目標までの距離
 	int auto_on_going;								//実行中の自動種別
 	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中フラグ(軸毎)

@@ -35,9 +35,7 @@ typedef struct stPolicyWork {
     double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
     ST_POS_TARGETS target;                      //目標位置
     int motion_dir[MOTION_ID_MAX];              //移動方向
-    double sway_amp[MOTION_ID_MAX];             //振れ振幅
-    double sway_amp2[MOTION_ID_MAX];            //振れ振幅２乗
-    unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
+     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
 }ST_POLICY_WORK, * LPST_POLICY_WORK;
 
 

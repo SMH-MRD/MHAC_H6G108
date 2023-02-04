@@ -100,7 +100,7 @@
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
 /*** ジョブ,コマンドステータス ***/
-#define STAT_WAITING     0       //受け待ち報告
+#define STAT_WAITING     -1      //受け待ち報告
 #define STAT_STANDBY     1       //準備完了報告
 #define STAT_ACTIVE      2       //実行中報告
 #define STAT_PAUSED      3       //一時停止報告

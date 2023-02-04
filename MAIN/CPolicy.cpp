@@ -325,12 +325,6 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		D -= d_move;
 
 		//STEP6
-		double tc = 0.5 * st_com_work.T - 2.0 * ta;
-		if (tc < 0.0) {
-			int n = (int)(-tc / st_com_work.T) + 1;
-			tc += (double)n * st_com_work.T;
-		}
-
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_VOUT_TIME;									// 加速用速度出力
 		pelement->_t = ta;														// 位相待ち停止時間
@@ -612,12 +606,6 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 		D -= d_move;
 
 		//STEP6
-		double tc = 0.5 * st_com_work.T - 2.0 * ta;
-		if (tc < 0.0) {
-			int n = (int)(-tc / st_com_work.T) + 1;
-			tc += (double)n * st_com_work.T;
-		}
-
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_VOUT_TIME;									// 加速用速度出力
 		pelement->_t = ta;														// 位相待ち停止時間
@@ -817,8 +805,6 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS targets, int type) {
 				st_com_work.a_hp[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);		//吊点の加速度
 				st_com_work.pp_th0[i][ACC] = pEnvironment->cal_arad_acc(i, FWD);					//加速時振れ中心
 				st_com_work.pp_th0[i][DEC] = pEnvironment->cal_arad_dec(i, REV);					//減速時振れ中心
-				st_com_work.sway_amp[i] = pSway_IO->rad_amp2[i];									//振れ振幅2乗
-				st_com_work.sway_amp[i] = sqrt(pSway_IO->rad_amp2[i]);		;						//振れ振幅
 			}
 
 		}

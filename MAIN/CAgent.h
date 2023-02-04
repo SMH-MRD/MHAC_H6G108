@@ -36,8 +36,7 @@ typedef struct stAgentWork {
     double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
  
     int motion_dir[MOTION_ID_MAX];              //移動方向
-    double sway_amp[MOTION_ID_MAX];             //振れ振幅
-    double sway_amp2[MOTION_ID_MAX];            //振れ振幅２乗
+
     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
 }ST_AGENT_WORK, * LPST_AGENT_WORK;
 
@@ -68,43 +67,38 @@ public:
     ST_AGENT_WORK   st_as_work;                     //振れ止めパターン作成用
 
     bool can_job_trigger();                         //ジョブの起動可否判定
-    bool can_auto_trigger();
     int update_auto_control();                      //自動条件の更新
-    
-    
-    
-    LPST_AGENT_WORK set_as_workbuf(ST_POS_TARGETS trgets, int type);
-    
-    bool can_auto_trigger();
-    bool is_command_completed(LPST_COMMAND_BLOCK pCom);
-    int  check_antisway();
-   
     int cleanup_command(LPST_COMMAND_BLOCK pcom);
 
-    LPST_COMMAND_BLOCK pCom;
-
+    void set_as_workbuf(); //振れ止めパターン作成用データ取り込み
+    int setup_as_command();
+    int set_receipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
+    int set_receipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
+        
+    LPST_AGENT_WORK set_as_workbuf(ST_POS_TARGETS trgets, int type);
+    
+    bool is_command_completed(LPST_COMMAND_BLOCK pCom);
+    int check_as_completed();
    
+    LPST_COMMAND_BLOCK pCom;
+       
     int dbg_mont[8];//デバッグ用
 
     void input();                                           //外部データ取り込み
     void main_proc();                                       //処理内容
     void output();                                          //出力データ更新
  
-    int set_pc_control();                                   //PC選択指令軸設定
+    int update_motion_setting();                               //各軸の制御モード,PLCへのPC選択指令軸設定
     int set_ref_mh();                                       //巻速度指令値出力
     int set_ref_gt();                                       //走行速度指令値出力
     int set_ref_slew();                                     //旋回速度指令値出力
     int set_ref_bh();                                       //引込速度指令値出力
 
-    int set_receipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
-    int set_receipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
-  
-    
+      
     void update_pb_lamp_com();                              //ランプ表示出力
-
+     
  
-    void set_auto_active(int type);                         //各軸のauto_activeフラグセット
-    double cal_step(LPST_COMMAND_BLOCK pCom, int motion);     //自動指令出力値の計算
+    double cal_step(LPST_COMMAND_BLOCK pCom, int motion);   //自動指令出力値の計算
 
                                                         
     //タブパネルのStaticテキストを設定

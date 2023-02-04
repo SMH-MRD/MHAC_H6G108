@@ -95,9 +95,21 @@ void CAgent::input() {
 //定周期処理手順2　メイン処理
 void CAgent::main_proc() {
 
-	update_auto_control();	//自動実行モードの設定と自動レシピのセット
+	//モードセット
+	//自動モードOFF
+	if (pCSInf->auto_standby == false)		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+	//コマンド取り込み済
+	else if (pCom != NULL) {
+		if(pCom->type == AUTO_TYPE_JOB)		AgentInf_workbuf.auto_on_going = AUTO_TYPE_JOB;
+	    else								AgentInf_workbuf.auto_on_going = AUTO_TYPE_SEMIAUTO;
+	}
+	//振れ止め完了状態
+	else if(AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) 
+											AgentInf_workbuf.auto_on_going = AUTO_TYPE_ANTI_SWAY;
+	else									AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 
-	set_pc_control();		//PLCがPC指令で動作する軸の選択,
+	update_motion_setting();//PLCがPC指令で動作する軸の選択,
+	update_auto_control();	//自動実行モードの設定と自動レシピのセット
 
 	//PLCへの出力計算
 	set_ref_mh();			//巻き速度指令
@@ -119,7 +131,6 @@ void CAgent::output() {
 	//自動関連報告処理
 	
 
-
 	//共有メモリ出力処理
 	memcpy_s(pAgentInf, sizeof(ST_AGENT_INFO), &AgentInf_workbuf, sizeof(ST_AGENT_INFO));
 
@@ -127,8 +138,8 @@ void CAgent::output() {
 	wostrs << L" #SL TG:" << fixed<<setprecision(3) << AgentInf_workbuf.auto_pos_target.pos[ID_SLEW];
 	wostrs << L",GAP: " << pEnv->cal_dist4target(ID_SLEW,false);
 
-	wostrs << L"#BH TG: " << AgentInf_workbuf.pos_target[ID_BOOM_H];
-	wostrs << L",GAP: " << AgentInf_workbuf.gap_from_target[ID_BOOM_H];
+	wostrs << L"#BH TG: " << AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H];
+	wostrs << L",GAP: " << pEnv->cal_dist4target(ID_BOOM_H, false);
 
 	wostrs << L",ActiveSet: " << dbg_mont[0];
 	
@@ -165,69 +176,60 @@ bool CAgent::is_command_completed(LPST_COMMAND_BLOCK pCom) {
 	return ans;
 }
 
-//振れ止め完了判定
-int CAgent::check_antisway() {
-
-	int ans = 0;
-
-	if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-		&& (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE]))
-
-		return ans |= 
-
-
-		;
-	else return false;
-	
-	if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-		&& (AgentInf_workbuf.sway_amp2m[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE])
-		&& (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-		&& (AgentInf_workbuf.gap2_from_target[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE]))
-		return true;
-	else return false;
-
-
-		//実行中または実行待ちコマンド有
-		if ((pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_ACTIVE) ||
-			(pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_STANDBY) ||
-			(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_ACTIVE) ||
-			(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_STANDBY)) {
-			return false;
-		}
-		//振れ止めは振れ振幅小かつ目標位置到着で完了
-		else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_ANTI_SWAY) {
-
-		}
-		//半自動は目標位置到着で完了
-		else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_SEMI_AUTO) {
-			if ((AgentInf_workbuf.gap2_from_target[ID_BOOM_H] < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-				&& (AgentInf_workbuf.gap2_from_target[ID_SLEW] < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE]))
-				return true;
-			else return false;
-		}
-		else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_JOB) {
-			if (pCSInf->n_job_standby < 1) //待機ジョブ無し
-				return true;
-			else
-				return false;
-		}
-		else return false;
-
-	return ans;
-}
-
 /****************************************************************************/
 /*　　PC制御選択セット処理													*/
 /****************************************************************************/
-int CAgent::set_pc_control() {
+int CAgent::update_motion_setting() {
 
-	//デバッグモード要求
+	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_ANTI_SWAY) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_ANTI_SWAY;
+		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_ANTI_SWAY;
+		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
+	}
+	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_SEMIAUTO) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_SEMIAUTO;
+		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_SEMIAUTO;
+		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_SEMIAUTO;
+		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
+	}
+	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_JOB) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_JOB;
+		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_JOB;
+		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_JOB;
+		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_JOB;
+		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
+	}
+	else {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
+	}
+
+
+	//PLCへのPC選択指令セット
 	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) {
 		AgentInf_workbuf.pc_ctrl_mode |= (BITSEL_HOIST | BITSEL_GANTRY | BITSEL_BOOM_H | BITSEL_SLEW);
 	}
 	else {
 		AgentInf_workbuf.pc_ctrl_mode = 0;
-		if(AgentInf_workbuf.auto_active[ID_HOIST])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_HOIST;
+		if (AgentInf_workbuf.auto_active[ID_HOIST])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_HOIST;
 		if (AgentInf_workbuf.auto_active[ID_GANTRY])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_GANTRY;
 		if (AgentInf_workbuf.auto_active[ID_BOOM_H])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_BOOM_H;
 		if (AgentInf_workbuf.auto_active[ID_SLEW])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_SLEW;
@@ -235,6 +237,133 @@ int CAgent::set_pc_control() {
 
 	return 0;
 }
+
+
+/****************************************************************************/
+/*	自動関連設定					*/
+/****************************************************************************/
+//振れ止め完了判定
+int CAgent::check_as_completed() {
+
+	int check = AS_COMPLETE_0;
+
+	//振れ振幅、位置ずれともに完了レベル以内
+	if ((pEnv->cal_sway_r_amp2_m() < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
+		&& (pEnv->cal_dist4target(ID_BOOM_H, true) < pCraneStat->spec.as_pos_level[ID_BOOM_H][ID_LV_COMPLE]))
+
+		check |= AS_COMPLETE_BH;
+
+
+	if ((pEnv->cal_sway_th_amp2_m() < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE])
+		&& (pEnv->cal_dist4target(ID_SLEW, true) < pCraneStat->spec.as_pos_level[ID_SLEW][ID_LV_COMPLE]))
+
+		check |= AS_COMPLETE_SLEW;
+
+
+	//振れ振幅、位置ずれともに起動判定レベル以内　かつ　振れ止め完了フラグON
+	if (pAgentInf->antisway_comple_status | AS_COMPLETE_BH) {
+		if ((pEnv->cal_sway_r_amp2_m() < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_TRIGGER])
+			&& (pEnv->cal_dist4target(ID_BOOM_H, true) < pCraneStat->spec.as_pos_level[ID_BOOM_H][ID_LV_TRIGGER]))
+
+			check |= AS_COMPLETE_BH;
+	}
+
+	if (pAgentInf->antisway_comple_status | AS_COMPLETE_SLEW) {
+		if ((pEnv->cal_sway_th_amp2_m() < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_TRIGGER])
+			&& (pEnv->cal_dist4target(ID_SLEW, true) < pCraneStat->spec.as_pos_level[ID_SLEW][ID_LV_TRIGGER]))
+
+			check |= AS_COMPLETE_SLEW;
+	}
+
+
+	pAgentInf->antisway_comple_status = check;
+
+	return check;
+}
+
+int CAgent::set_receipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork) {
+
+	return 0;
+};
+int CAgent::set_receipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork) {
+
+	return 0;
+};
+
+void CAgent::set_as_workbuf() {
+	return;;
+}
+
+//振れ止めコマンドセット
+int CAgent::setup_as_command() {
+
+	pAgentInf->comset_as.is_active_axis[ID_HOIST] = false;
+	pAgentInf->comset_as.is_active_axis[ID_SLEW] = true;
+	pAgentInf->comset_as.is_active_axis[ID_BOOM_H] = true;
+
+	set_as_workbuf(); //振れ止めパターン作成用データ取り込み
+
+	set_receipe_as_bh(&(AgentInf_workbuf.comset_as.recipe[ID_BOOM_H]), true, &st_as_work);
+	set_receipe_as_slw(&(AgentInf_workbuf.comset_as.recipe[ID_SLEW]), true, &st_as_work);
+
+	return 0;
+}
+
+
+//自動関連各種設定・振れ止めレシピ設定
+int CAgent::update_auto_control() {
+
+	dbg_mont[0] = 0;//@@@ debug/
+
+	/*### 振れ止め完了判定　###*/
+	AgentInf_workbuf.antisway_comple_status = check_as_completed();
+					
+	/*### 目標位置設定　###*/
+
+	//自動（振れ止め）モードでない
+	if (pCSInf->auto_standby == false) {
+		//目標位置＝現在位置
+		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
+			AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
+			AgentInf_workbuf.auto_pos_target.is_held[i] = false;
+		}
+	}
+	//自動実行　マニュアルモード
+	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
+		//目標位置保持フラグ無し＝現在位置　目標位置保持フラグあり＝目標位置変更なし現在位置
+		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
+			//ノッチ入りで目標保持フラグクリア
+			if(pCraneStat->is_notch_0[i] == false)	AgentInf_workbuf.auto_pos_target.is_held[i] = false;
+
+			//目標位置保持フラグ切りで現在位置
+			if(AgentInf_workbuf.auto_pos_target.is_held[i] == false) AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
+
+		}
+	}
+	//自動実行　振れ止め実行、ジョブ実行時は変更なし
+	else {
+		;//コマンド起動時に目標位置と目標位置保持フラグを設定する。
+	}
+
+	/*### 振れ止めコマンド設定　###*/
+	
+	//自動（振れ止め）モードでない
+	if (pCSInf->auto_standby == false) {
+		; //処理無し
+	}
+	//自動実行　マニュアルモード
+	else {
+		//振れ止め未完で振れ止めコマンドが実行中でなければ、振れ止めコマンド設定
+		if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
+			if (AgentInf_workbuf.comset_as.com_status == STAT_WAITING) {
+				setup_as_command();
+			}
+		}
+	}
+
+	return 0;
+};
+
 
 /****************************************************************************/
 /*   巻指令出力処理		                                                    */
@@ -765,237 +894,7 @@ double CAgent::cal_step(LPST_COMMAND_BLOCK pCom,int motion) {
 }
 
 /****************************************************************************/
-/*  自動起動可否チェック													*/
-/****************************************************************************/
-bool CAgent::can_auto_trigger()
-{
-	if ((pPolicyInf->com[pPolicyInf->i_com].com_status != COMMAND_STAT_ACTIVE) &&
-		(pPolicyInf->com[pPolicyInf->i_com].com_status != COMMAND_STAT_STANDBY) &&
-		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_ACTIVE)&&
-		(pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_STANDBY)) {
-
-		if ((AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL)&&(pCraneStat->auto_standby == true)) {
-			//引込,旋回の0速確認で起動可
-			if (AgentInf_workbuf.is_spdfb_0[ID_SLEW] && AgentInf_workbuf.is_spdfb_0[ID_BOOM_H]) {
-				if ((AgentInf_workbuf.sway_amp2m[ID_BOOM_H] > pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_TRIGGER])
-					|| (AgentInf_workbuf.sway_amp2m[ID_SLEW] > pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_TRIGGER])
-					|| (AgentInf_workbuf.gap2_from_target[ID_BOOM_H] > pCraneStat->spec.as_pos2_level[ID_BOOM_H][ID_LV_TRIGGER])
-					|| (AgentInf_workbuf.gap2_from_target[ID_SLEW] > pCraneStat->spec.as_pos2_level[ID_SLEW][ID_LV_TRIGGER])){
-					return true;
-				}
-			}
-			if ((pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR)
-				&& (pCraneStat->auto_start_pb_count > AGENT_AUTO_TRIG_ACK_COUNT)) {
-				return true;
-			}
-		}
-		else return true;
-	}
-	else {
-		return false;
-	}
-
-	return false;
-}
-
-/****************************************************************************/
-/*  個別軸毎に実行中の自動タイプセット											*/
-/****************************************************************************/
-void CAgent::set_auto_active(int type) {
-	if (type == AUTO_TYPE_ANTI_SWAY) {
-		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_ANTI_SWAY;
-		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_ANTI_SWAY;
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
-	}
-	else if (type == AUTO_TYPE_SEMI_AUTO) {
-		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_SEMI_AUTO;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_SEMI_AUTO;
-		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_SEMI_AUTO;
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
-	}
-	else if (type == AUTO_TYPE_JOB) {
-		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
-	}
-	else {
-		AgentInf_workbuf.auto_active[ID_HOIST]	= AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_SLEW]	= AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM]= AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
-	}
-}
-
-/****************************************************************************/
-/*  実行自動タイプ（全体）セット,　手動時目標位置セット,自動レシピセット	*/
-/****************************************************************************/
-int CAgent::update_auto_setting() {
-	
-	dbg_mont[0] = 0;//@@@ debug/
-
-	//自動起動処理
-	if (pCSInf->auto_standby == false) {//自動（振れ止め）モードでない
-	
-		//手動時目標位置
-		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
-			AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
-			AgentInf_workbuf.auto_pos_target.to_be_hold[i] = false;
-		}
-
-		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
-			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-			set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 1;//@@@ debug/
-			pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_END;
-			pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_END;
-		}
-	}x
-	else if (can_auto_complete()) {
-		pCom->com_status = COMMAND_STAT_END;
-		pCom = NULL;
-		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-		set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 2;//@@@ debug/
-	}
-	else if ((pCraneStat->is_notch_0[ID_SLEW] == false) || (pCraneStat->is_notch_0[ID_BOOM_H]) == false) {
-		//手動時目標位置
-		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
-			AgentInf_workbuf.pos_target[i] = pPLC_IO->status.pos[i];
-			AgentInf_workbuf.be_hold_target[i] = false;
-		}
-		if (AgentInf_workbuf.auto_on_going != AUTO_TYPE_MANUAL) {
-			AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-			set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 9;//@@@ debug/
-			if (pPolicyInf->com[pPolicyInf->i_com].com_status != COMMAND_STAT_END) pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_ABORT;
-			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status != COMMAND_STAT_END) pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_ABORT;
-		}
-		
-		if(pCraneStat->is_notch_0[ID_SLEW] == false) AgentInf_workbuf.be_hold_target[ID_SLEW] = false;
-		if (pCraneStat->is_notch_0[ID_BOOM_H] == false) AgentInf_workbuf.be_hold_target[ID_BOOM_H] = false;
-	}
-	else if(can_auto_trigger()) {
-		if ((pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR)
-			&&(pCraneStat->auto_start_pb_count > AGENT_AUTO_TRIG_ACK_COUNT)) {	//半自動設定有で自動開始PB ON
-	
-			//コマンド生成
-			pCom = pPolicy->generate_command(AUTO_TYPE_SEMI_AUTO, AgentInf_workbuf.pos_target);
-
-			if (pCom != NULL) {
-				AgentInf_workbuf.auto_on_going = AUTO_TYPE_SEMI_AUTO;
-				set_auto_active(AUTO_TYPE_SEMI_AUTO);	dbg_mont[0] = 3;//@@@ debug/
-				cleanup_command(pCom);
-				//目標キープフラグ
-				for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.be_hold_target[i] = true;
-			}
-			else {
-				set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 10;//@@@ debug/
-			}
-		}
-		else if ((pCSInf->n_job_standby > 0) 
-			&& (pCraneStat->auto_start_pb_count > AGENT_AUTO_TRIG_ACK_COUNT)) {
-	
-			//コマンド生成
-			pCom = pPolicy->generate_command(AUTO_TYPE_JOB, AgentInf_workbuf.pos_target);
-			if (pCom != NULL) {
-				AgentInf_workbuf.auto_on_going = AUTO_TYPE_JOB;
-				set_auto_active(AUTO_TYPE_JOB);	dbg_mont[0] = 4;//@@@ debug/
-				cleanup_command(pCom);
-				//目標キープフラグ
-				for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.be_hold_target[i] = true;
-			}
-			else {
-				set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 5;//@@@ debug/
-			}
-		}
-		else {
-
-			//コマンド生成
-			pCom = pPolicy->generate_command(AUTO_TYPE_ANTI_SWAY, AgentInf_workbuf.pos_target);
-			if (pCom != NULL) {
-				AgentInf_workbuf.auto_on_going = AUTO_TYPE_ANTI_SWAY;
-				set_auto_active(AUTO_TYPE_ANTI_SWAY);	dbg_mont[0] = 6;//@@@ debug/
-				cleanup_command(pCom);
-				//目標キープフラグ
-				for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.be_hold_target[i] = true;
-			}
-			else {
-				set_auto_active(AUTO_TYPE_MANUAL);	dbg_mont[0] = 7;//@@@ debug/
-			}
-		}
-	}
-	else;
-
-	//コマンド実行完了判定
-	if (pPolicyInf->com[pPolicyInf->i_com].com_status == COMMAND_STAT_ACTIVE) {
-		bool is_active_motion_there = false;
-		for (int i = 0; i < MOTION_ID_MAX;i++) {
-			
-			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_END) {
-				AgentInf_workbuf.auto_active[i] = AUTO_TYPE_MANUAL; //軸モードをマニュアルに
-			}
-
-			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_ERROR)
-				pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_ERROR;
-			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_ABORT)
-				pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_ABORT;
-			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_PAUSE)
-				pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_PAUSE;
-			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_ACTIVE) {
-				is_active_motion_there = true;
-			}
-			if (pPolicyInf->com[pPolicyInf->i_com].motion_stat[i].status == COMMAND_STAT_STANDBY) {
-				is_active_motion_there = true;
-			}
-		}
-		if (is_active_motion_there == false)
-			pPolicyInf->com[pPolicyInf->i_com].com_status = COMMAND_STAT_END;
-
-	}
-
-	if (pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status == COMMAND_STAT_ACTIVE) {
-		bool is_active_motion_there = false;
-		for (int i = 0; i < MOTION_ID_MAX;i++) {
-			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_END) {
-				AgentInf_workbuf.auto_active[i] = AUTO_TYPE_MANUAL; //軸モードをマニュアルに
-			}
-			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_ERROR)
-				pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_ERROR;
-			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_ABORT)
-				pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_ABORT;
-			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_PAUSE)
-				pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_PAUSE;
-			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_ACTIVE) {
-				is_active_motion_there = true;
-			}
-			if (pPolicyInf->job_com[pPolicyInf->i_jobcom].motion_stat[i].status == COMMAND_STAT_STANDBY) {
-				is_active_motion_there = true;
-			}
-		}
-		if (is_active_motion_there == false)
-			pPolicyInf->job_com[pPolicyInf->i_jobcom].com_status = COMMAND_STAT_END;
-	}
-
-	return 0;
-};
-
-/****************************************************************************/
-/*  PB,ランプ指令更新														*/
+/*  PB指令更新	(非常停止,主幹PB他）										*/
 /****************************************************************************/
 
 void CAgent::update_pb_lamp_com() {
