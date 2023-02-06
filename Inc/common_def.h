@@ -100,21 +100,19 @@
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
 /*** ジョブ,コマンドステータス ***/
-#define STAT_WAITING     -1      //受け待ち報告
-#define STAT_STANDBY     1       //準備完了報告
-#define STAT_ACTIVE      2       //実行中報告
-#define STAT_PAUSED      3       //一時停止報告
+#define STAT_WAITING     0x0000      //受け待ち報告
+#define STAT_STANDBY     0x0001      //準備完了報告
+#define STAT_ACTIVE      0x0002      //実行中報告
+#define STAT_PAUSED      0x0004      //一時停止報告
 
-/*** ジョブ,コマンドFBコード ***/
-#define FB_FIN           1       //受け待ち報告
-#define FB_FAULT         2       //異常報告（実行不可等）
-#define FB_STATUS        3       //ステータス情報更新（コマンド進行状況等）
 
 /*** ジョブ,コマンド完了コード ***/
-#define FIN_NORMAL       4       //正常完了
-#define FIN_ABORT        10      //中断完了
-#define FIN_ERROR        -1      //異常完了
-#define FIN_TIME_OVER    -2      //タイムオーバー
+#define STAT_FIN         0x0080     //終了コード
+#define STAT_FAULT       0x8000     //異常コード
+#define FIN_NORMAL       0x0081     //正常完了
+#define FIN_ABORT        0x0082     //中断完了
+#define FIN_FAULT        0x8080     //異常完了
+#define FIN_TIME_OVER    0x8081     //タイムオーバー
 
 /*** 応答 ***/
 #define ID_ACCEPTED      1        //受付完了

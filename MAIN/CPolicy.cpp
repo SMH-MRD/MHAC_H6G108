@@ -202,11 +202,11 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		int n=0, i;
 
 		// #Step1 １段目
-		for (i = NOTCH_MAX;i > 0;i--) {
+		for (i = (NOTCH_MAX-1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 
 			int k = (int)(v_top / st_com_work.a[id] / st_com_work.T);					// k > 0 →　加速時間が振れ周期以上
-			check_d = v_top * (1 + k) * st_com_work.T;
+			check_d = v_top * (1.0 + (double)k) * st_com_work.T;
 			if (check_d == 0.0) break;
 
 			n = int(d_step / check_d);
@@ -449,7 +449,7 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 
 			int k = (int)(v_top / st_com_work.a[id] / st_com_work.T);					// k > 0 →　加速時間が振れ周期以上
-			check_d = v_top * (1+k) * st_com_work.T;
+			check_d = v_top * (1.0+ (double)k) * st_com_work.T;
 			if (check_d == 0.0) break;
 
 			n = int(d_step / check_d);
@@ -521,7 +521,7 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 		int n = 0, i;
 
 		// #Step1　１段目
-		for (i = NOTCH_MAX;i > 0;i--) {
+		for (i = (NOTCH_MAX-1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 			check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * v_top;
 			if (check_d < d_step) break;
@@ -797,9 +797,9 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS targets, int type) {
 				}
 
 
-				st_com_work.a[i] = pCraneStat->spec.accdec[i][st_com_work.motion_dir[i]][ID_ACC];	//動作軸加速度
+				st_com_work.a[i] = pCraneStat->spec.accdec[i][FWD][ACC];	//動作軸加速度
 				st_com_work.vmax[i]= pCraneStat->spec.notch_spd_f[i][NOTCH_MAX - 1];				//最大速度
-				st_com_work.acc_time2Vmax[MOTION_ID_MAX] = st_com_work.vmax[i]/ st_com_work.a[i];   //最大加速時間
+				st_com_work.acc_time2Vmax[i] = st_com_work.vmax[i]/ st_com_work.a[i];   //最大加速時間
 			}
 			if ((i == ID_BOOM_H) || (i == ID_SLEW)) {
 				st_com_work.a_hp[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);		//吊点の加速度

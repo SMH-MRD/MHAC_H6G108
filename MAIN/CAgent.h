@@ -68,7 +68,7 @@ public:
 
     bool can_job_trigger();                         //ジョブの起動可否判定
     int update_auto_control();                      //自動条件の更新
-    int cleanup_command(LPST_COMMAND_BLOCK pcom);
+    int startup_command(LPST_COMMAND_BLOCK pcom);   //実行管理ステータスのクリアとコマンド実行中ステータスセット
 
     void set_as_workbuf(); //振れ止めパターン作成用データ取り込み
     int setup_as_command();

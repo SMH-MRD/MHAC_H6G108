@@ -310,8 +310,8 @@ int CSwayIF::init_sock(HWND hwnd) {
     memset(&addrin, 0, sizeof(addrin));
     addrin.sin_port = htons(port);
     addrin.sin_family = AF_INET;
-    inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &addrin.sin_addr.s_addr);
-
+    inet_pton(AF_INET, CTRL_PC_IP_ADDR, &addrin.sin_addr.s_addr);
+    
     nRtn = bind(s, (LPSOCKADDR)&addrin, (int)sizeof(addrin)); //ソケットに名前を付ける
     if (nRtn == SOCKET_ERROR) {
         perror("bindエラーです\n");
@@ -333,8 +333,8 @@ int CSwayIF::init_sock(HWND hwnd) {
     memset(&server, 0, sizeof(server));
     server.sin_port = htons(SWAY_IF_IP_PORT_C);
     server.sin_family = AF_INET;
-  //  inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &server.sin_addr.s_addr);
-    inet_pton(AF_INET, "192.168.100.100", &server.sin_addr.s_addr);
+    inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &server.sin_addr.s_addr);
+
     return 0;
     ; 
 }
@@ -350,10 +350,9 @@ int CSwayIF::set_send_data(int com_id) {
     snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].head.id[3] = '1';
     snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].head.sockaddr = addrin;
 
-
     if (com_id == ID_SWAYIF_REQ_CONST_DATA) {
-        snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].body.command[0] = 'C';
-        snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].body.command[0] = '1';
+        snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].body.command[0] = '0';
+        snd_msg[SID_CAM1][i_snd_msg[SID_CAM1]].body.command[1] = '0';
     }
 
 
@@ -441,8 +440,11 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             nSnd++;
             woMSG << L" SND len: " << nRtn << L"  Count :" << nSnd << L"\n ";
         }
+        else if (nRtn == SOCKET_ERROR) {
+            woMSG << L" SOCKET ERROR: CODE ->   " << WSAGetLastError();
+        }
         else {
-            woMSG << L" sendto ERROR ";
+            woMSG << L" sendto size ERROR ";
         }
         tweet2sndMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
     }break;

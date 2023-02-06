@@ -56,7 +56,7 @@ private:
         else    mode &= ~SIM_ACTIVE_MODE;
     }
 
-    int is_act_mode() { return(mode & SIM_ACTIVE_MODE); }
+    int is_sim_active_mode() { return(mode & SIM_ACTIVE_MODE); }
 
 private:
    

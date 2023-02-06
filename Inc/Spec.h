@@ -194,8 +194,8 @@ typedef struct StSpec {
 #define	SID_ph0					3		//カメラのハウジングへの取り付け角度
 #define	SID_PIXlRAD				4 		//PIX/rad変換係数
 
-#define CTRL_PC_IP_ADDR			"192.168.100.100"
-#define SWAY_SENSOR_IP_ADDR		"192.168.100.101"
+#define CTRL_PC_IP_ADDR			"192.168.1.31"
+#define SWAY_SENSOR_IP_ADDR		"192.168.1.102"
 //#define SWAY_SENSOR_IP_ADDR		"192.168.100.102"
 #define SWAY_IF_IP_PORT_C		10080
 #define SWAY_IF_IP_PORT_S		10081

@@ -350,6 +350,7 @@ VOID CMonWin::draw_inf() {
 
 
 	//COMMAND
+#if 0
 	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].id); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 720, 185, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].com_status); ws = tbuf;
@@ -388,7 +389,7 @@ VOID CMonWin::draw_inf() {
 	_stprintf_s(tbuf, L"%4d", pAgentInf->auto_active[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 790, 330, ws.c_str(), (int)ws.length());
 
-	
+#endif	
 	//テストアウト
 	TextOutW(stGraphic.hdc_mem_inf, 350, 50,L"rad", 3);
 
@@ -423,10 +424,10 @@ VOID CMonWin::draw_graphic() {
 	
 	//#自動目標位置
 	POINT tg_xy;
-	double sin_slew = sin(pAgentInf->pos_target[ID_SLEW]);
-	double cos_slew = cos(pAgentInf->pos_target[ID_SLEW]);
-	double x = pAgentInf->pos_target[ID_BOOM_H] * cos_slew;
-	double y = pAgentInf->pos_target[ID_BOOM_H] * sin_slew;
+	double sin_slew = sin(pAgentInf->auto_pos_target.pos[ID_SLEW]);
+	double cos_slew = cos(pAgentInf->auto_pos_target.pos[ID_SLEW]);
+	double x = pAgentInf->auto_pos_target.pos[ID_BOOM_H] * cos_slew;
+	double y = pAgentInf->auto_pos_target.pos[ID_BOOM_H] * sin_slew;
 
 	tg_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(x * CMON_PIX_PER_M_CRANE);
 	tg_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(y * CMON_PIX_PER_M_CRANE);
@@ -439,11 +440,11 @@ VOID CMonWin::draw_graphic() {
 	LineTo(stGraphic.hdc_mem_gr, tg_xy.x - 2, tg_xy.y + 2);
 
 	//半自動ターゲット描画
-	if (pCraneStat->semi_auto_selected != SEMI_AUTO_TG_CLR) {
-		sin_slew = sin(pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_SLEW]);
-		cos_slew = cos(pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_SLEW]);
-		x = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_BOOM_H] * cos_slew;
-		y = pCraneStat->semi_auto_setting_target[pCraneStat->semi_auto_selected][ID_BOOM_H] * sin_slew;
+	if (pCSinf->semi_auto_selected != SEMI_AUTO_TG_CLR) {
+		sin_slew = sin(pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_SLEW]);
+		cos_slew = cos(pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_SLEW]);
+		x = pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_BOOM_H] * cos_slew;
+		y = pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_BOOM_H] * sin_slew;
 
 		tg_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(x * CMON_PIX_PER_M_CRANE);
 		tg_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(y * CMON_PIX_PER_M_CRANE);

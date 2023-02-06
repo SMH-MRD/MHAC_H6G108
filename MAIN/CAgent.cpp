@@ -108,15 +108,15 @@ void CAgent::main_proc() {
 											AgentInf_workbuf.auto_on_going = AUTO_TYPE_ANTI_SWAY;
 	else									AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 
-	update_motion_setting();//PLCがPC指令で動作する軸の選択,
-	update_auto_control();	//自動実行モードの設定と自動レシピのセット
+	update_motion_setting();				//PLCがPC指令で動作する軸の選択,
+	update_auto_control();					//自動実行モードの設定と自動レシピのセット
 
 	//PLCへの出力計算
-	set_ref_mh();			//巻き速度指令
-	set_ref_gt();			//走行速度指令
-	set_ref_slew();			//旋回速度指令
-	set_ref_bh();			//引込速度指令
-	update_pb_lamp_com();	//PB LAMP出力
+	set_ref_mh();							//巻き速度指令
+	set_ref_gt();							//走行速度指令
+	set_ref_slew();							//旋回速度指令
+	set_ref_bh();							//引込速度指令
+	update_pb_lamp_com();					//PB LAMP出力
 
 	return;
 
@@ -238,7 +238,6 @@ int CAgent::update_motion_setting() {
 	return 0;
 }
 
-
 /****************************************************************************/
 /*	自動関連設定					*/
 /****************************************************************************/
@@ -351,11 +350,11 @@ int CAgent::update_auto_control() {
 	if (pCSInf->auto_standby == false) {
 		; //処理無し
 	}
-	//自動実行　マニュアルモード
+	//自動モード
 	else {
 		//振れ止め未完で振れ止めコマンドが実行中でなければ、振れ止めコマンド設定
 		if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
-			if (AgentInf_workbuf.comset_as.com_status == STAT_WAITING) {
+			if (AgentInf_workbuf.comset_as.com_status == STAT_WAITING) {//振れ止め用コマンドセットが要求待ち
 				setup_as_command();
 			}
 		}
@@ -402,11 +401,13 @@ int CAgent::set_ref_gt(){
 /****************************************************************************/
 int CAgent::set_ref_slew(){
 
+
 	LPST_COMMAND_BLOCK pcom;
 
 	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_SLEW) {
 		if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
+#if 0
 		else if(AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_JOB){
 			pcom = &(pPolicyInf->job_com[pPolicyInf->i_jobcom]);
 			AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
@@ -427,8 +428,9 @@ int CAgent::set_ref_slew(){
 				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
 			}
 
-		//	AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
+			AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
 		} 
+#endif
 	}
 	else {
 		AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
@@ -447,6 +449,7 @@ int CAgent::set_ref_bh(){
 		
 		if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
+#if 0
 		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_JOB) {
 			pcom = &(pPolicyInf->job_com[pPolicyInf->i_jobcom]);
 			AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(pcom,ID_BOOM_H);
@@ -467,6 +470,7 @@ int CAgent::set_ref_bh(){
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 			}
 		}
+#endif
 	}
 	else {
 		AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
@@ -476,26 +480,26 @@ int CAgent::set_ref_bh(){
 }
 
 /****************************************************************************/
-/*   コマンドステータス初期化                                               */
+/*  コマンドブロック実行前初期化処理                                        */
+/*  実行管理ステータスのクリアとコマンド実行中ステータスセット				*/
 /****************************************************************************/
-int CAgent::cleanup_command(LPST_COMMAND_BLOCK pcom) {
-	pcom->com_status = COMMAND_STAT_STANDBY;
-	for (int i = 0; i < MOTION_ID_MAX;i++) {
+int CAgent::startup_command(LPST_COMMAND_BLOCK pcom) {
+
+	for (int i = 0; i < MOTION_ID_MAX;i++) {						//各軸の実行ステータスの初期化
 		if (AgentInf_workbuf.auto_active[i] == AUTO_TYPE_MANUAL) {
-			pcom->motion_stat[i].status = COMMAND_STAT_END;
+			pcom->motion_stat[i].status = FIN_NORMAL;
 		}
 		else {
-			pcom->motion_stat[i].status = COMMAND_STAT_STANDBY;
+			pcom->motion_stat[i].status = STAT_STANDBY;
 		}
 		pcom->motion_stat[i].iAct = 0;
 		pcom->motion_stat[i].step_act_count = 0;
-		pcom->motion_stat[i].direction = AGENT_STOP;
-		for (int j = 0; j < MOTION_STAT_FLG_N; j++) {
-			pcom->motion_stat[i].flg[j] = L_OFF;
-		}
+		pcom->motion_stat[i].elapsed = 0;
+		pcom->motion_stat[i].error_code = 0;
 	}
-	pcom->com_status = COMMAND_STAT_ACTIVE;
-	GetLocalTime(&(pcom->time_start));	//開始時間セット
+	pcom->com_status = STAT_ACTIVE;									//コマンドステータス実行中へ
+	GetLocalTime(&(pcom->time_start));								//開始時間セット
+
 	return 0;
 }
 
@@ -504,21 +508,23 @@ int CAgent::cleanup_command(LPST_COMMAND_BLOCK pcom) {
 /****************************************************************************/
 double CAgent::cal_step(LPST_COMMAND_BLOCK pCom,int motion) {
 
+
 	double v_out = 0.0;
 
 	LPST_MOTION_RECIPE precipe = &pCom->recipe[motion];
 	LPST_MOTION_STAT pstat = &pCom->motion_stat[motion];
 	LPST_MOTION_STEP pStep = &precipe->steps[pstat->iAct];
 
-	if (pstat->status == COMMAND_STAT_END) {
+
+	if (pstat->status & STAT_FIN) {				 //出力完了済
 		return 0.0;
 	}
-	else if (pStep->status == COMMAND_STAT_STANDBY) {
+	else if (pStep->status == STAT_STANDBY) {	 //出力中に更新
 		pstat->step_act_count= 1;
-		pStep->status = COMMAND_STAT_ACTIVE;
+		pStep->status = STAT_ACTIVE;
 	}
-	else	pstat->step_act_count++;	//ステップ実行カウントインクリメント
-
+	else	pstat->step_act_count++;		//ステップ実行カウントインクリメント
+#if 0
 	pStep->status = PTN_STEP_ON_GOING;
 
 	switch (pStep->type) {
@@ -889,7 +895,7 @@ double CAgent::cal_step(LPST_COMMAND_BLOCK pCom,int motion) {
 		if (pstat->iAct >= precipe->n_step)
 			pstat->status = COMMAND_STAT_END;
 	}
-
+#endif
 	return v_out;
 }
 

@@ -155,12 +155,12 @@ int CSIM::parse() {
 
     //************** モード切り替え時初期化処理　**************
     {
-        if (sim_act_last != is_act_mode()) wait_count = 100;//PLC IO 更新待ちカウンタセット
+        if (sim_act_last != is_sim_active_mode()) wait_count = 100;//PLC IO 更新待ちカウンタセット
         else { if (wait_count > 0)wait_count--; }
         //モード切り替え後PLC IF更新を待って初期化
         if (wait_count == 90) {//100msec後
             Sleep(1000);//PLC_IFの切変わり待ち
-            if (is_act_mode()) {
+            if (is_sim_active_mode()) {
                 pCrane->set_mode(MOB_MODE_SIM);
                 //吊荷の初期状態セット 
                 Vector3 _r(SIM_INIT_R * cos(SIM_INIT_TH) + SIM_INIT_X, SIM_INIT_R * sin(SIM_INIT_TH), def_spec.boom_high - SIM_INIT_L);  //吊点位置
@@ -190,7 +190,7 @@ int CSIM::parse() {
      pCrane->timeEvolution();       //クレーンの位置,速度計算
      pLoad->timeEvolution();        //吊荷の位置,速度計算
    
-     if (sim_act_last != is_act_mode()) {
+     if (sim_act_last != is_sim_active_mode()) {
          pLoad->dr.x = 0.0;pLoad->dr.y = 0.0;pLoad->dr.z = 0.0;
          pLoad->dv.x = 0.0;pLoad->dv.y = 0.0;pLoad->dv.z = 0.0;
      }
@@ -199,7 +199,7 @@ int CSIM::parse() {
      pLoad->v.add(pLoad->dv);       //吊荷速度更新
      pLoad->update_relative_vec();  //吊荷吊点相対ベクトル更新(ロープベクトル　L,vL)
 
-     sim_act_last = is_act_mode();
+     sim_act_last = is_sim_active_mode();
 
 
     return 0;

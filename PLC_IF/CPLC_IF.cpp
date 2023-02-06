@@ -14,6 +14,7 @@ CPLC_IF::CPLC_IF() {
     pCraneStatusObj = new CSharedMem;
     pSimulationStatusObj = new CSharedMem;
     pAgentInfObj = new CSharedMem;
+    pCSInfObj = new CSharedMem;
 
     out_size = 0;
     memset(&melnet,0,sizeof(ST_MELSEC_NET)) ;      //PLCƒŠƒ“ƒN\‘¢‘Ì
@@ -37,6 +38,7 @@ CPLC_IF::~CPLC_IF() {
     delete pCraneStatusObj;
     delete pSimulationStatusObj;
     delete pAgentInfObj;
+    delete pCSInfObj;
 };
 
 int CPLC_IF::set_outbuf(LPVOID pbuf) {
@@ -71,10 +73,9 @@ int CPLC_IF::init_proc() {
     if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)){
         mode |= PLC_IF_AGENT_MEM_NG;
     }
-
     pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
 
-    if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_CS_INFO_NAME)) {
+    if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) {
         mode |= PLC_IF_CS_MEM_NG;
     }
 
@@ -543,7 +544,7 @@ int CPLC_IF::set_bit_coms() {
     //Sim fb
     if (pWorkWindow->stOpePaneStat.chk_sim_fb) melnet.pc_b_out[melnet.pc_b_map.com_pc_fb[ID_WPOS]] |= melnet.pc_b_map.com_pc_fb[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.com_pc_fb[ID_WPOS]] &= ~melnet.pc_b_map.com_pc_fb[ID_BPOS];
-    
+   
     //ƒ‰ƒ“ƒv—Þ
     //U‚êŽ~‚ßOFFƒ‰ƒ“ƒv
     if ((pCSInf->plc_lamp[ID_PB_ANTISWAY_OFF]%PLC_IO_LAMP_FLICKER_COUNT) >= PLC_IO_LAMP_FLICKER_CHANGE) 
@@ -593,7 +594,7 @@ int CPLC_IF::set_bit_coms() {
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg8[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_tg8[ID_BPOS];
     else melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg8[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg8[ID_BPOS];
 
-     return 0;
+    return 0;
 }
 
 //*********************************************************************************************
