@@ -371,6 +371,11 @@ int CAgent::set_ref_mh(){
 	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_HOIST) {
 		if (AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
+		else if ((AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_JOB) ||
+			(AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_SEMIAUTO)) {
+			if (pCom == NULL)	AgentInf_workbuf.v_ref[ID_HOIST] = 0.0;
+			else				AgentInf_workbuf.v_ref[ID_HOIST] = cal_step(pCom, ID_HOIST);
+		}
 		else
 			AgentInf_workbuf.v_ref[ID_HOIST] = 0.0;
 	}
@@ -387,6 +392,12 @@ int CAgent::set_ref_gt(){
 	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_GANTRY) {
 		if (AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_GANTRY] = pCraneStat->notch_spd_ref[ID_GANTRY];
+		else if ((AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_JOB) ||
+			(AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_SEMIAUTO)) {
+			if (pCom == NULL)	AgentInf_workbuf.v_ref[ID_GANTRY] = 0.0;
+			else				AgentInf_workbuf.v_ref[ID_GANTRY] = cal_step(pCom, ID_GANTRY);
+		}
+
 		else
 			AgentInf_workbuf.v_ref[ID_GANTRY] = 0.0;
 	}
@@ -401,36 +412,21 @@ int CAgent::set_ref_gt(){
 /****************************************************************************/
 int CAgent::set_ref_slew(){
 
-
-	LPST_COMMAND_BLOCK pcom;
-
 	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_SLEW) {
 		if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
-#if 0
-		else if(AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_JOB){
-			pcom = &(pPolicyInf->job_com[pPolicyInf->i_jobcom]);
-			AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
+
+		else if((AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_JOB)||
+				(AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_SEMIAUTO)){
+			if(pCom == NULL)	AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
+			else				AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pCom, ID_SLEW);
+		}
+		else if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_ANTI_SWAY){
+			AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(&pAgentInf->comset_as, ID_SLEW);
 		}
 		else {
-			pcom = &(pPolicyInf->com[pPolicyInf->i_com]);
-			if (pcom->motion_stat[ID_SLEW].status == COMMAND_STAT_END) {
 				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
-			}
-			else if (pcom->motion_stat[ID_SLEW].status == COMMAND_STAT_STANDBY) {
-				pcom->motion_stat[ID_SLEW].status = COMMAND_STAT_ACTIVE;
-				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
-			}
-			else if (pcom->motion_stat[ID_SLEW].status == COMMAND_STAT_ACTIVE) {
-				AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
-			}
-			else {
-				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
-			}
-
-			AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pcom, ID_SLEW);
 		} 
-#endif
 	}
 	else {
 		AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
@@ -449,28 +445,18 @@ int CAgent::set_ref_bh(){
 		
 		if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
-#if 0
-		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_JOB) {
-			pcom = &(pPolicyInf->job_com[pPolicyInf->i_jobcom]);
-			AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(pcom,ID_BOOM_H);
+
+		else if ((AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_JOB) ||
+			(AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_SEMIAUTO)) {
+			if (pCom == NULL)	AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
+			else				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(pCom, ID_BOOM_H);
+		}
+		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_ANTI_SWAY) {
+			AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(&pAgentInf->comset_as, ID_BOOM_H);
 		}
 		else {
-			pcom = &(pPolicyInf->com[pPolicyInf->i_com]);
-			if (pcom->motion_stat[ID_BOOM_H].status == COMMAND_STAT_END) {
-				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
-			}
-			else if (pcom->motion_stat[ID_BOOM_H].status == COMMAND_STAT_STANDBY) {
-				pcom->motion_stat[ID_BOOM_H].status = COMMAND_STAT_ACTIVE;
-				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
-			}
-			else if (pcom->motion_stat[ID_BOOM_H].status == COMMAND_STAT_ACTIVE) {
-				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(pCom,ID_BOOM_H);
-			}
-			else {
-				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
-			}
+			AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 		}
-#endif
 	}
 	else {
 		AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
