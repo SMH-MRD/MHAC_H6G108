@@ -255,8 +255,8 @@ int CSIM::set_sway_io() {
     // 傾斜計検出角度
     double tilt_x = 0.0;
     double tilt_y = 0.0;
-    sim_stat_workbuf.rcv_msg.head.tilt[SWAY_SENSOR_CAM1][SWAY_SENSOR_TIL_X]= (UINT32)(tilt_x * 1000000.0);
-    sim_stat_workbuf.rcv_msg.head.tilt[SWAY_SENSOR_CAM1][SWAY_SENSOR_TIL_Y] = (UINT32)(tilt_y * 1000000.0);
+    sim_stat_workbuf.rcv_msg.head.tilt[SWAY_SENSOR_TIL_X]= (UINT32)(tilt_x * 1000000.0);
+    sim_stat_workbuf.rcv_msg.head.tilt[SWAY_SENSOR_TIL_Y] = (UINT32)(tilt_y * 1000000.0);
     
     // クレーンxy座標をカメラxy座標に回転変換　→　角度radに変換　
     double th = pCrane->r0[ID_SLEW];//旋回角度
@@ -294,11 +294,11 @@ int CSIM::set_sway_io() {
     thcamy_last = th_camy;
 
     //カメラ検出角度pix
-    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].th_x = (INT32)(th_camx * dx);
-    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].th_y = (INT32)(th_camy * dy);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].th_x = (INT32)(th_camx * dx);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].th_y = (INT32)(th_camy * dy);
     //カメラ検出角度pix
-    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].dth_x = (INT32)(dth_camx * dx);
-    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_CAM1][SWAY_SENSOR_TG1].dth_y = (INT32)(dth_camy * dy);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].dth_x = (INT32)(dth_camx * dx);
+    sim_stat_workbuf.rcv_msg.body.data[SWAY_SENSOR_TG1].dth_y = (INT32)(dth_camy * dy);
     
     
     //ヘッダ情報セット

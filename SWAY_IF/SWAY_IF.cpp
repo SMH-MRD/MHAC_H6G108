@@ -38,8 +38,6 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-int sock_init();
-int sock_close();
 
 //# ウィンドウにステータスバーを追加
 HWND CreateStatusbarMain(HWND hWnd);
@@ -128,6 +126,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
+      // メイン処理オブジェクトインスタンス化
+   pProcObj = new CSwayIF;                              // メイン処理クラスのインスタンス化
+   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
+   pProcObj->init_proc();                               // メイン処理クラスの初期化
+
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
        MAIN_WND_INIT_POS_X, MAIN_WND_INIT_POS_Y,
        MAIN_WND_INIT_SIZE_W, MAIN_WND_INIT_SIZE_H,
@@ -138,20 +141,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        return FALSE;
    }
 
-   // メイン処理オブジェクトインスタンス化
-   pProcObj = new CSwayIF;                              // メイン処理クラスのインスタンス化
-   psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
-   pProcObj->init_proc();                               // メイン処理クラスの初期化
+
    
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
    SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)tbuf);
 
-   //通信ソケット初期化
-   sock_init();
-   
-   // タスクループ処理起動マルチメディアタイマ起動
+    // タスクループ処理起動マルチメディアタイマ起動
    {
        // --マルチメディアタイマ精度設定
        TIMECAPS wTc;//マルチメディアタイマ精度構造体
@@ -218,6 +215,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
  
         //表示更新タイマ起動
         SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
+        
+        //IF Window起動
+        if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
     }
     break;
     case WM_COMMAND:
@@ -266,6 +266,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_TIMER: {
+#if 0
         if (pProcObj->is_debug_mode()) {
             SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"DEBUG MODE!");
             SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"NORMAL->");
@@ -274,6 +275,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SendMessage(stMainWnd.h_static0, WM_SETTEXT, 0, (LPARAM)L"PRODUCT MODE!");
             SendMessage(stMainWnd.h_pb_debug, WM_SETTEXT, 0, (LPARAM)L"DEBUG->");
         }
+#endif
     }break;
     
     case WM_PAINT:
@@ -368,34 +370,5 @@ VOID	CALLBACK    alarmHandlar(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWOR
     return;
 }
 
-int sock_init() {
-    //WinSockの初期化
-    if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) 
-        return -1;
-    //ソケットをオープン
-    s = socket(AF_INET, SOCK_DGRAM, 0);
-    if (s < 0) {
-        WSACleanup();
-        return -2;
-    }
-    memset(&addrin, 0, sizeof(addrin));
-    addrin.sin_port = htons(port);
-    addrin.sin_family = AF_INET;
-    addrin.sin_addr.s_addr = htonl(INADDR_ANY);
-    //ソケットに名前を付ける
-    nRtn = bind(s, (LPSOCKADDR)&addrin, (int)sizeof(addrin));
-    if (nRtn == SOCKET_ERROR) {
-        closesocket(s);
-        WSACleanup();
-        return -3;
-    }
-    return 0;
-
-}
-int sock_close() {
-    closesocket(s);
-    WSACleanup();
-    return 0;
-}
 
 

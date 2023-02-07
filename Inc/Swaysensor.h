@@ -34,10 +34,10 @@ typedef struct SyaCamSetting {
 }ST_SWAY_CAM_SETTING, * LPST_SWAY_CAM_SETTING;
 typedef struct SwayComRcvHead { //振れセンサ受信メッセージヘッダ部
     char	id[4];			                                            //PC ID
-    ST_SWAY_CAM_SETTING cam_setting[SWAY_SENSOR_N_CAM];                 //カメラ配置情報
+    ST_SWAY_CAM_SETTING cam_setting;                 //カメラ配置情報
     SYSTEMTIME time;		                                            //タイムスタンプ
-    ST_TARGET_STAT tg_stat[SWAY_SENSOR_N_CAM][SWAY_SENSOR_N_TARGET];    //カメラ２ｘターゲット２
-    INT32	tilt[SWAY_SENSOR_N_CAM][2];			                        //カメラ傾斜角x　x1000000rad
+    ST_TARGET_STAT tg_stat[SWAY_SENSOR_N_TARGET];    //カメラ２ｘターゲット２
+    INT32	tilt[2];			                        //カメラ傾斜角x　x1000000rad
 }ST_SWAY_RCV_HEAD, * LPST_SWAY_RCV_HEAD;
 
 typedef struct SwayComMainData { //振れセンサ受信メッセージデータ構成部
@@ -53,8 +53,8 @@ typedef struct SwayComMainData { //振れセンサ受信メッセージデータ構成部
 }ST_SWAY_MAIN_DATA, * LPST_SWAY_MAIN_DATA;
 
 typedef struct SwayComRcvBody { //振れセンサ受信メッセージボディ部
-    ST_SWAY_MAIN_DATA data[SWAY_SENSOR_N_CAM][SWAY_SENSOR_N_TARGET];
-    char info[SWAY_SENSOR_N_CAM][32];
+    ST_SWAY_MAIN_DATA data[SWAY_SENSOR_N_TARGET];
+    char info[32];
 }ST_SWAY_RCV_BODY, * LPST_SWAY_RCV_BODY;
 
 

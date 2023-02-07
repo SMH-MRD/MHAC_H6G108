@@ -333,8 +333,21 @@ typedef struct stMotionElement {	//運動要素
 /****************************************************************************/
 #define M_STEP_MAX	32
 
-#define MOTION_ACT_COMPLETE	-1
-#define MOTION_ACT_STANDBY	0
+#define MOTION_COMPLETE	0x0080
+#define MOTION_STANDBY	0x0001
+#define MOTION_ACTIVE	0x0002
+
+#define STEP_FIN		0x0080
+#define STEP_STANDBY	0x0001
+#define STEP_ACTIVE		0x0002
+#define STEP_FAULT		0x0010
+#define STEP_TIMEOVER	0x0020
+
+
+#define _ACT_STANDBY	0
+
+
+
 
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン

@@ -22,6 +22,10 @@
 
 #define ID_UDP_EVENT				        10506
 
+#define ID_STATIC_SWAY_IF_DISP_SELBUF       10507
+#define ID_PB_SWAY_IF_CHG_DISP_CAM         10508
+#define ID_PB_SWAY_IF_CHG_DISP_BUF         10509
+
 //起動タイマーID
 #define ID_WORK_WND_TIMER					100
 #define WORK_SCAN_TIME						500			// SWAY IF送信チェック周期msec
@@ -33,13 +37,13 @@
 #define CAM_SET_PARAM_c             2
 #define CAM_SET_PARAM_d             3
 
-#define N_SWAY_SENSOR_RCV_BUF   10  //受信データのバッファ数
-#define N_SWAY_SENSOR_SND_BUF   10  //送信データのバッファ数
+#define N_SWAY_SENSOR_RCV_BUF   4  //受信データのバッファ数
+#define N_SWAY_SENSOR_SND_BUF   4  //送信データのバッファ数
 
 #define WORK_WND_X							1050		//メンテパネル表示位置X
 #define WORK_WND_Y							394			//メンテパネル表示位置Y
 #define WORK_WND_W							400		    //メンテパネルWINDOW幅
-#define WORK_WND_H							360			//メンテパネルWINDOW高さ
+#define WORK_WND_H							400			//メンテパネルWINDOW高さ
 
 #define ID_SWAYIF_REQ_CONST_DATA            0x0001      //定周期通常データ
 #define ID_SWAYIF_REQ_ONE_SHOT              0x0002      //ワンショットデータ
@@ -109,10 +113,19 @@ public:
      static int close_WorkWnd();
      static int init_sock(HWND hwnd);
 
+private:
+    //振れセンサ通信表示用 
+
      static HWND hwndSTATMSG;
      static HWND hwndRCVMSG;
      static HWND hwndSNDMSG;
      static HWND hwndINFMSG;
+ 
+     static HWND hwndDispBufMSG;
+     static HWND hwndCamChangePB;
+     static HWND hwndBufChangePB;
+     static int iDispCam;
+     static int iDispBuf;
 
 };
 
