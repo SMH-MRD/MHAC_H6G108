@@ -23,8 +23,9 @@
 #define ID_UDP_EVENT				        10506
 
 #define ID_STATIC_SWAY_IF_DISP_SELBUF       10507
-#define ID_PB_SWAY_IF_CHG_DISP_CAM         10508
+#define ID_PB_SWAY_IF_CHG_DISP_SENSOR       10508
 #define ID_PB_SWAY_IF_CHG_DISP_BUF         10509
+#define ID_PB_SWAY_IF_CHG_DISP_CAM         10510
 
 //起動タイマーID
 #define ID_WORK_WND_TIMER					100
@@ -70,9 +71,9 @@ private:
     LPST_SIMULATION_STATUS pSimStat;
    
     ST_SWAY_IO sway_io_workbuf;   //共有メモリへの出力セット作業用バッファ
-    double SwayCamParam[N_SWAY_SENSOR][SWAY_SENSOR_N_AXIS][CAM_SET_PARAM_N_PARAM]; //振れセンサカメラ設置パラメータ[カメラNo.][軸方向XY][a,b]
+    double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][CAM_SET_PARAM_N_PARAM]; //振れセンサカメラ設置パラメータ[カメラNo.][軸方向XY][a,b]
 
-    int parse_sway_stat(int ID);
+    int parse_sway_stat(int SensorID, int CameraID);
     HINSTANCE hInst;
 
     static void tweet2statusMSG(const std::wstring& srcw);
@@ -124,8 +125,9 @@ private:
      static HWND hwndDispBufMSG;
      static HWND hwndCamChangePB;
      static HWND hwndBufChangePB;
-     static int iDispCam;
+     static int iDispSensor;
      static int iDispBuf;
+     static int iDispCam;
 
 };
 

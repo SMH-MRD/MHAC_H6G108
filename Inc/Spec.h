@@ -179,31 +179,47 @@ typedef struct StSpec {
 
 
 #define N_SWAY_SENSOR			3		//振れセンサの数
-#define SID_CAM1				0		//No.1カメラ
-#define SID_CAM2				1		//No.2カメラ
+#define SID_SENSOR1				0		//No.1振れセンサ
+#define SID_SENSOR2				1		//No.2振れセンサ
 #define SID_SIM					2		//シミュレータ
 
 #define SWAY_SENSOR_N_AXIS		2
 #define SID_AXIS_X				0		//X軸
 #define SID_AXIS_Y				1		//y軸
 
+#define N_SWAY_SENSOR_CAMERA    2		//振れセンサ１セットのカメラの数
+#define SID_CAMERA1				0		//No.1振れセンサ
+#define SID_CAMERA2				1		//No.2振れセンサ
+
 #define SWAY_CAMERA_N_PARAM		5
 #define SID_D0					0		//カメラ取付位置水平方向オフセット
 #define SID_H0					1		//カメラ取付位置高さ方向オフセット
 #define SID_l0					2		//カメラ中心とハウジング支点間距離
 #define	SID_ph0					3		//カメラのハウジングへの取り付け角度
-#define	SID_PIXlRAD				4 		//PIX/rad変換係数
+#define	SID_PIXlRAD				4		//カメラのハウジングへの取り付け角度
+
+
 
 #define CTRL_PC_IP_ADDR			"192.168.1.31"
 #define SWAY_SENSOR_IP_ADDR		"192.168.1.102"
+
 //#define SWAY_SENSOR_IP_ADDR		"192.168.100.102"
 #define SWAY_IF_IP_PORT_C		10080
 #define SWAY_IF_IP_PORT_S		10081
 
-	double SwayCamParam[N_SWAY_SENSOR][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
-		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//No.1 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
-		{{0.0,0.0,0.0,0.0,2800.0},{0.0,0.0,0.0,0.0,2800.0}},	//No.2 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
-		{{0.0,0.0,0.0,0.0,2800.0},{0.0,0.0,0.0,0.0,2800.0}}		//No.3 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
+	double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
+		{//No.1 センサ
+		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ1 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ2 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		},
+		{//No.2 センサ
+		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ1 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ2 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		},
+		{//No.3 センサ
+		{ {1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ1 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ2 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		}
 	};
 
 #define SEMI_AUTO_TARGET_MAX	8	// 半自動目標ホールド数
