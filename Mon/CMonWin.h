@@ -136,6 +136,9 @@ public:
 
     VOID draw_bg();
     VOID draw_inf();
+    VOID draw_inf_main();
+    VOID draw_inf_sway();
+
     VOID draw_graphic();
 
 private:

@@ -127,7 +127,7 @@ class CBasicControl //基本制御クラス
 {
 public:
     LPVOID poutput = NULL;      //結果出力メモリ
-    size_t out_size = 0;        //出力バッファのサイズ
+    DWORD out_size = 0;        //出力バッファのサイズ
     DWORD  mode;                //結果出力モード
     DWORD  source_counter;      //メインプロセスのヘルシーカウンタ
     DWORD  my_helthy_counter=0; //自スレッドのヘルシーカウンタ

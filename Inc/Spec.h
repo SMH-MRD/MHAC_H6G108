@@ -191,6 +191,10 @@ typedef struct StSpec {
 #define SID_CAMERA1				0		//No.1振れセンサ
 #define SID_CAMERA2				1		//No.2振れセンサ
 
+#define N_SWAY_SENSOR_TARGET    2		//振れセンサカメラ1台あたりのターゲット数
+#define SID_TARGET1				0		//No.1振れセンサ
+#define SID_TARGET2				1		//No.2振れセンサ
+
 #define SWAY_CAMERA_N_PARAM		5
 #define SID_D0					0		//カメラ取付位置水平方向オフセット
 #define SID_H0					1		//カメラ取付位置高さ方向オフセット

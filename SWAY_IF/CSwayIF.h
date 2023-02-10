@@ -24,12 +24,22 @@
 
 #define ID_STATIC_SWAY_IF_DISP_SELBUF       10507
 #define ID_PB_SWAY_IF_CHG_DISP_SENSOR       10508
-#define ID_PB_SWAY_IF_CHG_DISP_BUF         10509
-#define ID_PB_SWAY_IF_CHG_DISP_CAM         10510
+#define ID_PB_SWAY_IF_CHG_DISP_BUF          10509
+#define ID_PB_SWAY_IF_CHG_DISP_CAM          10510
+#define ID_PB_SWAY_IF_CHG_DISP_TG           10511
+
+#define ID_PB_SWAY_IF_INFO_COMDATA          10512
+#define ID_PB_SWAY_IF_INFO_MSG              10513
+#define ID_PB_SWAY_IF_MIN_CYCLE_10mUP       10514
+#define ID_PB_SWAY_IF_MIN_CYCLE_10mDN       10515
+#define ID_STATIC_SWAY_IF_MINCYCLE          10516
+
 
 //起動タイマーID
 #define ID_WORK_WND_TIMER					100
-#define WORK_SCAN_TIME						500			// SWAY IF送信チェック周期msec
+#define WORK_SCAN_TIME						2000			// SWAY IF送信チェック周期msec
+
+#define WORK_SCAN_TIME						2000			// SWAY IF送信チェック周期msec
 
 
 #define CAM_SET_PARAM_N_PARAM       4
@@ -43,13 +53,8 @@
 
 #define WORK_WND_X							1050		//メンテパネル表示位置X
 #define WORK_WND_Y							394			//メンテパネル表示位置Y
-#define WORK_WND_W							400		    //メンテパネルWINDOW幅
-#define WORK_WND_H							400			//メンテパネルWINDOW高さ
-
-#define ID_SWAYIF_REQ_CONST_DATA            0x0001      //定周期通常データ
-#define ID_SWAYIF_REQ_ONE_SHOT              0x0002      //ワンショットデータ
-#define ID_SWAYIF_REQ_IMG                   0x0003      //画像データ
-
+#define WORK_WND_W							540		    //メンテパネルWINDOW幅
+#define WORK_WND_H							480			//メンテパネルWINDOW高さ
 
 class CSwayIF :
     public CBasicControl
@@ -67,8 +72,8 @@ private:
     static int i_rcv_msg[N_SWAY_SENSOR];
     static int i_snd_msg[N_SWAY_SENSOR];
 
-    LPST_CRANE_STATUS pCraneStat;
-    LPST_SIMULATION_STATUS pSimStat;
+    static LPST_CRANE_STATUS pCraneStat;
+    static LPST_SIMULATION_STATUS pSimStat;
    
     ST_SWAY_IO sway_io_workbuf;   //共有メモリへの出力セット作業用バッファ
     double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][CAM_SET_PARAM_N_PARAM]; //振れセンサカメラ設置パラメータ[カメラNo.][軸方向XY][a,b]
@@ -96,7 +101,7 @@ public:
     int parse();            //メイン処理
     int output();           //出力処理
 
-    static int set_send_data(int com_id);   //送信処理はタイマー起動
+    static int set_send_data(INT32 com_id);   //送信処理はタイマー起動
 
     void set_debug_mode(int id) {
         if (id) mode |= SWAY_IF_SIM_DBG_MODE;
@@ -125,9 +130,19 @@ private:
      static HWND hwndDispBufMSG;
      static HWND hwndCamChangePB;
      static HWND hwndBufChangePB;
+     static HWND hwndTargetChangePB;
+
+     static HWND hwndInfComPB;
+     static HWND hwndInfMsgPB;
+     static HWND hwndCycleUpPB;
+     static HWND hwndCycleDnPB;
+
      static int iDispSensor;
      static int iDispBuf;
      static int iDispCam;
-
+     static int iDispTg;
+     static INT32 cycle_min_ms;
+     static INT32 sens_mode;
+ 
 };
 

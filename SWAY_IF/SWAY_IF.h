@@ -26,6 +26,16 @@
 #define IDC_PB_DEBUG				2303
 #define IDC_PB_COMWIN				2304
 
+#define IDC_STATIC_1				2315
+#define IDC_PB_SENSOR_1				2316
+#define IDC_PB_SENSOR_2				2317
+#define IDC_PB_0SET_CAMERA			2318
+#define IDC_PB_0SET_TILT			2319
+#define IDC_PB_RESET_CAMERA			2320
+#define IDC_PB_RESET_TILT			2321
+#define IDC_PB_PC_RESET				2322
+#define IDC_PB_SCREEN_SHOT			2323
+
 #define MSG_SENSOR_SOCK				2310	//WinSockイベントメッセージ
 
 
@@ -36,6 +46,18 @@ typedef struct stMainWndTag {
 	HWND h_pb_exit = NULL;			//ボタンオブジェクトのハンドル
 	HWND h_pb_debug = NULL;			//ボタンオブジェクトのハンドル
 	HWND h_pb_comwin = NULL;		//ボタンオブジェクトのハンドル
+
+	HWND h_static1 = NULL;			//スタティックオブジェクトのハンドル
+	HWND h_pb_sel_sensor1 = NULL;	//ボタンオブジェクトのハンドル
+	HWND h_pb_sel_sensor2 = NULL;	//ボタンオブジェクトのハンドル
+	HWND h_pb_0set_sensor = NULL;	//ボタンオブジェクトのハンドル
+	HWND h_pb_0set_tilt = NULL;		//ボタンオブジェクトのハンドル
+	HWND h_pb_reset_sensor = NULL;	//ボタンオブジェクトのハンドル
+	HWND h_pb_reset_tilt = NULL;	//ボタンオブジェクトのハンドル
+	HWND h_pb_pc_reset = NULL;		//ボタンオブジェクトのハンドル
+	HWND h_pb_img_save = NULL;		//ボタンオブジェクトのハンドル
+	
+
 	HWND hWorkWnd = NULL;			//ワークウィンドウのハンドル
 
 }ST_MAIN_WND, * LPST_MAIN_WND;

@@ -196,23 +196,55 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         InitCommonControls();//コモンコントロール初期化
 
+       
+                             
         //メインウィンドウにステータスバー付加
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
         SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"NORMAL");
 
+        //製品モードセット
+        pProcObj->set_debug_mode(L_OFF);
         //メインウィンドウにコントロール追加
         stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
             10, 5, 200, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            305, 90, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
+            305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            30, 40, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+            10, 28, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
 
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            150, 40, 100, 30, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);
- 
+            120, 28, 100, 30, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);
+
+        //振れセンサ調整用
+        stMainWnd.h_pb_pc_reset = CreateWindow(L"BUTTON", L"PC RESET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            250, 5, 90, 25, hWnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
+
+        stMainWnd.h_static1 = CreateWindowW(TEXT("STATIC"), L"SENSOR      0SET          RESET", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            30, 62, 240, 20, hWnd, (HMENU)IDC_STATIC_1, hInst, NULL);
+
+        stMainWnd.h_pb_sel_sensor1 = CreateWindow(L"BUTTON", L"1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+            40, 85, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_1, hInst, NULL);
+
+        stMainWnd.h_pb_sel_sensor2 = CreateWindow(L"BUTTON", L"2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+            60, 85, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_2, hInst, NULL);
+        
+        stMainWnd.h_pb_reset_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            100, 85, 40, 25, hWnd, (HMENU)IDC_PB_RESET_CAMERA, hInst, NULL);
+
+        stMainWnd.h_pb_reset_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            145, 85, 30, 25, hWnd, (HMENU)IDC_PB_RESET_TILT, hInst, NULL);
+
+        stMainWnd.h_pb_0set_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            200, 85, 40, 25, hWnd, (HMENU)IDC_PB_0SET_CAMERA, hInst, NULL);
+
+        stMainWnd.h_pb_0set_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            245, 85, 30, 25, hWnd, (HMENU)IDC_PB_0SET_TILT, hInst, NULL);
+
+        stMainWnd.h_pb_img_save = CreateWindow(L"BUTTON", L"SSHOT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            280, 38, 55, 40, hWnd, (HMENU)IDC_PB_SCREEN_SHOT, hInst, NULL);
+
         //表示更新タイマ起動
         SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
         
@@ -257,7 +289,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (pProcObj->hWorkWnd == NULL) pProcObj->open_WorkWnd(hWnd);
                 else                pProcObj->close_WorkWnd();
+                break;
 
+            case  IDC_PB_SENSOR_1:
+                break;
+            case  IDC_PB_SENSOR_2:
+                break;
+            case  IDC_PB_0SET_CAMERA:
+                SendMessage(pProcObj->hWorkWnd, SWAY_SENSOR__MSG_SEND_COM, 0, (LPARAM)L"DEBUG->");
+                break;
+            case  IDC_PB_0SET_TILT:
+                break;
+            case  IDC_PB_RESET_CAMERA:
+                break;
+            case  IDC_PB_RESET_TILT:
+                break;
+            case  IDC_PB_PC_RESET:
+                break;
+            case  IDC_PB_SCREEN_SHOT:
                 break;
 
             default:

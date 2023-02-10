@@ -2,6 +2,10 @@
 #include "CHelper.h"
 #include "CSharedMem.h"	    //共有メモリクラス
 
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
 extern LPST_CRANE_STATUS pCraneStat;
 extern LPST_PLC_IO pPLC_IO;
 extern LPST_SWAY_IO pSway_IO;
@@ -10,6 +14,9 @@ extern LPST_CS_INFO pCSinf;
 extern LPST_POLICY_INFO pPolicyInf;
 extern LPST_AGENT_INFO pAgentInf;
 extern LPST_SIMULATION_STATUS pSimStat;
+
+std::wostringstream woMSG;
+std::wstring wsMSG;
 
 CMonWin::CMonWin(HWND hWnd){
 	hWnd_parent = hWnd;
@@ -45,11 +52,11 @@ int CMonWin::init_main_window() {
 		client_w - 50, client_h - 55, 45, 25, hWnd_parent, (HMENU)IDC_MON_STOP_PB, hInst, NULL);
 
 	stComCtrl.hwnd_map2d_opt1_radio = CreateWindow(
-		L"BUTTON", L"Disp0",
+		L"BUTTON", L"MAIN",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
 		client_w - 340, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP0, hInst, NULL);
 	stComCtrl.hwnd_map2d_opt2_radio = CreateWindow(
-		L"BUTTON", L"Disp1",
+		L"BUTTON", L"SWAY",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
 		client_w - 290, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP1, hInst, NULL);
 	stComCtrl.hwnd_map2d_opt1_radio = CreateWindow(
@@ -134,7 +141,15 @@ int CMonWin::init_main_window() {
 }
 
 int CMonWin::disp_update() {
-	draw_inf();
+	switch (stGraphic.disp_item) {
+	case IDC_MON_RADIO_DISP0:
+		draw_inf_main();break;
+	case IDC_MON_RADIO_DISP1:
+		draw_inf_sway();break;
+	default:
+		draw_inf_main();break;
+	}
+
 	draw_graphic();
 	InvalidateRect(hWnd_parent, NULL, TRUE);
     return 0;
@@ -171,127 +186,125 @@ VOID CMonWin::draw_bg() {
 	MoveToEx(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X, MH_GRAPHIC_Y0, NULL);
 	LineTo(stGraphic.hdc_mem_bg, MH_GRAPHIC_AREA_X + MH_GRAPHIC_AREA_W-1, MH_GRAPHIC_Y0);
 
+	return;
+}
+
+VOID CMonWin::draw_inf() {
+	PatBlt(stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
+	return;
+}
+
+VOID CMonWin::draw_inf_sway() {
+
+	PatBlt(stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
+
+	TCHAR tbuf[32];
 	wstring ws;
-	
-	//テキストラベル表示
-	switch (stGraphic.disp_item) {
-	case IDC_MON_RADIO_DISP0:{
-//		ws = L"0";
-//		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
-		ws = L"Spd Ref";
-		TextOutW(stGraphic.hdc_mem_bg, 725, 55, ws.c_str(), (int)ws.length());
-
-		ws = L"Spd FB";
-		TextOutW(stGraphic.hdc_mem_bg, 800, 55, ws.c_str(), (int)ws.length());
-
-		ws = L"Pos";
-		TextOutW(stGraphic.hdc_mem_bg, 870, 55, ws.c_str(), (int)ws.length());
-
-		ws = L"HST";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 80, ws.c_str(), (int)ws.length());
-		ws = L"GNT";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 95, ws.c_str(), (int)ws.length());
-		ws = L"SLW";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 110, ws.c_str(), (int)ws.length());
-		ws = L"BH ";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 125, ws.c_str(), (int)ws.length());
 
 
-		ws = L"TH_RAD";
-		TextOutW(stGraphic.hdc_mem_bg, 740, 150, ws.c_str(), (int)ws.length());
+	ws = L"θx　θy";
+	TextOutW(stGraphic.hdc_mem_bg, 500, 30, ws.c_str(), (int)ws.length());
+	ws = L"Spd Ref";
+	TextOutW(stGraphic.hdc_mem_bg, 725, 55, ws.c_str(), (int)ws.length());
 
-		ws = L"R_RAD";
-		TextOutW(stGraphic.hdc_mem_bg, 810, 150, ws.c_str(), (int)ws.length());
+	ws = L"Spd FB";
+	TextOutW(stGraphic.hdc_mem_bg, 800, 55, ws.c_str(), (int)ws.length());
 
-		ws = L"TH_W";
-		TextOutW(stGraphic.hdc_mem_bg, 875, 150, ws.c_str(), (int)ws.length());
-
-		ws = L"R_W";
-		TextOutW(stGraphic.hdc_mem_bg, 940, 150, ws.c_str(), (int)ws.length());
-
-		ws = L"SIM_SW";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 170, ws.c_str(), (int)ws.length());
-
-		ws = L"CTR_SW";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 185, ws.c_str(), (int)ws.length());
-
-		ws = L"COM ID";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 215, ws.c_str(), (int)ws.length());
-
-		ws = L"STATUS";
-		TextOutW(stGraphic.hdc_mem_bg, 770, 215, ws.c_str(), (int)ws.length());
-
-		ws = L"BH";
-		TextOutW(stGraphic.hdc_mem_bg, 740, 240, ws.c_str(), (int)ws.length());
-
-		ws = L"SLEW";
-		TextOutW(stGraphic.hdc_mem_bg, 810, 240, ws.c_str(), (int)ws.length());
-
-		ws = L"HOIST";
-		TextOutW(stGraphic.hdc_mem_bg, 880, 240, ws.c_str(), (int)ws.length());
-
-		ws = L"TYPE";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 260, ws.c_str(), (int)ws.length());
-		ws = L"nStep";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 280, ws.c_str(), (int)ws.length());
-		ws = L"iAct";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 300, ws.c_str(), (int)ws.length());
-		ws = L"step";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 320, ws.c_str(), (int)ws.length());
-		ws = L"acount";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 340, ws.c_str(), (int)ws.length());
-		ws = L"mode";
-		TextOutW(stGraphic.hdc_mem_bg, 670, 360, ws.c_str(), (int)ws.length());
+	ws = L"Pos";
+	TextOutW(stGraphic.hdc_mem_bg, 870, 55, ws.c_str(), (int)ws.length());
 
 
-		InvalidateRect(hWnd_parent, NULL, TRUE);
-		break;
-
-	}
-	case IDC_MON_RADIO_DISP1: {
-		ws = L"1";
-		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
-		break;
-
-	}
-	case IDC_MON_RADIO_DISP2: {
-		ws = L"2";
-		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
-		break;
-
-	}
-	case IDC_MON_RADIO_DISP3: {
-		ws = L"3";
-		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
-		break;
-
-	}
-	case IDC_MON_RADIO_DISP4: {
-		ws = L"4";
-		TextOutW(stGraphic.hdc_mem_bg, 30, 30, ws.c_str(), (int)ws.length());
-		break;
-
-	}
-	case IDC_MON_RADIO_DISP5: {
-		ws = L"5";
-		TextOutW(stGraphic.hdc_mem_bg, 40, 25, ws.c_str(), (int)ws.length());
-		break;
-
-	}
-	default:break;
-	}
-
+	//注意 wsprintfは小数点の書式が無いので_stprintf_sを使う！！
+	//クレーン速度指令
+	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_HOIST]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 710, 50, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_GANTRY]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 710, 65, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_SLEW]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 710, 80, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_BOOM_H]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 710, 95, ws.c_str(), (int)ws.length());
 
 
 	return;
 }
 
-VOID CMonWin::draw_inf() {
-	
+VOID CMonWin::draw_inf_main() {
+
 	PatBlt(stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
 
 	TCHAR tbuf[32];
 	wstring ws;
+
+
+	ws = L"MAIN";
+	TextOutW(stGraphic.hdc_mem_bg, 950, 30, ws.c_str(), (int)ws.length());
+	ws = L"Spd Ref";
+	TextOutW(stGraphic.hdc_mem_bg, 725, 55, ws.c_str(), (int)ws.length());
+
+	ws = L"Spd FB";
+	TextOutW(stGraphic.hdc_mem_bg, 800, 55, ws.c_str(), (int)ws.length());
+
+	ws = L"Pos";
+	TextOutW(stGraphic.hdc_mem_bg, 870, 55, ws.c_str(), (int)ws.length());
+
+	ws = L"HST";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 80, ws.c_str(), (int)ws.length());
+	ws = L"GNT";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 95, ws.c_str(), (int)ws.length());
+	ws = L"SLW";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 110, ws.c_str(), (int)ws.length());
+	ws = L"BH ";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 125, ws.c_str(), (int)ws.length());
+
+
+	ws = L"TH_RAD";
+	TextOutW(stGraphic.hdc_mem_bg, 740, 150, ws.c_str(), (int)ws.length());
+
+	ws = L"R_RAD";
+	TextOutW(stGraphic.hdc_mem_bg, 810, 150, ws.c_str(), (int)ws.length());
+
+	ws = L"TH_W";
+	TextOutW(stGraphic.hdc_mem_bg, 875, 150, ws.c_str(), (int)ws.length());
+
+	ws = L"R_W";
+	TextOutW(stGraphic.hdc_mem_bg, 940, 150, ws.c_str(), (int)ws.length());
+
+	ws = L"SIM_SW";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 170, ws.c_str(), (int)ws.length());
+
+	ws = L"CTR_SW";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 185, ws.c_str(), (int)ws.length());
+
+	ws = L"COM ID";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 215, ws.c_str(), (int)ws.length());
+
+	ws = L"STATUS";
+	TextOutW(stGraphic.hdc_mem_bg, 770, 215, ws.c_str(), (int)ws.length());
+
+	ws = L"BH";
+	TextOutW(stGraphic.hdc_mem_bg, 740, 240, ws.c_str(), (int)ws.length());
+
+	ws = L"SLEW";
+	TextOutW(stGraphic.hdc_mem_bg, 810, 240, ws.c_str(), (int)ws.length());
+
+	ws = L"HOIST";
+	TextOutW(stGraphic.hdc_mem_bg, 880, 240, ws.c_str(), (int)ws.length());
+
+	ws = L"TYPE";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 260, ws.c_str(), (int)ws.length());
+	ws = L"nStep";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 280, ws.c_str(), (int)ws.length());
+	ws = L"iAct";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 300, ws.c_str(), (int)ws.length());
+	ws = L"step";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 320, ws.c_str(), (int)ws.length());
+	ws = L"acount";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 340, ws.c_str(), (int)ws.length());
+	ws = L"mode";
+	TextOutW(stGraphic.hdc_mem_bg, 670, 360, ws.c_str(), (int)ws.length());
+
+
 
 	//注意 wsprintfは小数点の書式が無いので_stprintf_sを使う！！
 	//クレーン速度指令
@@ -319,7 +332,7 @@ VOID CMonWin::draw_inf() {
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_GANTRY]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 860, 65, ws.c_str(), (int)ws.length());
 
-	_stprintf_s(tbuf, L"%.1f", pPLC_IO->status.pos[ID_SLEW]/ PI1DEG); ws = tbuf;
+	_stprintf_s(tbuf, L"%.1f", pPLC_IO->status.pos[ID_SLEW] / PI1DEG); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 80, ws.c_str(), (int)ws.length());//旋回deg
 
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_SLEW]); ws = tbuf;
@@ -333,12 +346,12 @@ VOID CMonWin::draw_inf() {
 	TextOutW(stGraphic.hdc_mem_inf, 725, 140, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pSimStat->sway_io.th[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 800, 140, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%.4f", pSimStat-> sway_io.dth[ID_SLEW]); ws = tbuf;
+	_stprintf_s(tbuf, L"%.4f", pSimStat->sway_io.dth[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 865, 140, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pSimStat->sway_io.dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 140, ws.c_str(), (int)ws.length());
 
-	_stprintf_s(tbuf, L":%.4f", pSway_IO ->th[ID_SLEW]); ws = tbuf;
+	_stprintf_s(tbuf, L":%.4f", pSway_IO->th[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 725, 155, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pSway_IO->th[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 800, 155, ws.c_str(), (int)ws.length());
@@ -347,53 +360,6 @@ VOID CMonWin::draw_inf() {
 	_stprintf_s(tbuf, L"%.4f", pSway_IO->dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 155, ws.c_str(), (int)ws.length());
 
-
-
-	//COMMAND
-#if 0
-	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].id); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 185, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].com_status); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 810, 185, ws.c_str(), (int)ws.length());
-
-	//BH
-	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].recipe[ID_BOOM_H].motion_type); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 230, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].recipe[ID_BOOM_H].n_step); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 250, ws.c_str(), (int)ws.length());
-
-	int i_act = pPolicyInf->com[pPolicyInf->i_com].motion_stat[ID_BOOM_H].iAct;
-	_stprintf_s(tbuf, L":%4d", i_act); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 270, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].recipe[ID_BOOM_H].steps[i_act].type); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 290, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%4d", pPolicyInf->com[pPolicyInf->i_com].motion_stat[ID_BOOM_H].step_act_count); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 310, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%4d", pAgentInf->auto_active[ID_BOOM_H]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 330, ws.c_str(), (int)ws.length());
-
-
-	//SLEW
-	_stprintf_s(tbuf, L"%4d", pPolicyInf->com[pPolicyInf->i_com].recipe[ID_SLEW].motion_type); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 230, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%4d", pPolicyInf->com[pPolicyInf->i_com].recipe[ID_SLEW].n_step); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 250, ws.c_str(), (int)ws.length());
-
-	i_act = pPolicyInf->com[pPolicyInf->i_com].motion_stat[ID_SLEW].iAct;
-	_stprintf_s(tbuf, L"%4d", i_act); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 270, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%4d", pPolicyInf->com[pPolicyInf->i_com].recipe[ID_SLEW].steps[i_act].type); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 290, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%4d", pPolicyInf->com[pPolicyInf->i_com].motion_stat[ID_SLEW].step_act_count); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 310, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%4d", pAgentInf->auto_active[ID_SLEW]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 330, ws.c_str(), (int)ws.length());
-
-#endif	
-	//テストアウト
-	TextOutW(stGraphic.hdc_mem_inf, 350, 50,L"rad", 3);
-
-	
 	return;
 }
 
