@@ -206,41 +206,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         pProcObj->set_debug_mode(L_OFF);
         //メインウィンドウにコントロール追加
         stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 5, 200, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
+            100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            10, 28, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+            5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
 
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            120, 28, 100, 30, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);
+            20, 85, 80, 25, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);
 
         //振れセンサ調整用
         stMainWnd.h_pb_pc_reset = CreateWindow(L"BUTTON", L"PC RESET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            250, 5, 90, 25, hWnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
+            260, 2, 90, 25, hWnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
 
-        stMainWnd.h_static1 = CreateWindowW(TEXT("STATIC"), L"SENSOR      0SET          RESET", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            30, 62, 240, 20, hWnd, (HMENU)IDC_STATIC_1, hInst, NULL);
+        stMainWnd.h_static1 = CreateWindowW(TEXT("STATIC"), L"  SENSOR      0SET        RESET", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            10, 32, 260, 20, hWnd, (HMENU)IDC_STATIC_1, hInst, NULL);
 
         stMainWnd.h_pb_sel_sensor1 = CreateWindow(L"BUTTON", L"1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            40, 85, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_1, hInst, NULL);
+            30, 55, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_1, hInst, NULL);
 
         stMainWnd.h_pb_sel_sensor2 = CreateWindow(L"BUTTON", L"2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            60, 85, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_2, hInst, NULL);
+            50, 55, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_2, hInst, NULL);
+
+        SendMessage(stMainWnd.h_pb_sel_sensor1, BM_SETCHECK, BST_CHECKED, 0L);
         
         stMainWnd.h_pb_reset_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            100, 85, 40, 25, hWnd, (HMENU)IDC_PB_RESET_CAMERA, hInst, NULL);
+            90, 55, 40, 25, hWnd, (HMENU)IDC_PB_0SET_CAMERA, hInst, NULL);
 
         stMainWnd.h_pb_reset_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            145, 85, 30, 25, hWnd, (HMENU)IDC_PB_RESET_TILT, hInst, NULL);
+            135, 55, 30, 25, hWnd, (HMENU)IDC_PB_0SET_TILT, hInst, NULL);
 
         stMainWnd.h_pb_0set_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            200, 85, 40, 25, hWnd, (HMENU)IDC_PB_0SET_CAMERA, hInst, NULL);
+            180, 55, 40, 25, hWnd, (HMENU)IDC_PB_RESET_CAMERA, hInst, NULL);
 
         stMainWnd.h_pb_0set_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            245, 85, 30, 25, hWnd, (HMENU)IDC_PB_0SET_TILT, hInst, NULL);
+            225, 55, 30, 25, hWnd, (HMENU)IDC_PB_RESET_TILT, hInst, NULL);
 
         stMainWnd.h_pb_img_save = CreateWindow(L"BUTTON", L"SSHOT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             280, 38, 55, 40, hWnd, (HMENU)IDC_PB_SCREEN_SHOT, hInst, NULL);
@@ -292,21 +294,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
 
             case  IDC_PB_SENSOR_1:
+
                 break;
             case  IDC_PB_SENSOR_2:
                 break;
             case  IDC_PB_0SET_CAMERA:
-                SendMessage(pProcObj->hWorkWnd, SWAY_SENSOR__MSG_SEND_COM, 0, (LPARAM)L"DEBUG->");
+                if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERA1_0SET);
+                else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERA2_0SET);
                 break;
             case  IDC_PB_0SET_TILT:
+                if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT1_0SET);
+                else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT2_0SET);
                 break;
             case  IDC_PB_RESET_CAMERA:
+                if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR1_RESET);
+                else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_CAMERAR2_RESET);
                 break;
             case  IDC_PB_RESET_TILT:
+                if (IsDlgButtonChecked(hWnd, IDC_PB_SENSOR_1) == BST_CHECKED) pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT1_RESET);
+                else pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_TILT2_RESET);
                 break;
             case  IDC_PB_PC_RESET:
-                break;
+                pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_PC_RESET);
+                 break;
             case  IDC_PB_SCREEN_SHOT:
+                pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_SAVE_IMG);
                 break;
 
             default:

@@ -30,9 +30,14 @@ typedef struct SyayCamSpec {
 }ST_SWAY_CAM_SPEC, * LPST_SWAY_CAM_SPEC;
 
 typedef struct TargetStatus {
+    //機器状態情報
     INT32	mode;		    //モード
     INT32	error;		    //エラーステータス
     INT32	status;		    //検出ステータス
+    //傾斜計情報  
+    INT32	tilt_x;         //傾斜計X
+    INT32	tilt_y;         //傾斜計Y
+    //振れ検出情報  
     INT32	th_x;		    //振角xPIX
     INT32	th_y;		    //振角yPIX
     INT32	dth_x;		    //振角速度x　PIX/s
@@ -46,8 +51,6 @@ typedef struct TargetStatus {
 
 typedef struct SwayComRcvBody { //振れセンサ受信メッセージボディ部
     ST_SWAY_CAM_SPEC cam_spec;
-    INT32	tilt_x;         //傾斜計X
-    INT32	tilt_y;         //傾斜計Y
     ST_TARGET_STAT tg_stat[SWAY_SENSOR_N_TARGET];           //カメラ２ｘターゲット２
     char info[32];
 }ST_SWAY_RCV_BODY, * LPST_SWAY_RCV_BODY;

@@ -255,8 +255,8 @@ int CSIM::set_sway_io() {
     // 傾斜計検出角度
     double tilt_x = 0.0;
     double tilt_y = 0.0;
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tilt_x= (UINT32)(tilt_x * 1000000.0);
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tilt_y = (UINT32)(tilt_y * 1000000.0);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SID_TARGET1].tilt_x= (UINT32)(tilt_x * 1000000.0);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SID_TARGET1].tilt_y = (UINT32)(tilt_y * 1000000.0);
     
     // クレーンxy座標をカメラxy座標に回転変換　→　角度radに変換　
     double th = pCrane->r0[ID_SLEW];//旋回角度

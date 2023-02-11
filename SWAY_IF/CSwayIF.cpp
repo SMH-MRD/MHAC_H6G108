@@ -35,6 +35,8 @@ ST_SWAY_SND_MSG CSwayIF::snd_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_SND_BUF];
 int CSwayIF::i_rcv_msg[N_SWAY_SENSOR] = { 0,0,0 };
 int CSwayIF::i_snd_msg[N_SWAY_SENSOR] = { 0,0,0 };
 
+static bool be_skiped_once_const_msg = false;
+
 CSwayIF::CSwayIF() {
     // 共有メモリオブジェクトのインスタンス化
     pSwayIOObj = new CSharedMem;
@@ -194,8 +196,8 @@ int CSwayIF::parse_sway_stat(int SensorID, int CameraID) {
     double T = pCraneStat->T;
     double w = pCraneStat->w;
 
-    double tilt_x = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tilt_x) / 1000000.0;
-    double tilt_y = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tilt_y) / 1000000.0;
+    double tilt_x = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[iDispTg].tilt_x) / 1000000.0;
+    double tilt_y = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[iDispTg].tilt_y) / 1000000.0;
  	
     double phx = tilt_x + cx;
     double phy = tilt_y + cy;
@@ -359,25 +361,46 @@ int CSwayIF::init_sock(HWND hwnd) {
 }
 
 //*********************************************************************************************
-int CSwayIF::set_send_data(int com_id) {
 
-    i_snd_msg[SID_SENSOR1] = 0;
+int CSwayIF::send_msg(int sensor_id,INT32 com_id) {
 
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].head.id[0] = 'P';
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].head.id[1] = 'C';
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].head.id[2] = '0';
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].head.id[3] = '1';
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].head.sockaddr = addrin;
+    i_snd_msg[sensor_id] = 0;
 
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.command = com_id;
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.mode = sens_mode;
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.freq = cycle_min_ms;
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.d[0] = (INT32)(pCraneStat->mh_l*1000);
-    snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.d[1] = (INT32)(pCraneStat->mh_l * 1000);
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].head.id[0] = 'P';
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].head.id[1] = 'C';
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].head.id[2] = '0';
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].head.id[3] = '1';
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].head.sockaddr = addrin;
 
-    return 0;
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].body.command = com_id;
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].body.mode = sens_mode;
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].body.freq = cycle_min_ms;
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].body.d[0] = (INT32)(pCraneStat->mh_l*1000);
+    snd_msg[sensor_id][i_snd_msg[sensor_id]].body.d[1] = (INT32)(pCraneStat->mh_l * 1000);
+
+    int n = sizeof(ST_SWAY_SND_MSG);
+
+    nRtn = sendto(s, reinterpret_cast<const char*> (&snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]]), n, 0, (LPSOCKADDR)&server, sizeof(ST_SWAY_SND_MSG));
+
+    if (nRtn == n) {
+        nSnd++;
+        woMSG << L" SND len: " << nRtn << L"  Count :" << nSnd << L"    COM:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.command
+            << L"   scan:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.freq << L"\n "
+            << L"MODE:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.mode
+            << L"   D1:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.d[0] << L"   D2:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.d[1];
+
+        be_skiped_once_const_msg = true;
+    }
+    else if (nRtn == SOCKET_ERROR) {
+        woMSG << L" SOCKET ERROR: CODE ->   " << WSAGetLastError();
+    }
+    else {
+        woMSG << L" sendto size ERROR ";
+    }
+    tweet2sndMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+
+    return nRtn;
 }
-
 
 //# ウィンドウへのメッセージ表示　wstring
 void CSwayIF::tweet2statusMSG(const std::wstring& srcw) {
@@ -466,6 +489,8 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         hwndInfMsgPB = CreateWindow(L"BUTTON", L"MSG", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
             15, 185, 40, 30, hwnd, (HMENU)ID_PB_SWAY_IF_INFO_MSG, hInst, NULL);
 
+        SendMessage(hwndInfComPB, BM_SETCHECK, BST_CHECKED, 0L);
+
         CreateWindowW(TEXT("STATIC"), L" Min \n cycle", WS_CHILD | WS_VISIBLE | SS_LEFT,
             10, 300, 50, 40, hwnd, (HMENU)ID_STATIC_SWAY_IF_MINCYCLE, hInst, NULL);
 
@@ -481,27 +506,11 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
      }break;
     case WM_TIMER: {
+        if(be_skiped_once_const_msg == false) send_msg(SID_SENSOR1,SW_SND_COM_CONST_DATA);
 
-        set_send_data(SW_SND_COM_CONST_DATA);
-        int n= sizeof(ST_SWAY_SND_MSG);
-        int n2 = sizeof(ST_SWAY_SND_BODY);
-        
-         nRtn = sendto(s, reinterpret_cast<const char*> (&snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]]), n, 0, (LPSOCKADDR)&server, sizeof(ST_SWAY_SND_MSG));
 
-        if (nRtn == n) {
-            nSnd++;
-            woMSG << L" SND len: " << nRtn << L"  Count :" << nSnd << L"    COM:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.command
-                << L"   scan:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.freq << L"\n "
-                << L"MODE:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.mode
-                << L"   D1:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.d[0] << L"   D2:" << snd_msg[SID_SENSOR1][i_snd_msg[SID_SENSOR1]].body.d[1];
-        }
-        else if (nRtn == SOCKET_ERROR) {
-            woMSG << L" SOCKET ERROR: CODE ->   " << WSAGetLastError();
-        }
-        else {
-            woMSG << L" sendto size ERROR ";
-        }
-        tweet2sndMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+        be_skiped_once_const_msg = false;
+
     }break;
 
     case ID_UDP_EVENT: {
@@ -520,46 +529,52 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
            
             if (nRtn == SOCKET_ERROR) {
                 woMSG << L" recvfrom ERROR";
-                tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+                if (IsDlgButtonChecked(hwnd, ID_PB_SWAY_IF_INFO_COMDATA) == BST_CHECKED)
+                    tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
             }
             else {
                 ST_SWAY_RCV_MSG msg = rcv_msg[iDispSensor][iDispBuf];
+                if (IsDlgButtonChecked(hwnd, ID_PB_SWAY_IF_INFO_COMDATA) == BST_CHECKED) {
+                    woMSG << L" RCV len: " << nRtn << L" Count :" << nRcv;
 
-                woMSG << L" RCV len: " << nRtn << L" Count :" << nRcv ;
- 
-                woMSG << L"\n IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"."<< psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-                woMSG << L" PORT: " << psockaddr->sin_port;
-                tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
-   
-                woMSG << L"Header" << L"  >> ID: " << msg.head.id[0] << msg.head.id[1] << msg.head.id[2] << msg.head.id[3];
-                //日時
-                woMSG << L"  "<<msg.head.time.wMonth << L"/" << msg.head.time.wDay << L" " << msg.head.time.wHour << L":" << msg.head.time.wMinute << L":" << msg.head.time.wSecond;
-                //# 仕様
-                woMSG << L"\n\n@SPEC";
+                    woMSG << L"\n IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+                    woMSG << L" PORT: " << psockaddr->sin_port;
+                    tweet2rcvMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+
+                    woMSG << L"Header" << L"  >> ID: " << msg.head.id[0] << msg.head.id[1] << msg.head.id[2] << msg.head.id[3];
+                    //日時
+                    woMSG << L"  " << msg.head.time.wMonth << L"/" << msg.head.time.wDay << L" " << msg.head.time.wHour << L":" << msg.head.time.wMinute << L":" << msg.head.time.wSecond;
+                    //# 仕様
+                    woMSG << L"\n\n@SPEC";
                     //画素数
-                woMSG << L"\n *nPIX x:" << msg.body[iDispCam].cam_spec.pix_x << L" y:" << msg.body[iDispCam].cam_spec.pix_y;
+                    woMSG << L"\n *nPIX x:" << msg.body[iDispCam].cam_spec.pix_x << L" y:" << msg.body[iDispCam].cam_spec.pix_y;
                     //画角
-                woMSG << L" *PIX/rad x:" << msg.body[iDispCam].cam_spec.pixlrad_x << L" y:" << msg.body[iDispCam].cam_spec.pixlrad_y;
+                    woMSG << L" *PIX/rad x:" << msg.body[iDispCam].cam_spec.pixlrad_x << L" y:" << msg.body[iDispCam].cam_spec.pixlrad_y;
                     //カメラ取付距離,角度
-                woMSG << L"\n *L0 x:" << msg.body[iDispCam].cam_spec.l0_x << L" y:" << msg.body[iDispCam].cam_spec.l0_y << L"  *th0 x:" << msg.body[iDispCam].cam_spec.ph_x << L" y:" << msg.body[iDispCam].cam_spec.ph_y;
+                    woMSG << L"\n *L0 x:" << msg.body[iDispCam].cam_spec.l0_x << L" y:" << msg.body[iDispCam].cam_spec.l0_y << L"  *th0 x:" << msg.body[iDispCam].cam_spec.ph_x << L" y:" << msg.body[iDispCam].cam_spec.ph_y;
 
-                //# 機器状態
-                woMSG << L"\n\n@STATUS";
-                woMSG << L"\n *Mode:" << msg.body[iDispCam].tg_stat[iDispTg].mode << L" *STAT:" << msg.body[iDispCam].tg_stat[iDispTg].status << L" *ERR:" << msg.body[iDispCam].tg_stat[iDispTg].error;
-  
-                //# Data
-                woMSG << L"\n\n@DATA";
-                //傾斜計
-                woMSG << L"\n *Til  X :" << msg.body[iDispCam].tilt_x<<L"(" << (double)(msg.body[iDispCam].tilt_x)*180.0/PI180 / 100000.0 << L"deg)  Y :" << msg.body[iDispCam].tilt_y << L"(" << (double)(msg.body[iDispCam].tilt_y) * 180.0 / PI180 / 100000.0 << L"deg)";
-                woMSG << L"\n *PIX x :" << msg.body[iDispCam].tg_stat[iDispTg].th_x << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].th_y << L"  *dPIX x :" << msg.body[iDispCam].tg_stat[iDispTg].dth_x << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].dth_y;
-                woMSG << L"\n *CENTER X0 :" << msg.body[iDispCam].tg_stat[iDispTg].th_x0 << L" Y0 :" << msg.body[iDispCam].tg_stat[iDispTg].th_y0 << L"\n *tgSize :" << msg.body[iDispCam].tg_stat[iDispTg].tg_size ;
-                woMSG << L"\n *tg_dist x :" << msg.body[iDispCam].tg_stat[iDispTg].dpx_tgs << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].dpy_tgs;
-  
-                tweet2infMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
+                    //# 機器状態
+                    woMSG << L"\n\n@STATUS";
+                    woMSG << L"\n *Mode:" << msg.body[iDispCam].tg_stat[iDispTg].mode << L" *STAT:" << msg.body[iDispCam].tg_stat[iDispTg].status << L" *ERR:" << msg.body[iDispCam].tg_stat[iDispTg].error;
+
+                    //# Data
+                    woMSG << L"\n\n@DATA";
+                    //傾斜計
+                    woMSG << L"\n *Til  X :" << msg.body[iDispCam].tg_stat[iDispTg].tilt_x << L"(" << (double)(msg.body[iDispCam].tg_stat[iDispTg].tilt_x) * 180.0 / PI180 / 100000.0 << L"deg)  Y :" << msg.body[iDispCam].tg_stat[iDispTg].tilt_y << L"(" << (double)(msg.body[iDispCam].tg_stat[iDispTg].tilt_y) * 180.0 / PI180 / 100000.0 << L"deg)";
+                    woMSG << L"\n *PIX x :" << msg.body[iDispCam].tg_stat[iDispTg].th_x << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].th_y << L"  *dPIX x :" << msg.body[iDispCam].tg_stat[iDispTg].dth_x << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].dth_y;
+                    woMSG << L"\n *CENTER X0 :" << msg.body[iDispCam].tg_stat[iDispTg].th_x0 << L" Y0 :" << msg.body[iDispCam].tg_stat[iDispTg].th_y0 << L"\n *tgSize :" << msg.body[iDispCam].tg_stat[iDispTg].tg_size;
+                    woMSG << L"\n *tg_dist x :" << msg.body[iDispCam].tg_stat[iDispTg].dpx_tgs << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].dpy_tgs;
+                }
+                else {
+                    woMSG << L"MSG:";
+                }
+
+
+ 
+                    tweet2infMSG(woMSG.str()); woMSG.str(L"");woMSG.clear();
 
             }
-  
-
+ 
         }break;
         case FD_WRITE:{
 
@@ -595,7 +610,8 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             else
              woMSG << L"ID   " << iDispSensor +1  << L" Buf " << iDispBuf << L" CAM " << iDispCam + 1 << L" TG " << iDispTg + 1 << L"      NEXT-> ";
 
-            SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
+            if (IsDlgButtonChecked(hwnd, ID_PB_SWAY_IF_INFO_COMDATA) == BST_CHECKED) 
+               SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
 
             break;
 
@@ -608,8 +624,8 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 woMSG << L"ID SIM" << L" Buf " << iDispBuf << L" CAM " << iDispCam + 1 << L" TG " << iDispTg + 1 << L"      NEXT->";
             else
                 woMSG << L"ID   " << iDispSensor + 1 << L" Buf " << iDispBuf << L" CAM " << iDispCam + 1 << L" TG " << iDispTg + 1 << L"      NEXT-> ";
-
-            SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
+            if (IsDlgButtonChecked(hwnd, ID_PB_SWAY_IF_INFO_COMDATA) == BST_CHECKED)
+                SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
             break;
        
         case ID_PB_SWAY_IF_CHG_DISP_CAM:
@@ -621,8 +637,8 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 woMSG << L"ID SIM" << L" Buf " << iDispBuf << L" CAM " << iDispCam + 1 << L" TG " << iDispTg + 1 << L"      NEXT->";
             else
                 woMSG << L"ID   " << iDispSensor + 1 << L" Buf " << iDispBuf << L" CAM " << iDispCam + 1 << L" TG " << iDispTg + 1 << L"      NEXT-> ";
-
-            SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
+            if (IsDlgButtonChecked(hwnd, ID_PB_SWAY_IF_INFO_COMDATA) == BST_CHECKED)
+                SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
             break;
 
         case ID_PB_SWAY_IF_CHG_DISP_TG:
@@ -634,8 +650,9 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 woMSG << L"ID SIM" << L" Buf " << iDispBuf << L" CAM " << iDispCam + 1 << L" TG " << iDispTg + 1 << L"      NEXT->";
             else
                 woMSG << L"ID   " << iDispSensor + 1 << L" Buf " << iDispBuf << L" CAM " << iDispCam + 1 << L" TG " << iDispTg + 1 << L"      NEXT-> ";
-
-            SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
+            
+            if (IsDlgButtonChecked(hwnd, ID_PB_SWAY_IF_INFO_COMDATA) == BST_CHECKED)
+                SetWindowText(hwndDispBufMSG, woMSG.str().c_str());woMSG.str(L"");wsMSG.clear();
             break;
 
         case ID_PB_SWAY_IF_INFO_COMDATA:

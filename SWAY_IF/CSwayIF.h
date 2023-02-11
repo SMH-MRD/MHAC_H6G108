@@ -101,7 +101,7 @@ public:
     int parse();            //メイン処理
     int output();           //出力処理
 
-    static int set_send_data(INT32 com_id);   //送信処理はタイマー起動
+    static int send_msg(int sensor_id, INT32 com_id);   //送信処理はタイマー起動
 
     void set_debug_mode(int id) {
         if (id) mode |= SWAY_IF_SIM_DBG_MODE;
@@ -118,6 +118,8 @@ public:
      static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);
      static int close_WorkWnd();
      static int init_sock(HWND hwnd);
+
+
 
 private:
     //振れセンサ通信表示用 
