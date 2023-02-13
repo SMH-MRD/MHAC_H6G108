@@ -217,6 +217,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             20, 85, 80, 25, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);
 
+        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"NO OFF", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
+            115, 85, 80, 25, hWnd, (HMENU)ID_CHECK_SWAY_CAL_NO_OFFSET, hInst, NULL);
+
+        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"NO TIL", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
+            200, 85, 80, 25, hWnd, (HMENU)ID_CHECK_SWAY_CAL_NO_TILT, hInst, NULL);
+
         //振れセンサ調整用
         stMainWnd.h_pb_pc_reset = CreateWindow(L"BUTTON", L"PC RESET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             260, 2, 90, 25, hWnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
@@ -320,6 +326,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case  IDC_PB_SCREEN_SHOT:
                 pProcObj->send_msg(SID_SENSOR1, SW_SND_COM_SAVE_IMG);
                 break;
+
+            case  ID_CHECK_SWAY_CAL_NO_OFFSET:
+                if (IsDlgButtonChecked(hWnd, ID_CHECK_SWAY_CAL_NO_OFFSET) == BST_CHECKED) pProcObj->cal_mode |= ID_SWAY_CAL_NO_OFFSET;
+                else pProcObj->cal_mode &= ~ID_SWAY_CAL_NO_OFFSET;
+                break;
+
+            case  ID_CHECK_SWAY_CAL_NO_TILT:
+                if (IsDlgButtonChecked(hWnd, ID_CHECK_SWAY_CAL_NO_TILT) == BST_CHECKED) pProcObj->cal_mode |= ID_SWAY_CAL_NO_TILT;
+                else pProcObj->cal_mode &= ~ID_SWAY_CAL_NO_TILT;
+                break;
+
 
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);

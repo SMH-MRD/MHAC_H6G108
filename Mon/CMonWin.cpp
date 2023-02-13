@@ -202,29 +202,19 @@ VOID CMonWin::draw_inf_sway() {
 	wstring ws;
 
 
-	ws = L"θx　θy";
-	TextOutW(stGraphic.hdc_mem_bg, 500, 30, ws.c_str(), (int)ws.length());
-	ws = L"Spd Ref";
-	TextOutW(stGraphic.hdc_mem_bg, 725, 55, ws.c_str(), (int)ws.length());
+	ws = L"θx(deg)： ";
+	_stprintf_s(tbuf, L"%.4f", pSway_IO->th[ID_SLEW] * RAD2DEG);	ws += tbuf;
+	ws += L"   θy(deg)： ";
+	_stprintf_s(tbuf, L"%.4f", pSway_IO->th[ID_BOOM_H] * RAD2DEG);	ws += tbuf;ws += L"        ";
 
-	ws = L"Spd FB";
-	TextOutW(stGraphic.hdc_mem_bg, 800, 55, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_bg, 680, 55, ws.c_str(), (int)ws.length());
 
-	ws = L"Pos";
-	TextOutW(stGraphic.hdc_mem_bg, 870, 55, ws.c_str(), (int)ws.length());
+	ws = L"Til(deg)： ";
+	_stprintf_s(tbuf, L"%.4f", pSway_IO->tilt_rad[ID_SLEW] * RAD2DEG);	ws += tbuf;
+	ws += L"   Til(deg)： ";
+	_stprintf_s(tbuf, L"%.4f", pSway_IO->tilt_rad[ID_BOOM_H] * RAD2DEG);	ws += tbuf;
 
-
-	//注意 wsprintfは小数点の書式が無いので_stprintf_sを使う！！
-	//クレーン速度指令
-	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_HOIST]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 710, 50, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_GANTRY]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 710, 65, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_SLEW]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 710, 80, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_BOOM_H]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 710, 95, ws.c_str(), (int)ws.length());
-
+	TextOutW(stGraphic.hdc_mem_bg, 680, 80, ws.c_str(), (int)ws.length());
 
 	return;
 }

@@ -26,6 +26,7 @@ HWND CSwayIF::hwndCycleUpPB;
 HWND CSwayIF::hwndCycleDnPB;
 INT32 CSwayIF::cycle_min_ms;
 INT32 CSwayIF::sens_mode;
+INT32 CSwayIF::cal_mode = ID_SWAY_CAL_NORMAL;
 
 LPST_CRANE_STATUS CSwayIF :: pCraneStat;
 LPST_SIMULATION_STATUS CSwayIF :: pSimStat;
@@ -196,12 +197,28 @@ int CSwayIF::parse_sway_stat(int SensorID, int CameraID) {
     double by = SwayCamParam[SensorID][CameraID][SID_AXIS_Y][CAM_SET_PARAM_b];//センサ検出角補正値
     double cy = SwayCamParam[SensorID][CameraID][SID_AXIS_Y][CAM_SET_PARAM_c];//センサ検出角補正値
     double dy = SwayCamParam[SensorID][CameraID][SID_AXIS_Y][CAM_SET_PARAM_d];//rad→pix変換係数
+
+    //調整用機能
+    if (cal_mode & ID_SWAY_CAL_NO_OFFSET) {
+        ax = bx = cx = 0.0;
+        ay = by = cy = 0.0;
+    }
+
     double L = pCraneStat->mh_l;
     double T = pCraneStat->T;
     double w = pCraneStat->w;
 
     double tilt_x = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[iDispTg].tilt_x) / 1000000.0;
     double tilt_y = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[iDispTg].tilt_y) / 1000000.0;
+
+    //調整用機能
+    if (cal_mode & ID_SWAY_CAL_NO_TILT) {
+        tilt_x = tilt_y = 0.0;
+     }
+
+    sway_io_workbuf.tilt_rad[ID_SLEW] = tilt_x; 
+    sway_io_workbuf.tilt_rad[ID_BOOM_H] = tilt_y;
+
  	
     double phx = tilt_x + cx;
     double phy = tilt_y + cy;

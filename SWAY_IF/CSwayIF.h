@@ -35,6 +35,10 @@
 #define ID_STATIC_SWAY_IF_MINCYCLE          10516
 
 
+//振れ計算モード
+#define ID_SWAY_CAL_NORMAL                  0x0000
+#define ID_SWAY_CAL_NO_OFFSET               0x0001
+#define ID_SWAY_CAL_NO_TILT                 0x0002
 //起動タイマーID
 #define ID_WORK_WND_TIMER					100
 #define WORK_SCAN_TIME						2000			// SWAY IF送信チェック周期msec
@@ -111,6 +115,8 @@ private:
     static INT32 cycle_min_ms;
     static INT32 sens_mode;
 
+ 
+
     static wstring ws_sensor_err_msg[64];
     static wstring ws_sensor_stat_msg[64];
 
@@ -122,6 +128,7 @@ public:
 
     static HWND hWorkWnd;
     WORD helthy_cnt = 0;
+    static INT32 cal_mode;
 
     //オーバーライド
     int set_outbuf(LPVOID); //出力バッファセット

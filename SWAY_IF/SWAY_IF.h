@@ -36,6 +36,9 @@
 #define IDC_PB_PC_RESET				2322
 #define IDC_PB_SCREEN_SHOT			2323
 
+#define ID_CHECK_SWAY_CAL_NO_OFFSET 2324
+#define ID_CHECK_SWAY_CAL_NO_TILT   2325
+
 #define MSG_SENSOR_SOCK				2310	//WinSockイベントメッセージ
 
 

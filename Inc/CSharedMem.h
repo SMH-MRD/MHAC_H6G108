@@ -152,7 +152,7 @@ typedef struct StSwayIO {
 	WORD status[SENSOR_TARGET_MAX];							//ターゲットサ検出状態
 	DWORD fault[SWAY_FAULT_ITEM_MAX];						//センサ異常状態
 	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];	//ターゲット検出PIXEL数（面積）
-	double tilt_rad[DETECT_AXIS_MAX];						//傾斜角
+	double tilt_rad[MOTION_ID_MAX];							//傾斜角
 
 	double th[MOTION_ID_MAX];		//振角			rad
 	double dth[MOTION_ID_MAX];		//振角速度		rad/s
