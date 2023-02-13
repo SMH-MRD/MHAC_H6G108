@@ -302,10 +302,28 @@ int CSIM::set_sway_io() {
     
     
     //ヘッダ情報セット
-    sim_stat_workbuf.rcv_msg.head.id[0] = 'C';
-    sim_stat_workbuf.rcv_msg.head.id[1] = 'A';
+    sim_stat_workbuf.rcv_msg.head.id[0] = 'S';
+    sim_stat_workbuf.rcv_msg.head.id[1] = 'I';
     sim_stat_workbuf.rcv_msg.head.id[2] = 'M';
     sim_stat_workbuf.rcv_msg.head.id[3] = '1';
+
+    //エラーステータスセット
+    sim_stat_workbuf.rcv_msg.body->tg_stat[SWAY_SENSOR_TG1].error = 0x33;
+
+    //検出ステータスセット
+    sim_stat_workbuf.rcv_msg.body->tg_stat[SWAY_SENSOR_TG1].status = 0xf3;
+
+
+    //Info Msg
+    sim_stat_workbuf.rcv_msg.body->info[0] = 'S';
+    sim_stat_workbuf.rcv_msg.body->info[1] = 'i';
+    sim_stat_workbuf.rcv_msg.body->info[2] = 'm';
+    sim_stat_workbuf.rcv_msg.body->info[3] = 'I';
+    sim_stat_workbuf.rcv_msg.body->info[4] = 'n';
+    sim_stat_workbuf.rcv_msg.body->info[5] = 'f';
+    sim_stat_workbuf.rcv_msg.body->info[6] = 'o';
+    sim_stat_workbuf.rcv_msg.body->info[7] = '\0';
+ 
     
     //シミュレータロジックチェック用バッファセット
     sim_stat_workbuf.sway_io.th[ID_SLEW] = thx;

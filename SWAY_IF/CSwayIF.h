@@ -85,7 +85,36 @@ private:
     static void tweet2rcvMSG(const std::wstring& srcw);
     static void tweet2sndMSG(const std::wstring& srcw);
     static void tweet2infMSG(const std::wstring& srcw);
+    static void update_buf_set_disp_msg(HWND hwnd);
  
+    //振れセンサ通信表示用 
+
+    static HWND hwndSTATMSG;
+    static HWND hwndRCVMSG;
+    static HWND hwndSNDMSG;
+    static HWND hwndINFMSG;
+
+    static HWND hwndDispBufMSG;
+    static HWND hwndCamChangePB;
+    static HWND hwndBufChangePB;
+    static HWND hwndTargetChangePB;
+
+    static HWND hwndInfComPB;
+    static HWND hwndInfMsgPB;
+    static HWND hwndCycleUpPB;
+    static HWND hwndCycleDnPB;
+
+    static int iDispSensor;
+    static int iDispBuf;
+    static int iDispCam;
+    static int iDispTg;
+    static INT32 cycle_min_ms;
+    static INT32 sens_mode;
+
+    static wstring ws_sensor_err_msg[64];
+    static wstring ws_sensor_stat_msg[64];
+
+    void set_sensor_msg();
 
 public:
     CSwayIF();
@@ -119,32 +148,6 @@ public:
      static int close_WorkWnd();
      static int init_sock(HWND hwnd);
 
-
-
-private:
-    //振れセンサ通信表示用 
-
-     static HWND hwndSTATMSG;
-     static HWND hwndRCVMSG;
-     static HWND hwndSNDMSG;
-     static HWND hwndINFMSG;
- 
-     static HWND hwndDispBufMSG;
-     static HWND hwndCamChangePB;
-     static HWND hwndBufChangePB;
-     static HWND hwndTargetChangePB;
-
-     static HWND hwndInfComPB;
-     static HWND hwndInfMsgPB;
-     static HWND hwndCycleUpPB;
-     static HWND hwndCycleDnPB;
-
-     static int iDispSensor;
-     static int iDispBuf;
-     static int iDispCam;
-     static int iDispTg;
-     static INT32 cycle_min_ms;
-     static INT32 sens_mode;
  
 };
 

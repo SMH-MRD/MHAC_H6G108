@@ -115,15 +115,15 @@ typedef struct SwayComSndMsg { //振れセンサ受信メッセージ
 
 //メッセージテキスト
 //エラー状態
-#define SW_TXT_ERR_CODE_CAMERA      "カメラ異常"
-#define SW_TXT_ERR_CODE_TILT        "傾斜計異常"
-#define SW_TXT_ERR_CODE_DETECT_TG1  "ターゲット１検出異常"
-#define SW_TXT_ERR_CODE_DETECT_TG2  "ターゲット２検出異常"
+#define SW_TXT_ERR_CODE_CAMERA      L"カメラ異常"
+#define SW_TXT_ERR_CODE_TILT        L"傾斜計異常"
+#define SW_TXT_ERR_CODE_DETECT_TG1  L"ターゲット１検出異常"
+#define SW_TXT_ERR_CODE_DETECT_TG2  L"ターゲット２検出異常"
 
 //検出状態
-#define SW_TXT_STAT_TG1_DETECTED    "ターゲット１検出中"
-#define SW_TXT_STAT_TG2_DETECTED    "ターゲット２検出中"
-#define SW_TXT_STAT_INIT_SENSOR     "センサ準備中"
-#define SW_TXT_STAT_INIT_TILT       "傾斜計準備中"
-#define SW_TXT_STAT_0SET_SENSOR     "センサ０セット中"
-#define SW_TXT_STAT_0SET_TILT       "傾斜計０セット中"
+#define SW_TXT_STAT_TG1_DETECTED    L"ターゲット１検出中"
+#define SW_TXT_STAT_TG2_DETECTED    L"ターゲット２検出中"
+#define SW_TXT_STAT_INIT_SENSOR     L"センサ準備中"
+#define SW_TXT_STAT_INIT_TILT       L"傾斜計準備中"
+#define SW_TXT_STAT_0SET_SENSOR     L"センサ０セット中"
+#define SW_TXT_STAT_0SET_TILT       L"傾斜計０セット中"
