@@ -203,7 +203,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             10, 5, 200, 20, hWnd, (HMENU)IDC_STATIC_0,hInst, NULL);
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT",  WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            305, 90, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
+            305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
         stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             30, 40, 100, 30, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
