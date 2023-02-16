@@ -137,12 +137,6 @@ typedef struct StPLCIO {
 #define SWAY_IF_SIM_DBG_MODE  0x00000010	//振れデータをSIM出力から生成
 
 
-#define CAM_SET_PARAM_N_PARAM       4
-#define CAM_SET_PARAM_a             0
-#define CAM_SET_PARAM_b             1
-#define CAM_SET_PARAM_c             2
-#define CAM_SET_PARAM_d             3
-
 typedef struct StSwayIO {
 	DWORD proc_mode;
 	DWORD helthy_cnt;

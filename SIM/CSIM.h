@@ -60,8 +60,6 @@ private:
 
 private:
    
-    double SwayCamParam[SWAY_SENSOR_N_AXIS][CAM_SET_PARAM_N_PARAM];
-    
     int set_cran_motion();
     int set_sway_io();
 

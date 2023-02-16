@@ -18,25 +18,32 @@ typedef struct SwayComRcvHead { //振れセンサ受信メッセージヘッダ部
     SYSTEMTIME time;		//タイムスタンプ
 }ST_SWAY_RCV_HEAD, * LPST_SWAY_RCV_HEAD;
 
-typedef struct SyayCamSpec {
+typedef struct SwayCamSpec {
     INT32	pix_x;			//カメラ画素数x軸
     INT32	pix_y;			//カメラ画素数y軸
     INT32	pixlrad_x;	    //カメラ分解能　PIX/rad
     INT32	pixlrad_y;	    //カメラ分解能　PIX/rad
     INT32	l0_x;			//カメラ取付パラメータ㎜
     INT32	l0_y;			//カメラ取付パラメータ㎜
-    INT32	ph_x;			//カメラ取付パラメータx1000000rad
-    INT32	ph_y;			//カメラ取付パラメータx1000000rad
+    INT32	ph0_x;			//カメラ取付パラメータx1000000rad
+    INT32	ph0_y;			//カメラ取付パラメータx1000000rad
+    INT32	phc_x;			//カメラ取付パラメータx1000000rad
+    INT32	phc_y;			//カメラ取付パラメータx1000000rad
 }ST_SWAY_CAM_SPEC, * LPST_SWAY_CAM_SPEC;
 
-typedef struct TargetStatus {
+typedef struct SwaySensStatus {
     //機器状態情報
     INT32	mode;		    //モード
     INT32	error;		    //エラーステータス
     INT32	status;		    //検出ステータス
     //傾斜計情報  
-    INT32	tilt_x;         //傾斜計X
-    INT32	tilt_y;         //傾斜計Y
+    INT32	tilt_x;         //傾斜X
+    INT32	tilt_y;         //傾斜Y
+    INT32	tilt_dx;        //傾斜角速度X
+    INT32	tilt_dy;        //傾斜角速度Y
+} ST_SWAY_SENS_STAT, * LPST_SWAY_SENS_STAT;
+
+typedef struct TargetStatus {
     //振れ検出情報  
     INT32	th_x;		    //振角xPIX
     INT32	th_y;		    //振角yPIX
@@ -51,6 +58,7 @@ typedef struct TargetStatus {
 
 typedef struct SwayComRcvBody { //振れセンサ受信メッセージボディ部
     ST_SWAY_CAM_SPEC cam_spec;
+    ST_SWAY_SENS_STAT cam_stat;
     ST_TARGET_STAT tg_stat[SWAY_SENSOR_N_TARGET];           //カメラ２ｘターゲット２
     char info[32];
 }ST_SWAY_RCV_BODY, * LPST_SWAY_RCV_BODY;

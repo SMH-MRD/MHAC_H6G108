@@ -36,6 +36,10 @@ ST_SWAY_SND_MSG CSwayIF::snd_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_SND_BUF];
 int CSwayIF::i_rcv_msg[N_SWAY_SENSOR] = { 0,0,0 };
 int CSwayIF::i_snd_msg[N_SWAY_SENSOR] = { 0,0,0 };
 
+ST_SWAY_IO CSwayIF::sway_io_workbuf;
+ST_SWAY_CAM_WORK CSwayIF::swx;
+ST_SWAY_CAM_WORK CSwayIF::swy;
+
 wstring CSwayIF::ws_sensor_err_msg[64];
 wstring CSwayIF::ws_sensor_stat_msg[64];
 
@@ -99,27 +103,27 @@ int CSwayIF::init_proc() {
         Sleep(10);
     }
     
-    //振れ角計算用カメラパラメータセット
-    for (int i = 0;i < N_SWAY_SENSOR;i++) {
-        for (int j = 0;j < SWAY_SENSOR_N_AXIS;j++)
-           for (int k = 0;k < SWAY_SENSOR_N_AXIS;k++)
-             {
-            double D0 = pCraneStat->spec.SwayCamParam[i][j][k][SID_D0];
-            double H0 = pCraneStat->spec.SwayCamParam[i][j][k][SID_H0];
-            double l0 = pCraneStat->spec.SwayCamParam[i][j][k][SID_l0];
+    //振れ角計算用カメラパラメータデフォルト値セット
+    swx.is_read_from_msg = false;
+    swy.is_read_from_msg = false;
 
-            SwayCamParam[i][j][k][CAM_SET_PARAM_a] = sqrt(D0 * D0 + (H0 - l0) * (H0 - l0));
-            double tempd = H0 - l0; if (tempd < 0.0) tempd *= -1.0;
-            if (tempd < 0.000001) {
-                SwayCamParam[i][j][k][CAM_SET_PARAM_b] = 0.0;
-            }
-            else {
-                SwayCamParam[i][j][k][CAM_SET_PARAM_b] = atan(D0 / (H0 - l0));
-            }
-            SwayCamParam[i][j][k][CAM_SET_PARAM_c] = pCraneStat->spec.SwayCamParam[i][j][k][SID_ph0];
-            SwayCamParam[i][j][k][CAM_SET_PARAM_d] = pCraneStat->spec.SwayCamParam[i][j][k][SID_PIXlRAD];//rad→pix変換係数
-        }
-    }
+    swx.L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
+    swy.L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
+
+    swx.PH0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_PH0];
+    swy.PH0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_PH0];
+
+    swx.l0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_l0];
+    swy.l0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_l0];
+
+    swx.ph0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_ph0];
+    swy.ph0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_ph0];
+
+    swx.phc = pCraneStat->spec.SwayCamParam[0][0][0][SID_phc];
+    swy.phc = pCraneStat->spec.SwayCamParam[0][0][1][SID_phc];
+
+    swx.C = 1.0/pCraneStat->spec.SwayCamParam[0][0][0][SID_PIXlRAD];
+    swy.C = 1.0/pCraneStat->spec.SwayCamParam[0][0][1][SID_PIXlRAD];
 
     cycle_min_ms = SW_SND_DEFAULT_SCAN;
     sens_mode = SW_SND_MODE_NORMAL;
@@ -151,11 +155,11 @@ int CSwayIF::parse() {
 
 #ifdef _DVELOPMENT_MODE
     if(is_debug_mode() && !(pSimStat->mode & SIM_SWAY_PACKET_MODE)){
-        set_sim_status(&sway_io_workbuf);                //　振れセンサ受信バッファの値をSIMからSWAY_IFのバッファにコピー
-        parse_sway_stat(SID_SIM, SID_CAMERA1);           //　シミュレータの受信バッファを解析（カメラ座標での振れ検出値）
+        set_sim_status(&sway_io_workbuf);                                       //　振れセンサ受信バッファの値をSIMからSWAY_IFのバッファにコピー
+        parse_sway_stat(&rcv_msg[SID_SIM][i_rcv_msg[SID_SIM]]);                 //　シミュレータの受信バッファを解析（カメラ座標での振れ検出値）
     }
     else {
-        parse_sway_stat(SID_SENSOR1, SID_CAMERA1);          //　実センサからの受信バッファを解析
+        parse_sway_stat(&rcv_msg[SID_SENSOR1][i_rcv_msg[SID_SENSOR1]]);         //　実センサからの受信バッファを解析
     }
 #else
     parse_sway_stat(SWAY_SENSOR1);
@@ -186,59 +190,104 @@ int CSwayIF::set_sim_status(LPST_SWAY_IO pworkbuf) {
  
     return 0;
 }
-//*********************************************************************************************
-int CSwayIF::parse_sway_stat(int SensorID, int CameraID) {
-    
-    double ax = SwayCamParam[SensorID][CameraID][SID_AXIS_X][CAM_SET_PARAM_a];//センサ検出角補正値
-    double bx = SwayCamParam[SensorID][CameraID][SID_AXIS_X][CAM_SET_PARAM_b];//センサ検出角補正値
-    double cx = SwayCamParam[SensorID][CameraID][SID_AXIS_X][CAM_SET_PARAM_c];//センサ検出角補正値
-    double dx = SwayCamParam[SensorID][CameraID][SID_AXIS_X][CAM_SET_PARAM_d];//rad→pix変換係数
-    double ay = SwayCamParam[SensorID][CameraID][SID_AXIS_Y][CAM_SET_PARAM_a];//センサ検出角補正値
-    double by = SwayCamParam[SensorID][CameraID][SID_AXIS_Y][CAM_SET_PARAM_b];//センサ検出角補正値
-    double cy = SwayCamParam[SensorID][CameraID][SID_AXIS_Y][CAM_SET_PARAM_c];//センサ検出角補正値
-    double dy = SwayCamParam[SensorID][CameraID][SID_AXIS_Y][CAM_SET_PARAM_d];//rad→pix変換係数
 
-    //調整用機能
-    if (cal_mode & ID_SWAY_CAL_NO_OFFSET) {
-        ax = bx = cx = 0.0;
-        ay = by = cy = 0.0;
+//*********************************************************************************************
+// 振れ計算用センサパラメータを通信電文より読み込み
+//*********************************************************************************************
+int CSwayIF::get_sensor_param_from_msg(LPST_SWAY_RCV_MSG pmsg) {
+    swx.L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
+    swy.L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
+
+    swx.PH0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_PH0];
+    swy.PH0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_PH0];
+
+    swx.l0 = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.l0_x / 1000.0;       //mm->m
+    swy.l0 = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.l0_y / 1000.0;       //mm->m
+
+    swx.ph0 = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.ph0_x / 1000000.0;  //x10^6->x1
+    swy.ph0 = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.ph0_y / 1000000.0;  //x10^6->x1
+
+    swx.phc = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.phc_x / 1000000.0;  //x10^6->x1
+    swy.phc = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.phc_y / 1000000.0;  //x10^6->x1
+
+    if (pmsg->body[SWAY_SENSOR_CAM1].cam_spec.pixlrad_x > 1) {
+        swx.C = 1.0 / (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.pixlrad_x;
+    }
+    if (pmsg->body[SWAY_SENSOR_CAM1].cam_spec.pixlrad_x > 1) {
+        swx.C = 1.0 / (double)pmsg->body[SWAY_SENSOR_CAM1].cam_spec.pixlrad_y;
+    }
+    swx.is_read_from_msg = true;
+    swy.is_read_from_msg = true;
+    return 0;
+}
+
+//*********************************************************************************************
+// 振れセンサデータを解析
+//*********************************************************************************************
+
+int CSwayIF::parse_sway_stat(LPST_SWAY_RCV_MSG pmsg) {
+            
+    double PHx, PHy, dPHx, dPHy,thx,thy, dthx, dthy,tilx_cam, tily_cam;
+   
+    //θt+φc
+    swx.th_cam  = swx.C * (pmsg->body[SWAY_SENSOR_CAM1].tg_stat[SWAY_SENSOR_TG1].th_x) + swx.phc;
+    swy.th_cam  = swy.C * (pmsg->body[SWAY_SENSOR_CAM1].tg_stat[SWAY_SENSOR_TG1].th_y) + swy.phc;
+    swx.dth_cam = swx.C * (pmsg->body[SWAY_SENSOR_CAM1].tg_stat[SWAY_SENSOR_TG1].dth_x);
+    swy.dth_cam = swy.C * (pmsg->body[SWAY_SENSOR_CAM1].tg_stat[SWAY_SENSOR_TG1].dth_y);
+
+    //φt+φ0
+
+    tilx_cam = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_x / 1000000.0;
+    tily_cam = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_y / 1000000.0;
+
+    if (cal_mode & ID_SWAY_CAL_NO_TILT) {   //調整用機能 傾斜データ無し
+        swx.til_cam     = swx.ph0;
+        swy.til_cam     = swy.ph0;
+        swx.dtil_cam    = 0.0;
+        swy.dtil_cam    = 0.0;
+    }
+    else {
+        swx.til_cam     = tilx_cam + swx.ph0;
+        swy.til_cam     = tily_cam + swy.ph0;
+        swx.dtil_cam    = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_dx / 1000000.0;
+        swy.dtil_cam    = (double)pmsg->body[SWAY_SENSOR_CAM1].cam_stat.tilt_dy / 1000000.0;
     }
 
-    double L = pCraneStat->mh_l;
-    double T = pCraneStat->T;
-    double w = pCraneStat->w;
 
-    double tilt_x = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[iDispTg].tilt_x) / 1000000.0;
-    double tilt_y = ((double)rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[iDispTg].tilt_y) / 1000000.0;
+    thx = swx.th_cam + swx.til_cam;
+    thy = swy.th_cam + swy.til_cam;
+    dthx = swx.dth_cam + swx.dtil_cam;
+    dthy = swy.dth_cam + swy.dtil_cam;
 
-    //調整用機能
-    if (cal_mode & ID_SWAY_CAL_NO_TILT) {
-        tilt_x = tilt_y = 0.0;
+    if (cal_mode & ID_SWAY_CAL_NO_OFFSET) {  //カメラ位置オフセット無し
+        PHx = thx;
+        PHy = thy;
+        dPHx = swx.dth_cam + swx.dtil_cam;
+        dPHy = swy.dth_cam + swy.dtil_cam;
      }
+    else {
+        PHx = thx - (swx.L0 * sin(thx - swx.PH0) + swx.l0 * sin(swx.th_cam)) / pCraneStat->mh_l;
+        PHy = thy - (swx.L0 * sin(thy - swy.PH0) + swy.l0 * sin(swy.th_cam)) / pCraneStat->mh_l;
+        dPHx = dthx - (swx.L0 * dthx * cos(thx - swx.PH0) + swx.l0 * swx.dth_cam * cos(swx.th_cam)) / pCraneStat->mh_l;
+        dPHy = dthy - (swy.L0 * dthy * cos(thy - swy.PH0) + swy.l0 * swy.dth_cam * cos(swy.th_cam)) / pCraneStat->mh_l;
+    }
 
-    sway_io_workbuf.tilt_rad[ID_SLEW] = tilt_x; 
-    sway_io_workbuf.tilt_rad[ID_BOOM_H] = tilt_y;
+ 
+ 
+    //傾斜計データ  
+    sway_io_workbuf.tilt_rad[ID_SLEW]   = tilx_cam;
+    sway_io_workbuf.tilt_rad[ID_BOOM_H] = tily_cam;
 
- 	
-    double phx = tilt_x + cx;
-    double phy = tilt_y + cy;
+    //吊荷振れ角  
+    sway_io_workbuf.th[ID_SLEW]     = PHx;//接線方向は、旋回速度＋方向が+
+    sway_io_workbuf.th[ID_BOOM_H]   = PHy;
 
-    double psix = (double)(rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[SWAY_SENSOR_TG1].th_x) / dx + phx;
-    double psiy = (double)(rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[SWAY_SENSOR_TG1].th_y) / dy + phy;
+    //吊荷振れ角速度  
+    sway_io_workbuf.dth[ID_SLEW]    = dPHx; //接線方向は、旋回速度＋方向が+
+    sway_io_workbuf.dth[ID_BOOM_H]  = dPHy; 
 
-    double offset_thx = asin(ax * sin(phx + bx) / L);
-    double offset_thy = asin(ay * sin(phy + by) / L);
-
-    //振角　振角速度　振幅　位相　
-	//    カメラ位置からの振れ角＝カメラ検出角＋取付オフセット  
-    sway_io_workbuf.th[ID_SLEW] = (psix + offset_thx);//接線方向は、旋回速度＋方向が+
-    sway_io_workbuf.th[ID_BOOM_H] = psiy + offset_thy;
-
-    sway_io_workbuf.dth[ID_SLEW] = (double)(rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[SWAY_SENSOR_TG1].dth_x) / dx;  // radに変換　接線方向は、旋回速度＋方向が+
-    sway_io_workbuf.dth[ID_BOOM_H] = (double)(rcv_msg[SensorID][i_rcv_msg[SensorID]].body[CameraID].tg_stat[SWAY_SENSOR_TG1].dth_y) / dy;// radに変換
-
-    sway_io_workbuf.dthw[ID_SLEW] = sway_io_workbuf.dth[ID_SLEW] / w;
-    sway_io_workbuf.dthw[ID_BOOM_H] = sway_io_workbuf.dth[ID_BOOM_H] / w;
+    sway_io_workbuf.dthw[ID_SLEW] = sway_io_workbuf.dth[ID_SLEW] / pCraneStat->w;
+    sway_io_workbuf.dthw[ID_BOOM_H] = sway_io_workbuf.dth[ID_BOOM_H] / pCraneStat->w;
 
     sway_io_workbuf.rad_amp2[ID_SLEW] = sway_io_workbuf.th[ID_SLEW] * sway_io_workbuf.th[ID_SLEW] + sway_io_workbuf.dthw[ID_SLEW] * sway_io_workbuf.dthw[ID_SLEW];
     sway_io_workbuf.rad_amp2[ID_BOOM_H] = sway_io_workbuf.th[ID_BOOM_H] * sway_io_workbuf.th[ID_BOOM_H] + sway_io_workbuf.dthw[ID_BOOM_H] * sway_io_workbuf.dthw[ID_BOOM_H];
@@ -282,7 +331,7 @@ static SOCKADDR_IN addrin;//送信ポートアドレス
 static SOCKADDR_IN server;//受信ポートアドレス
 static int serverlen, nEvent;
 static int nRtn = 0, nRcv = 0, nSnd = 0;
-static u_short port = SWAY_IF_IP_PORT_C;
+static u_short port = SWAY_IF_IP_SWAY_PORT_C;
 static char szBuf[512];
 
 std::wostringstream woMSG;
@@ -373,7 +422,7 @@ int CSwayIF::init_sock(HWND hwnd) {
 
     //送信先アドレス初期値設定
     memset(&server, 0, sizeof(server));
-    server.sin_port = htons(SWAY_IF_IP_PORT_C);
+    server.sin_port = htons(SWAY_IF_IP_SWAY_PORT_C);
     server.sin_family = AF_INET;
     inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &server.sin_addr.s_addr);
 
@@ -576,8 +625,7 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             SOCKADDR from_addr;
             sockaddr_in* psockaddr = (sockaddr_in *)&from_addr;
             int from_size = (int)sizeof(from_addr);
-//           nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&server, &serverlen);
-           
+
             nRtn = recvfrom(s, (char*)&rcv_msg[0][0], sizeof(ST_SWAY_RCV_MSG), 0, (SOCKADDR*)&from_addr, &from_size);
            
             if (nRtn == SOCKET_ERROR) {
@@ -587,6 +635,10 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             }
             else {
                 ST_SWAY_RCV_MSG msg = rcv_msg[iDispSensor][iDispBuf];
+
+                //  電文からパラメータ読み込み
+                if ((swx.is_read_from_msg == false) || (swy.is_read_from_msg == false))
+                    get_sensor_param_from_msg(&msg);
 
                 //ヘッダ部表示
                    woMSG << L" RCV len: " << nRtn << L" Count :" << nRcv;
@@ -608,16 +660,17 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     //画角
                     woMSG << L" *PIX/rad x:" << msg.body[iDispCam].cam_spec.pixlrad_x << L" y:" << msg.body[iDispCam].cam_spec.pixlrad_y;
                     //カメラ取付距離,角度
-                    woMSG << L"\n *L0 x:" << msg.body[iDispCam].cam_spec.l0_x << L" y:" << msg.body[iDispCam].cam_spec.l0_y << L"  *th0 x:" << msg.body[iDispCam].cam_spec.ph_x << L" y:" << msg.body[iDispCam].cam_spec.ph_y;
+                    woMSG << L"\n *L0 x:" << msg.body[iDispCam].cam_spec.l0_x << L" y:" << msg.body[iDispCam].cam_spec.l0_y << L"  *th0 x:" << msg.body[iDispCam].cam_spec.ph0_x << L" y:" << msg.body[iDispCam].cam_spec.ph0_y;
 
                     //# 機器状態
                     woMSG << L"\n\n@STATUS";
-                    woMSG << L"\n *Mode:" << msg.body[iDispCam].tg_stat[iDispTg].mode << L" *STAT:" << msg.body[iDispCam].tg_stat[iDispTg].status << L" *ERR:" << msg.body[iDispCam].tg_stat[iDispTg].error;
+                    woMSG << L"\n *Mode:" << msg.body[iDispCam].cam_stat.mode << L" *STAT:" << msg.body[iDispCam].cam_stat.status << L" *ERR:" << msg.body[iDispCam].cam_stat.error;
 
                     //# Data
                     woMSG << L"\n\n@DATA";
                     //傾斜計
-                    woMSG << L"\n *Til  X :" << msg.body[iDispCam].tg_stat[iDispTg].tilt_x << L"(" << (double)(msg.body[iDispCam].tg_stat[iDispTg].tilt_x) * 180.0 / PI180 / 100000.0 << L"deg)  Y :" << msg.body[iDispCam].tg_stat[iDispTg].tilt_y << L"(" << (double)(msg.body[iDispCam].tg_stat[iDispTg].tilt_y) * 180.0 / PI180 / 100000.0 << L"deg)";
+                    woMSG << L"\n *Til  X :" << msg.body[iDispCam].cam_stat.tilt_x << L"(" << (double)(msg.body[iDispCam].cam_stat.tilt_x) * 180.0 / PI180 / 100000.0 << L"deg)  Y :" << msg.body[iDispCam].cam_stat.tilt_y << L"(" << (double)(msg.body[iDispCam].cam_stat.tilt_y) * 180.0 / PI180 / 100000.0 << L"deg)";
+                    woMSG << L"  dX :" << msg.body[iDispCam].cam_stat.tilt_dx << L" dY :" << msg.body[iDispCam].cam_stat.tilt_dy;
                     woMSG << L"\n *PIX x :" << msg.body[iDispCam].tg_stat[iDispTg].th_x << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].th_y << L"  *dPIX x :" << msg.body[iDispCam].tg_stat[iDispTg].dth_x << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].dth_y;
                     woMSG << L"\n *CENTER X0 :" << msg.body[iDispCam].tg_stat[iDispTg].th_x0 << L" Y0 :" << msg.body[iDispCam].tg_stat[iDispTg].th_y0 << L"\n *tgSize :" << msg.body[iDispCam].tg_stat[iDispTg].tg_size;
                     woMSG << L"\n *tg_dist x :" << msg.body[iDispCam].tg_stat[iDispTg].dpx_tgs << L" y :" << msg.body[iDispCam].tg_stat[iDispTg].dpy_tgs;
@@ -629,7 +682,7 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     woMSG << L" "<< msg.body[iDispCam].info ;
                     woMSG << L"\n\n";
 
-                    INT32 msgbits = msg.body[iDispCam].tg_stat[iDispTg].status;
+                    INT32 msgbits = msg.body[iDispCam].cam_stat.status;
                     woMSG ;
                     woMSG << L"# DETECT STATUS:\n";
 
@@ -641,7 +694,7 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
                     woMSG << L"\n";
                     
-                    msgbits = msg.body[iDispCam].tg_stat[iDispTg].error;
+                    msgbits = msg.body[iDispCam].cam_stat.error;
                     woMSG << L"# ERR STATUS:\n" ;
                     for (int i = 0;i < 16;i++) {
                         if (msgbits & 0x1)

@@ -195,34 +195,38 @@ typedef struct StSpec {
 #define SID_TARGET1				0		//No.1振れセンサ
 #define SID_TARGET2				1		//No.2振れセンサ
 
-#define SWAY_CAMERA_N_PARAM		5
-#define SID_D0					0		//カメラ取付位置水平方向オフセット
-#define SID_H0					1		//カメラ取付位置高さ方向オフセット
-#define SID_l0					2		//カメラ中心とハウジング支点間距離
+#define SWAY_CAMERA_N_PARAM		6
+#define SID_L0					0		//カメラ回転軸距離
+#define SID_PH0					1		//カメラ回転軸角度
+#define SID_l0					2		//カメラ中心とハウジング回転軸間距離
 #define	SID_ph0					3		//カメラのハウジングへの取り付け角度
-#define	SID_PIXlRAD				4		//カメラのハウジングへの取り付け角度
-
+#define	SID_phc					4		//カメラのハウジングへの取り付け角度
+#define	SID_PIXlRAD				5		//カメラのハウジングへの取り付け角度
 
 
 #define CTRL_PC_IP_ADDR			"192.168.1.31"
 #define SWAY_SENSOR_IP_ADDR		"192.168.1.102"
+#define CTRL_PC_IP_ADDR_REMOTE	"192.168.1.31"
 
-//#define SWAY_SENSOR_IP_ADDR		"192.168.100.102"
-#define SWAY_IF_IP_PORT_C		10080
-#define SWAY_IF_IP_PORT_S		10081
+
+#define SWAY_IF_IP_SWAY_PORT_C				10080
+#define SWAY_IF_IP_SWAY_PORT_S				10081
+#define SWAY_IF_IP_REMOTE_PANEL_PORT_C		10050
+#define SWAY_IF_IP_REMOTE_PANEL_PORT_S		10051
+
 
 	double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
 		{//No.1 センサ
-		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ1 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
-		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ2 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
 		},
 		{//No.2 センサ
-		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ1 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
-		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ2 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
 		},
 		{//No.3 センサ
-		{ {1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ1 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
-		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//カメラ2 x,y方向 D0 m,H0 m,l0 m,ph0 rad, pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
 		}
 	};
 

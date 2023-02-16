@@ -30,7 +30,7 @@ static SOCKADDR_IN addrin;	//自局
 static SOCKADDR_IN client;	//制御PC
 static int fromlen;
 static int nRtn=0,nRcv=0,nSnd=0;
-static u_short port = SWAY_IF_IP_PORT_S;
+static u_short port = SWAY_IF_IP_SWAY_PORT_S;
 static char szBuf[256];
 
 std::wostringstream woMSG;
@@ -125,7 +125,7 @@ int CWorkWindow::init_sock(HWND hwnd) {
 
 	//送信先アドレス初期値設定
 	memset(&client, 0, sizeof(client));
-	client.sin_port = htons(SWAY_IF_IP_PORT_C);
+	client.sin_port = htons(SWAY_IF_IP_SWAY_PORT_C);
 	client.sin_family = AF_INET;
 	inet_pton(AF_INET, CTRL_PC_IP_ADDR, &client.sin_addr.s_addr);
 
