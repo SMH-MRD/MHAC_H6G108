@@ -191,13 +191,16 @@ int CSIM::parse() {
 //*********************************************************************************************
 // output()
 //*********************************************************************************************
+
+static int sway_if_scan = SWAY_IF_MIN_SCAN_MS/ SYSTEM_TICK_ms;
 int CSIM::output() {
 
     sim_stat_workbuf.mode = this->mode;                         //モードセット
     sim_stat_workbuf.helthy_cnt = my_helthy_counter++;          //ヘルシーカウンタセット
 
     set_cran_motion();  //クレーンの位置、速度情報セット
-    set_sway_io();      //振れセンサIO情報セット
+
+    if(my_helthy_counter% sway_if_scan == 0) set_sway_io();    //振れセンサIO情報セット
     
     
     if (out_size) { //出力処理
@@ -230,27 +233,26 @@ int CSIM::set_cran_motion() {
 //*********************************************************************************************
 
 static double thcamx_last=0, thcamy_last=0;
+static int sim_counter = 0;
 
 int CSIM::set_sway_io() {
       
-    //時間セット
-    GetLocalTime(&sim_stat_workbuf.rcv_msg.head.time);
-    
     // 傾斜計検出角度
-    double tilt_x = 0.0;
+    sim_counter++;
+    double th_tilx = (double)(sim_counter % 1000) * 0.0063;//0.0063 = 2π/1000 10msec scan 10秒周期
+    double a_til = 0;
+    double tilt_x = a_til * sin(th_tilx);
     double tilt_y = 0.0;
-    double tilt_dx = 0.0;
+    double tilt_dx = a_til * 0.62 * cos(th_tilx);
     double tilt_dy = 0.0;
 
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_x= (UINT32)(tilt_x * 1000000.0);
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_y = (UINT32)(tilt_y * 1000000.0);
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_dx = (UINT32)(tilt_dx * 1000000.0);
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_dy = (UINT32)(tilt_dy * 1000000.0);
     
     // クレーンxy座標をカメラxy座標に回転変換　→　角度radに変換　
     double th = pCrane->r0[ID_SLEW];//旋回角度
     double thx = asin(((pLoad->L.x) * sin(th) + (pLoad->L.y) * -cos(th)) / pCrane->l_mh);
     double thy = asin(((pLoad->L.x) * cos(th) + (pLoad->L.y) * sin(th)) / pCrane->l_mh);
+    double dthx = asin(((pLoad->vL.x) * sin(th) + (pLoad->vL.y) * -cos(th)) / pCrane->l_mh);
+    double dthy = asin(((pLoad->vL.x) * cos(th) + (pLoad->vL.y) * sin(th)) / pCrane->l_mh);
 
    
     // カメラ取付オフセット値の計算
@@ -259,7 +261,125 @@ int CSIM::set_sway_io() {
     double T = pCraneStat->T;
     double w = pCraneStat->w;
 
+    double swx_L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
+    double swy_L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
+
+    double swx_PH0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_PH0];
+    double swy_PH0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_PH0];
+
+    double swx_l0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_l0];
+    double swy_l0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_l0];
+
+    double swx_ph0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_ph0];
+    double swy_ph0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_ph0];
+
+    double swx_phc = pCraneStat->spec.SwayCamParam[0][0][0][SID_phc];
+    double swy_phc = pCraneStat->spec.SwayCamParam[0][0][1][SID_phc];
+
+    double swx_C = pCraneStat->spec.SwayCamParam[0][0][0][SID_PIXlRAD];
+    double swy_C = pCraneStat->spec.SwayCamParam[0][0][1][SID_PIXlRAD];
+    
+    double xrx = swx_L0 * sin(swx_PH0) + swx_l0 * sin(swx_ph0 + tilt_x);
+    double yrx = swx_L0 * cos(swx_PH0) + swx_l0 * cos(swx_ph0 + tilt_x);
+    double xry = swy_L0 * sin(swy_PH0) + swy_l0 * sin(swy_ph0 + tilt_y);
+    double yry = swy_L0 * cos(swy_PH0) + swy_l0 * cos(swy_ph0 + tilt_y);
+    double tan_thx = (L * sin(thx) - xrx) / (L * cos(thx) - yrx);
+    double tan_thy = (L * sin(thy) - xry) / (L * cos(thy) - yry);
+
+    double thx_ = atan(tan_thx); //θ＝θt+φc＋φt＋φ0
+    double thy_ = atan(tan_thy);
+    double dthx_ = dthx / (1.0 - (yrx + xrx * tan_thx) / L / (cos(thx) + sin(thx) * tan_thx));
+    double dthy_ = dthy / (1.0 - (yry + xry * tan_thy) / L / (cos(thy) + sin(thy) * tan_thy));
+
+    //メッセージバッファセット
+
+    //# ヘッダ情報セット
+    //機器ID
+    sim_stat_workbuf.rcv_msg.head.id[0] = 'S';
+    sim_stat_workbuf.rcv_msg.head.id[1] = 'I';
+    sim_stat_workbuf.rcv_msg.head.id[2] = 'M';
+    sim_stat_workbuf.rcv_msg.head.id[3] = '1';
+
+    //時間セット
+    GetLocalTime(&sim_stat_workbuf.rcv_msg.head.time);
+
+    //# 振れセンサ情報
+    //機器個体情報
+
+    INT32 nx = 1024, ny = 768;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pix_x       = nx;     //画素数
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pix_y       = ny;      //画素数
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.l0_x        = swx_l0; 
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.l0_y        = swy_l0;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.ph0_x       = swx_ph0;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.ph0_y       = swy_ph0;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.phc_x       = swx_phc;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.phc_y       = swy_phc;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pixlrad_x   = swx_C; 
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pixlrad_y   = swy_C;
+
+    //機器状態情報
+    sim_stat_workbuf.rcv_msg.body->cam_stat.mode                    = 0x01;     //モード
+    sim_stat_workbuf.rcv_msg.body->cam_stat.error                   = 0x33;     //エラーステータスセット      
+    sim_stat_workbuf.rcv_msg.body->cam_stat.status                  = 0xf3;     //検出ステータスセット
+
+    //傾斜計情報
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_x = (UINT32)(tilt_x * 1000000.0);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_y = (UINT32)(tilt_y * 1000000.0);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_dx = (UINT32)(tilt_dx * 1000000.0);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_stat.tilt_dy = (UINT32)(tilt_dy * 1000000.0);
+
+    //振れ検出情報
+    //カメラ検出角度pix
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].th_x = (INT32)((thx_ - tilt_x - swx_ph0 - swx_phc) * swx_C);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].th_y = (INT32)((thy_ - tilt_y - swy_ph0 - swy_phc) * swy_C);
+    //カメラ検出角速度pix
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].dth_x = (INT32)((dthx_ - tilt_dx) * swx_C);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].dth_y = (INT32)((dthy_ - tilt_dy) * swy_C);
+ 
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].th_x0 = nx/2;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].th_y0 = ny/2;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].dpx_tgs = 100;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].dpy_tgs = 100;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].tg_size = 1000;
+
+    //文字情報
+    sim_stat_workbuf.rcv_msg.body->info[0] = 'S';
+    sim_stat_workbuf.rcv_msg.body->info[1] = 'i';
+    sim_stat_workbuf.rcv_msg.body->info[2] = 'm';
+    sim_stat_workbuf.rcv_msg.body->info[3] = 'I';
+    sim_stat_workbuf.rcv_msg.body->info[4] = 'n';
+    sim_stat_workbuf.rcv_msg.body->info[5] = 'f';
+    sim_stat_workbuf.rcv_msg.body->info[6] = 'o';
+    sim_stat_workbuf.rcv_msg.body->info[7] = '\0';
+
+    //シミュレータロジックチェック用バッファセット（MONにシミュレータの元データ表示用）
+    sim_stat_workbuf.sway_io.th[ID_SLEW] = thx;
+    sim_stat_workbuf.sway_io.th[ID_BOOM_H] = thy;
+    sim_stat_workbuf.sway_io.dth[ID_SLEW] = dthx;
+    sim_stat_workbuf.sway_io.dth[ID_BOOM_H] = dthy;
+
+
 #if 0
+
+        swx.L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
+    swy.L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
+
+    swx.PH0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_PH0];
+    swy.PH0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_PH0];
+
+    swx.l0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_l0];
+    swy.l0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_l0];
+
+    swx.ph0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_ph0];
+    swy.ph0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_ph0];
+
+    swx.phc = pCraneStat->spec.SwayCamParam[0][0][0][SID_phc];
+    swy.phc = pCraneStat->spec.SwayCamParam[0][0][1][SID_phc];
+
+    swx.C = 1.0 / pCraneStat->spec.SwayCamParam[0][0][0][SID_PIXlRAD];
+    swy.C = 1.0 / pCraneStat->spec.SwayCamParam[0][0][1][SID_PIXlRAD];
+
     double phx = tilt_x + cx;
     double phy = tilt_y + cy;
     double offset_thx = asin(ax * sin(phx + bx) / L);
@@ -276,43 +396,7 @@ int CSIM::set_sway_io() {
     thcamx_last = th_camx;
     thcamy_last = th_camy;
 
-    //カメラ検出角度pix
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].th_x = (INT32)(th_camx * dx);
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].th_y = (INT32)(th_camy * dy);
-    //カメラ検出角度pix
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].dth_x = (INT32)(dth_camx * dx);
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].tg_stat[SWAY_SENSOR_TG1].dth_y = (INT32)(dth_camy * dy);
- 
-    
-    //ヘッダ情報セット
-    sim_stat_workbuf.rcv_msg.head.id[0] = 'S';
-    sim_stat_workbuf.rcv_msg.head.id[1] = 'I';
-    sim_stat_workbuf.rcv_msg.head.id[2] = 'M';
-    sim_stat_workbuf.rcv_msg.head.id[3] = '1';
 
-    //エラーステータスセット
-    sim_stat_workbuf.rcv_msg.body->cam_stat.error = 0x33;
-
-    //検出ステータスセット
-    sim_stat_workbuf.rcv_msg.body->cam_stat.status = 0xf3;
-
-
-    //Info Msg
-    sim_stat_workbuf.rcv_msg.body->info[0] = 'S';
-    sim_stat_workbuf.rcv_msg.body->info[1] = 'i';
-    sim_stat_workbuf.rcv_msg.body->info[2] = 'm';
-    sim_stat_workbuf.rcv_msg.body->info[3] = 'I';
-    sim_stat_workbuf.rcv_msg.body->info[4] = 'n';
-    sim_stat_workbuf.rcv_msg.body->info[5] = 'f';
-    sim_stat_workbuf.rcv_msg.body->info[6] = 'o';
-    sim_stat_workbuf.rcv_msg.body->info[7] = '\0';
- 
-    
-    //シミュレータロジックチェック用バッファセット
-    sim_stat_workbuf.sway_io.th[ID_SLEW] = thx;
-    sim_stat_workbuf.sway_io.th[ID_BOOM_H] = thy;
-    sim_stat_workbuf.sway_io.dth[ID_SLEW] = dth_camx;
-    sim_stat_workbuf.sway_io.dth[ID_BOOM_H] = dth_camy;
 #endif     
     return 0;
 }

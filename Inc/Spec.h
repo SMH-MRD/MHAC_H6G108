@@ -217,7 +217,7 @@ typedef struct StSpec {
 
 	double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
 		{//No.1 センサ
-		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0,0.0,0.00,0.00,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
 		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
 		},
 		{//No.2 センサ

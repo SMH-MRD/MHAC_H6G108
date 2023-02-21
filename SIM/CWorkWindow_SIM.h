@@ -12,7 +12,7 @@
 #define WORK_WND_W							400		    //MAP WINDOW幅
 #define WORK_WND_H							180			//MAP WINDOW高さ
 
-#define WORK_SCAN_TIME						50			// SWAY IF送信周期msec
+#define WORK_SCAN_TIME						100			// SWAY IF送信周期msec
 
 
 //コントロールID

@@ -4,6 +4,8 @@
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include "CMob.h"
 
+#define SWAY_IF_MIN_SCAN_MS         100     //振れセンサの送信スキャンタイムmsec
+
 #define SIM_IF_PLC_IO_MEM_NG        0x8000
 #define SIM_IF_CRANE_MEM_NG         0x4000
 #define SIM_IF_SIM_MEM_NG           0x2000

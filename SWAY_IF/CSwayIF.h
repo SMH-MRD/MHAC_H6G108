@@ -79,6 +79,8 @@ private:
     CSharedMem* pCraneStatusObj;
     CSharedMem* pSimulationStatusObj;
 
+    void init_rcv_msg();
+
     static ST_SWAY_RCV_MSG rcv_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_RCV_BUF];
     static ST_SWAY_SND_MSG snd_msg[N_SWAY_SENSOR][N_SWAY_SENSOR_SND_BUF];
     static int i_rcv_msg[N_SWAY_SENSOR];
