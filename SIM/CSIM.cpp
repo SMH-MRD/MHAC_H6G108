@@ -240,7 +240,7 @@ int CSIM::set_sway_io() {
     // åXéŒåvåüèoäpìx
     sim_counter++;
     double th_tilx = (double)(sim_counter % 1000) * 0.0063;//0.0063 = 2ÉŒ/1000 10msec scan 10ïbé¸ä˙
-    double a_til = 0;
+    double a_til = 0.00173;
     double tilt_x = a_til * sin(th_tilx);
     double tilt_y = 0.0;
     double tilt_dx = a_til * 0.62 * cos(th_tilx);
@@ -307,16 +307,16 @@ int CSIM::set_sway_io() {
     //ã@äÌå¬ëÃèÓïÒ
 
     INT32 nx = 1024, ny = 768;
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pix_x       = nx;     //âÊëfêî
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pix_y       = ny;      //âÊëfêî
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.l0_x        = swx_l0; 
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.l0_y        = swy_l0;
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.ph0_x       = swx_ph0;
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.ph0_y       = swy_ph0;
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.phc_x       = swx_phc;
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.phc_y       = swy_phc;
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pixlrad_x   = swx_C; 
-    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pixlrad_y   = swy_C;
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pix_x       = INT32(nx);     //âÊëfêî
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pix_y       = INT32(ny);      //âÊëfêî
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.l0_x        = INT32(swx_l0*1000);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.l0_y        = INT32(swy_l0*1000);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.ph0_x       = INT32(swx_ph0 * 1000000);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.ph0_y       = INT32(swy_ph0 * 1000000);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.phc_x       = INT32(swx_phc * 1000000);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.phc_y       = INT32(swy_phc * 1000000);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pixlrad_x   = INT32(swx_C);
+    sim_stat_workbuf.rcv_msg.body[SID_CAMERA1].cam_spec.pixlrad_y   = INT32(swy_C);
 
     //ã@äÌèÛë‘èÓïÒ
     sim_stat_workbuf.rcv_msg.body->cam_stat.mode                    = 0x01;     //ÉÇÅ[Éh

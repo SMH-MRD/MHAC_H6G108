@@ -267,8 +267,9 @@ int CSwayIF::parse_sway_stat(LPST_SWAY_RCV_MSG pmsg) {
 
     thx = swx.th_cam + swx.til_cam;
     thy = swy.th_cam + swy.til_cam;
-    PHx = thx - (yrx * sin(thx) + xrx * cos(thx)) / pCraneStat->mh_l;
-    PHy = thy - (yry * sin(thy) + xry * cos(thy)) / pCraneStat->mh_l;
+    double x_off = (yrx * sin(thx) + xrx * cos(thx)) / pCraneStat->mh_l;
+    PHx = thx - asin(x_off);
+    PHy = thy - asin((yry * sin(thy) + xry * cos(thy)) / pCraneStat->mh_l);
  
     dthx = swx.dth_cam + swx.dtil_cam;
     dthy = swy.dth_cam + swy.dtil_cam;
@@ -704,7 +705,7 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                    
                     //カメラ取付距離,角度
                     woMSG << L"\n *l0 x:" << msg.body[iDispCam].cam_spec.l0_x << L" y:" << msg.body[iDispCam].cam_spec.l0_y << L"  *ph0 x:" << msg.body[iDispCam].cam_spec.ph0_x << L" y:" << msg.body[iDispCam].cam_spec.ph0_y;
-                    woMSG << L"\n *phc x:" << msg.body[iDispCam].cam_spec.phc_x << L" y:" << msg.body[iDispCam].cam_spec.phc_y << L"  *Pix/Rad:" << msg.body[iDispCam].cam_spec.pixlrad_x << L" y:" << msg.body[iDispCam].cam_spec.pixlrad_y;
+                    woMSG << L"\n *phc x:" << msg.body[iDispCam].cam_spec.phc_x << L" y:" << msg.body[iDispCam].cam_spec.phc_y << L"  *Pix/Rad  x:" << msg.body[iDispCam].cam_spec.pixlrad_x << L" y:" << msg.body[iDispCam].cam_spec.pixlrad_y;
 
                     //# 機器状態
                     woMSG << L"\n@STATUS";
