@@ -26,6 +26,10 @@ CPolicy::CPolicy() {
 	pCraneStat = NULL;
 	pRemoteIO = NULL;
 	pSway_IO = NULL;
+	pCSInf = NULL;
+	pAgentInf = NULL;
+	memset(&st_com_work, 0, sizeof(ST_POLICY_WORK));
+	memset(&PolicyInf_workbuf, 0, sizeof(ST_POLICY_INFO));
 }
 
 CPolicy::~CPolicy() {
@@ -37,9 +41,9 @@ CPolicy::~CPolicy() {
 /* 　メインスレッドでインスタンス化した後に呼びます。                       */
 /****************************************************************************/
 
-static CAgent* pAgent;
-static CEnvironment* pEnvironment;
-static CClientService* pCS;
+static CAgent* pAgent=NULL;
+static CEnvironment* pEnvironment = NULL;
+static CClientService* pCS = NULL;
 
 void CPolicy::init_task(void* pobj) {
 
@@ -98,6 +102,13 @@ void CPolicy::output() {
 // AGENTからのコマンド要求処理
 LPST_COMMAND_BLOCK CPolicy::req_command() {
 
+	/* ###
+		CSがセットしているJOB LISTのJOBタイプのものが実行中でないとき　
+	　		SEMIAUTOタイプのものが実行待ちであれば、Policyのコマンドリストにコマンドをセットして実行対象のコマンドのポインタをリターン　
+			SEMIAUTOタイプのものが実行中であれば、実行中のバッファポインタをリターン　
+			JOBタイプのものが実行待ちであれば、JOB用のバッファにコマンドパターンをセットしてポインタをリターン
+			その他の時はNULLポインタをリターン　
+	### */
 	if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status != STAT_ACTIVE) {							// Job実行中でない
 		if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_STANDBY) {				// 半自動準備完了（自動開始入力済）
 			return create_semiauto_command(&(pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active]));	//　半自動コマンドを作成してポインタを返す
@@ -115,6 +126,11 @@ LPST_COMMAND_BLOCK CPolicy::req_command() {
 			return NULL;
 		}
 	}
+	/* ###
+		CSがセットしているJOB LISTのJOBタイプのものが実行中のとき　
+			Policyのコマンドリストに設定しているJOBのタイプがJOBリストの実行中JOBと一致していたら現在実行中のコマンドのポインタをリターン
+			その他の時はNULLポインタをリターン　
+	### */
 	else {
 		if ((PolicyInf_workbuf.command_list.job_type == AUTO_TYPE_JOB)										// コマンドリスト内容がJOB
 			&& (PolicyInf_workbuf.command_list.job_id == pCSInf->job_list.i_job_active)){					// コマンドリストの対象Jobが実行中Jobと一致
@@ -134,29 +150,34 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 	LPST_MOTION_STEP pelement;
 	int id = ID_BOOM_H;
-	int ptn = 0;							//移動パターン
+	int ptn = 0;																//移動パターン
 
-	double D = pwork->dist_for_target[id]; //残り移動距離
+	double D = pwork->dist_for_target[id];										//残り移動距離
 	
-	/*### 作成パターンタイプの判定 ###*/
-	//FBありなしと１回のインチングで移動可能な距離かで区別
-	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;
+	/*### 作成パターンタイプの判定 
+		FBありなしと１回のインチングで移動可能な距離かで区別
+	###*/
 
-	double dist_inch_max;							
-	if (pwork->vmax[id]/ pwork->a[id] > pwork->T) {								//振れ周期以内の加速時間
+	//加速度が0.0はエラー　0割り防止
+	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;								
+
+	//インチング最大距離の計算	
+	double dist_inch_max;																			
+	if (pwork->vmax[id]/ pwork->a[id] > pwork->T) {								//最大速度までの加速時間が振れ周期より大きい時は振れ周期分の加速時間がインチング最大距離
 		dist_inch_max = pwork->a[id] * pwork->T * pwork->T;
 	}
 	else {
-		dist_inch_max = pwork->vmax[id] * pwork->vmax[id] / pwork->a[id];//V^2/α
+		dist_inch_max = pwork->vmax[id] * pwork->vmax[id] / pwork->a[id];		//最大速度までの加速時間が振れ周期より小さい時V^2/α
 	}
 
+	//作成パターンのタイプ判定　移動距離がインチング最大距離より小さいときはFB有はFB振れ止め、FB無しは2回インチング移動
 	if (is_fbtype) {
-		if (D > dist_inch_max) ptn = PTN_NO_FBSWAY_FULL;
-		else ptn = PTN_NO_FBSWAY_2INCH;
-	}
-	else {
 		if (D > dist_inch_max) ptn = PTN_FBSWAY_FULL;
 		else ptn = PTN_FBSWAY_AS;
+	}
+	else {
+		if (D > dist_inch_max) ptn = PTN_NO_FBSWAY_FULL;
+		else ptn = PTN_NO_FBSWAY_2INCH;
 	}
 
 	/*### パターン作成 ###*/
@@ -165,9 +186,11 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	/*### STEP0  待機　###*/
 
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:													// 巻、旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し
+
+	case PTN_NO_FBSWAY_FULL:	
 	case PTN_NO_FBSWAY_2INCH:
 	case PTN_FBSWAY_AS:
+	// 巻、旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し
 	{										
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_WAIT_POS_OTHERS;								// 他軸位置待ち
@@ -178,7 +201,8 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 	}break;
 	 
-	case PTN_FBSWAY_FULL:														// 巻旋回,位置位相待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し、減衰位相到達
+	case PTN_FBSWAY_FULL:
+	// 巻旋回位置＋位相待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し、減衰位相到達	
 	{	
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_WAIT_POS_AND_PH;								// 他軸位置待ち
@@ -191,72 +215,77 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	}
 
 	/*### STEP1,2 速度ステップ出力　2段分###*/
-
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:												// 出力するノッチ速度を計算して設定
-	case PTN_FBSWAY_FULL:														
+	case PTN_NO_FBSWAY_FULL:																	// 出力するノッチ速度を計算して設定
+	case PTN_FBSWAY_FULL:	
+	//台形パターン部 減速を２段階にして距離を調整
 	{
-		double d_step = D;													//ステップでの移動距離
-		double v_top=0.0;													//ステップ速度用
+		double d_step = D;																		//ステップでの移動距離
+		double v_top=0.0;																		//ステップ速度用
 		double check_d;
 		int n=0, i;
 
-		// #Step1 １段目
+		// #Step1 ２段構成になるときの１段目 
+		// まずは、移動距離が1周期振れ止めと出来るTop速度を求める
 		for (i = (NOTCH_MAX-1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 
-			int k = (int)(v_top / st_com_work.a[id] / st_com_work.T);					// k > 0 →　加速時間が振れ周期以上
-			check_d = v_top * (1.0 + (double)k) * st_com_work.T;
-			if (check_d == 0.0) break;
+			int k = (int)(v_top / st_com_work.a[id] / st_com_work.T);							// (int)k > 0 →　加速時間が振れ周期以上
+			check_d = v_top * (1.0 + (double)k) * st_com_work.T;								// 台形振れ止めパターンでの移動距離＝nTVtopが制約条件
+
+			if (check_d == 0.0) break;	// 1ノッチの1周期移動距離も無し
 
 			n = int(d_step / check_d);
-			if (n) break;			//一周期振れ止め距離以上有り
-			else continue;			//次のノッチへ
+			if (n) break;																		//n>残り移動距離が一周期振れ止め距離以上有り→Top speed確定
+			else continue;																		//次のノッチへ
 		}
 
-		if (n) {																		//一周期振れ止めの移動距離有でステップ追加
-			pelement = &(precipe->steps[precipe->n_step++]);							//ステップのポインタセットして次ステップ用にカウントアップ
-			pelement->type = CTR_TYPE_VOUT_POS;											//位置到達待ち
+
+		if (n) {
+			//n>0（一周期振れ止めの移動距離有）で要素のセット
+			pelement = &(precipe->steps[precipe->n_step++]);									//ステップのポインタセットして次ステップ用にカウントアップ
+			pelement->type = CTR_TYPE_VOUT_POS;													//位置到達待ちステップ出力
 
 			double ta = v_top / st_com_work.a[id];
-			pelement->_t = (double)n * st_com_work.T - ta;								// 振れ周期　-　減速時間
+			pelement->_t = (double)n * st_com_work.T - ta;										// n x 振れ周期　-　減速時間
 
-			pelement->_v = v_top;														// 速度0
+			pelement->_v = v_top;																// 出力速度
 
-			double d_move = v_top * ((double)n *  st_com_work.T - 0.5 * ta);
+			double d_move = v_top * ((double)n *  st_com_work.T - 0.5 * ta);					// 減速開始までの移動距離 nTVtop-減速距離
+
 			pelement->_p =  (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;	// 目標位置
 
-			D -= d_move;																// 残り距離更新
+			D -= d_move;																		// 残り距離更新
 		}
 
 		
 	
 
-		//  #Step1２段目
+		//  #Step1２段目　残り移動距離が１周期移動距離以上あるとき2段目追加
 		d_step = D;
-		for (i -= 1;i > 0;i--) {
+		for (i -= 1;i > 0;i--) {//1段目の次のノッチから評価
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 			check_d = v_top * st_com_work.T;
 			if (check_d == 0.0) break;
 
 			n = int(d_step / check_d);
-			if (n) break;			//一周期移動以上の距離有り
-			else continue;			//次のノッチへ
+			if (n) break;																		//一周期移動以上の距離有りで出力速度（ノッチ）決定
+			else continue;																		//次のノッチへ
 		}
 		
-		if (n) {																		//一周期以上の移動距離有でステップ追加
-			pelement = &(precipe->steps[precipe->n_step++]);							//ステップのポインタセットして次ステップ用にカウントアップ
-			pelement->type = CTR_TYPE_VOUT_POS;											//位置到達待ち
+		if (n) {																				//一周期以上の移動距離有でステップ追加
+			pelement = &(precipe->steps[precipe->n_step++]);									//ステップのポインタセットして次ステップ用にカウントアップ
+			pelement->type = CTR_TYPE_VOUT_POS;													//位置到達待ち
 
-			double td = ((pelement - 1)->_v - v_top) / st_com_work.a[id];				// 減速時間 ステップ速度までの減速時間
-			pelement->_t = (double)n * st_com_work.T + td;								// 振れ周期　+　2段目までの減速時間
+			double td = ((pelement - 1)->_v - v_top) / st_com_work.a[id];						// 減速時間 ２段目ステップ速度までの減速時間
+			pelement->_t = (double)n * st_com_work.T + td;										// n x 振れ周期　+　2段目までの減速時間
 
-			pelement->_v = v_top;														// 速度0
+			pelement->_v = v_top;																// 速度
 
 			double d_move = v_top * ((double)n * st_com_work.T + td) + 0.5 * td * ((pelement - 1)->_v - v_top) ;
 			pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;	// 目標位置
 
-			D -= d_move;																// 残り距離更新
+			D -= d_move;																		// 残り距離更新
 		}
 
 
@@ -271,7 +300,8 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		D -= d_move;																	// 残り距離更新
 	}break;
 
-	case PTN_NO_FBSWAY_2INCH:													//台形部無いケースはスキップ
+	//台形部無いケースはスキップ
+	case PTN_NO_FBSWAY_2INCH:													
 	case PTN_FBSWAY_AS:
 	{
 		D = D;
@@ -287,7 +317,7 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		double v_inch = sqrt(0.5 * D * st_com_work.a[id]);
 		double ta = v_inch/st_com_work.a[id];
 		double v_top;
-		for (int i = NOTCH_MAX;i > 1;i--) {
+		for (int i = (NOTCH_MAX-1);i > 1;i--) {	
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 			if (v_inch > pCraneStat->spec.notch_spd_f[id][i - 1])break;
 			else continue;			//次のノッチへ
@@ -445,7 +475,7 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 		int n = 0, i;
 
 		// #Step1 １段目
-		for (i = NOTCH_MAX;i > 0;i--) {
+		for (i = (NOTCH_MAX-1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 
 			int k = (int)(v_top / st_com_work.a[id] / st_com_work.T);					// k > 0 →　加速時間が振れ周期以上
@@ -565,7 +595,7 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 		double v_inch = sqrt(0.5 * D * st_com_work.a[id]);
 		double ta = v_inch / st_com_work.a[id];
 		double v_top;
-		for (int i = NOTCH_MAX;i > 1;i--) {
+		for (int i = (NOTCH_MAX-1);i > 1;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 			if (v_inch > pCraneStat->spec.notch_spd_f[id][i - 1])break;
 			else continue;			//次のノッチへ
@@ -689,7 +719,7 @@ int CPolicy::set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	int n = 0, i;
 
 	// #Step1　１段目
-	for (i = NOTCH_MAX;i > 0;i--) {
+	for (i = (NOTCH_MAX-1);i > 0;i--) {
 		v_top = pCraneStat->spec.notch_spd_f[id][i];
 		check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * v_top;
 		if (check_d < d_step) break;
@@ -734,6 +764,7 @@ LPST_COMMAND_BLOCK CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {							/
 	lp_semiauto_com->no = COM_NO_SEMIAUTO;
 	lp_semiauto_com->type = AUTO_TYPE_SEMIAUTO;
 
+	//半自動は、巻、旋回、引込が対象
 	for (int i = 0;i < MOTION_ID_MAX;i++) lp_semiauto_com->is_active_axis[i]= false;
 	lp_semiauto_com->is_active_axis[ID_HOIST] = true;
 	lp_semiauto_com->is_active_axis[ID_SLEW] = true;
@@ -741,6 +772,7 @@ LPST_COMMAND_BLOCK CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {							/
 	
 	set_com_workbuf(pjob->target[0], AUTO_TYPE_SEMIAUTO);											//半自動パターン作成用データ取り込み
 
+	//旋回,引込,巻のレシピセット　set_receipe_semiauto_bh(JOBタイプ,レシピアドレス,isFBタイプ,レシピ設定条件バッファアドレス
 	set_receipe_semiauto_bh(pjob->type, &(lp_semiauto_com->recipe[ID_BOOM_H]), true, &st_com_work);
 	set_receipe_semiauto_slw(pjob->type, &(lp_semiauto_com->recipe[ID_SLEW]), true, &st_com_work);
 	set_receipe_semiauto_mh(pjob->type, &(lp_semiauto_com->recipe[ID_HOIST]), true, &st_com_work);

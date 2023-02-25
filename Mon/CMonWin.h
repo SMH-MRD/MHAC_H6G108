@@ -73,7 +73,7 @@ typedef struct _stMonGraphic {
     HDC hdc_mem_inf = NULL;					//文字画面メモリデバイスコンテキスト
 
     HFONT hfont_inftext=NULL;				//テキスト用フォント
-    BLENDFUNCTION bf;					//半透過設定構造体
+    BLENDFUNCTION bf = { 0,0,0,0 };					//半透過設定構造体
 
     HPEN hpen[N_CREATE_PEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
     HBRUSH hbrush[N_CREATE_BRUSH] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};

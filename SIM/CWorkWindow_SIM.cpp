@@ -16,7 +16,7 @@
 
 extern CSIM* pProcObj;
 
-CWorkWindow::CWorkWindow() {}
+CWorkWindow::CWorkWindow() { hInst = NULL; }
 CWorkWindow::~CWorkWindow() {}
 HWND CWorkWindow::hWorkWnd;
 HWND CWorkWindow::hwndSTATMSG;

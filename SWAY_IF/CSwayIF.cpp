@@ -47,6 +47,7 @@ static bool be_skiped_once_const_msg = false;
 
 CSwayIF::CSwayIF() {
     // 共有メモリオブジェクトのインスタンス化
+    hInst = NULL;
     pSwayIOObj = new CSharedMem;
     pCraneStatusObj = new CSharedMem;
     pSimulationStatusObj = new CSharedMem;
