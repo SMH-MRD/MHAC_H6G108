@@ -371,17 +371,16 @@ typedef struct stMotionStat {
 
 #define JOB_COMMAND_MAX			10			//　JOBを構成するコマンド最大数
 #define	CODE_TYPE_JOB			0x8000
-#define AUTO_TYPE_ANTI_SWAY		0x0100
-#define AUTO_TYPE_MANUAL		0x0000
-#define AUTO_TYPE_SEMIAUTO		0x8200
-#define AUTO_TYPE_JOB			0x8400
-#define COM_TYPE_PICK			0x0001
-#define COM_TYPE_GRND			0x0002
-#define COM_TYPE_PARK			0x0004
-#define COM_TYPE_FROM_TO		0x0008
+#define AUTO_TYPE_MANUAL			0x0000
+#define AUTO_TYPE_FB_ANTI_SWAY		0x0001
+#define AUTO_TYPE_SEMIAUTO			0x0010
+#define AUTO_TYPE_JOB				0x0020
+#define COM_TYPE_PICK				0x0100
+#define COM_TYPE_GRND				0x0200
+#define COM_TYPE_PARK				0x0400
+#define COM_TYPE_FROM_TO			0x0800
 
-#define COM_NO_SEMIAUTO			0
-
+#define COM_NO_SEMIAUTO 0
 
 typedef struct stCommandBlock {
 	//POLICY SET
@@ -478,7 +477,8 @@ typedef struct stCSInfo {
 	int	 semi_auto_selected;											//選択中の半自動ID
 
 	//自動,遠隔設定（モード）
-	bool auto_standby;													//自動モード
+	bool auto_mode;														//自動モード
+	bool antisway_mode;													//振れ止めモード
 
 }ST_CS_INFO, * LPST_CS_INFO;
 

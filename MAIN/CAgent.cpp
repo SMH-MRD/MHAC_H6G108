@@ -92,18 +92,32 @@ void CAgent::input() {
 //定周期処理手順2　メイン処理
 void CAgent::main_proc() {
 
-	//モードセット
-	//自動モードOFF
-	if (pCSInf->auto_standby == false)		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-	//コマンド取り込み済
-	else if (pCom != NULL) {
-		if(pCom->type == AUTO_TYPE_JOB)		AgentInf_workbuf.auto_on_going = AUTO_TYPE_JOB;
-	    else								AgentInf_workbuf.auto_on_going = AUTO_TYPE_SEMIAUTO;
+	//実行中の自動モードセット
+	if ((pCSInf->antisway_mode == false) && (pCSInf->auto_mode == false)) {	//自動OFF　振れ止めモードOFF
+		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 	}
-	//振れ止め完了状態
-	else if(AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) 
-											AgentInf_workbuf.auto_on_going = AUTO_TYPE_ANTI_SWAY;
-	else									AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+	//j実行中コマンド有
+	else if (pCom != NULL) {												//実行中コマンド有
+		if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
+			if (pCSInf->antisway_mode == true)
+				AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
+			else
+				AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
+		}
+
+		if(pCom->type == AUTO_TYPE_JOB)		AgentInf_workbuf.auto_on_going |= AUTO_TYPE_JOB;
+	    else								AgentInf_workbuf.auto_on_going |= AUTO_TYPE_SEMIAUTO;
+	}
+	//振れ止め未完状態
+	else if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
+		if (pCSInf->antisway_mode == true)
+			AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
+		else
+			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
+	}
+	else {
+		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+	}
 
 	update_motion_setting();				//PLCがPC指令で動作する軸の選択,
 	update_auto_control();					//自動実行モードの設定と自動レシピのセット
@@ -177,48 +191,29 @@ bool CAgent::is_command_completed(LPST_COMMAND_BLOCK pCom) {
 /*　　PC制御選択セット処理													*/
 /****************************************************************************/
 int CAgent::update_motion_setting() {
+	/*
 
-	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_ANTI_SWAY) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_ANTI_SWAY;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_ANTI_SWAY;
 		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
+	*/
+
+	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
 	}
-	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_SEMIAUTO) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_SEMIAUTO;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_SEMIAUTO;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_SEMIAUTO;
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
+	else if((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO)||(AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
 	}
-	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_JOB) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_JOB;
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
+	else if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
 	}
 	else {
+		AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
 		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
 	}
 
+	AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
 
 	//PLCへのPC選択指令セット
 	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) {
@@ -239,7 +234,7 @@ int CAgent::update_motion_setting() {
 /*	自動関連設定					*/
 /****************************************************************************/
 //振れ止め完了判定
-int CAgent::check_as_completed() {
+int CAgent::check_as_completion() {
 
 	int check = AS_COMPLETE_0;
 
@@ -312,12 +307,12 @@ int CAgent::update_auto_control() {
 	dbg_mont[0] = 0;//@@@ debug/
 
 	/*### 振れ止め完了判定　###*/
-	AgentInf_workbuf.antisway_comple_status = check_as_completed();
+	AgentInf_workbuf.antisway_comple_status = check_as_completion();
 					
 	/*### 目標位置設定　###*/
 
 	//自動（振れ止め）モードでない
-	if (pCSInf->auto_standby == false) {
+	if ((pCSInf->auto_mode == false) && (pCSInf->antisway_mode == false)){
 		//目標位置＝現在位置
 		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
 			AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
@@ -343,17 +338,10 @@ int CAgent::update_auto_control() {
 
 	/*### 振れ止めコマンド設定　###*/
 	
-	//自動（振れ止め）モードでない
-	if (pCSInf->auto_standby == false) {
-		; //処理無し
-	}
-	//自動モード
-	else {
+	if (pCSInf->antisway_mode == true){	//振れ止めモード
 		//振れ止め未完で振れ止めコマンドが実行中でなければ、振れ止めコマンド設定
-		if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
-			if (AgentInf_workbuf.comset_as.com_status == STAT_WAITING) {//振れ止め用コマンドセットが要求待ち
+		if((AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) &&  (AgentInf_workbuf.comset_as.com_status == STAT_WAITING)){	//振れ止め用コマンドセットが要求待ち
 				setup_as_command();
-			}
 		}
 	}
 
@@ -409,18 +397,20 @@ int CAgent::set_ref_gt(){
 /****************************************************************************/
 int CAgent::set_ref_slew(){
 
-	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_SLEW) {
-		if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_MANUAL)
+	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_SLEW) {										//制御PC指令選択ON
+		if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_MANUAL)							//マニュアルモード
 			AgentInf_workbuf.v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
 
-		else if((AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_JOB)||
-				(AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_SEMIAUTO)){
+		else if((AgentInf_workbuf.auto_active[ID_SLEW] & AUTO_TYPE_JOB)||
+				(AgentInf_workbuf.auto_active[ID_SLEW] & AUTO_TYPE_SEMIAUTO)){					//自動運転中
 			if(pCom == NULL)	AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
 			else				AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pCom, ID_SLEW);
 		}
-		else if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_ANTI_SWAY){
-			if (pAgentInf->antisway_comple_status | AS_COMPLETE_SLEW)AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
-			else AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(&pAgentInf->comset_as, ID_SLEW);
+		else if (AgentInf_workbuf.auto_active[ID_SLEW] & AUTO_TYPE_FB_ANTI_SWAY){				//振れ止め中
+			if (pAgentInf->antisway_comple_status | AS_COMPLETE_SLEW)								//振れ止め完了
+				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
+			else																					//振れ止め未完
+				AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(&pAgentInf->comset_as, ID_SLEW);	
 		}
 		else {
 				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
@@ -439,19 +429,21 @@ int CAgent::set_ref_bh(){
 
 	LPST_COMMAND_BLOCK pcom;
 
-	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_BOOM_H) {
+	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_BOOM_H) {									//制御PC指令選択ON
 		
-		if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_MANUAL)
+		if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_MANUAL)						//マニュアルモード
 			AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
 
-		else if ((AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_JOB) ||
-			(AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_SEMIAUTO)) {
+		else if ((AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_JOB) ||
+			(AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_SEMIAUTO)) {					//自動運転中
 			if (pCom == NULL)	AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 			else				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(pCom, ID_BOOM_H);
 		}
-		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_ANTI_SWAY) {
-			if(pAgentInf->antisway_comple_status | AS_COMPLETE_BH )AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
-			else AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(&pAgentInf->comset_as, ID_BOOM_H);
+		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_FB_ANTI_SWAY) {			//振れ止め中
+			if(pAgentInf->antisway_comple_status | AS_COMPLETE_BH )									//振れ止め完了
+				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
+			else 																					//振れ止め未完
+				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(&pAgentInf->comset_as, ID_BOOM_H);
 		}
 		else {
 			AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;

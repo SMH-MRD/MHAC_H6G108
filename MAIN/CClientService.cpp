@@ -83,8 +83,10 @@ void CClientService::main_proc() {
 
 	/*### モード管理 ###*/
 	//振れ止めモードセット
-	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF]) CS_workbuf.auto_standby = L_OFF;
-	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON]) CS_workbuf.auto_standby = L_ON;
+	if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_OFF]) 
+		CS_workbuf.antisway_mode = L_OFF;
+	else if (pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON]) 
+		CS_workbuf.antisway_mode = L_ON;
 	else;
 	
 	/*### 半自動処理 ###*/
@@ -137,7 +139,7 @@ void CClientService::output() {
 
 /*### 自動関連ランプ表示　###*/
 	//振れ止めランプ　自動開始ランプ(JOB実行中点灯,JOB実行中でなく登録JOB有で点滅、その他消灯）
-	if (CS_workbuf.auto_standby) {//自動モード時
+	if (CS_workbuf.antisway_mode) {//自動モード時
 		//自動開始ランプ
 		if ((pAgent_Inf->auto_on_going == AUTO_TYPE_JOB) || (pAgent_Inf->auto_on_going == AUTO_TYPE_SEMIAUTO)) {//JOB実行中
 			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;//マニュアル

@@ -75,10 +75,8 @@ public:
     int set_receipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
     int set_receipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
         
-    LPST_AGENT_WORK set_as_workbuf(ST_POS_TARGETS trgets, int type);
-    
     bool is_command_completed(LPST_COMMAND_BLOCK pCom);
-    int check_as_completed();
+    int check_as_completion();
    
     LPST_COMMAND_BLOCK pCom;
        
