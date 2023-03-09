@@ -67,6 +67,11 @@ using namespace std;
 #define ID_PB_ANTISWAY_ON		1
 #define ID_PB_ANTISWAY_OFF		2
 #define ID_PB_AUTO_START		3
+#define ID_PB_AUTO_MODE			4
+#define ID_PB_AUTO_SET_Z		5
+#define ID_PB_AUTO_SET_XY		6
+#define ID_PB_REMOTE_SEL		7
+
 #define ID_PB_CRANE_MODE		12
 #define ID_PB_REMOTE_MODE		13
 #define ID_PB_CTRL_SOURCE_ON	14
@@ -76,19 +81,41 @@ using namespace std;
 #define ID_PB_AUTO_RESET		18
 #define ID_PB_FAULT_RESET		19
 
+#define ID_PB_MH_P1             30
+#define ID_PB_MH_P2             31
+#define ID_PB_MH_M1             32
+#define ID_PB_MH_M2             33
+#define ID_PB_SL_P1             34
+#define ID_PB_SL_P2             35
+#define ID_PB_SL_M1             36
+#define ID_PB_SL_M2             37
+#define ID_PB_BH_P1             38
+#define ID_PB_BH_P2             39
+#define ID_PB_BH_M1             40
+#define ID_PB_BH_M2             41
+#define ID_PB_PARK              42
+#define ID_PB_GRND              43
+#define ID_PB_PICK              44
 
-#define PLC_IO_LAMP_FLICKER_COUNT    40 //ランプフリッカの間隔カウント
-#define PLC_IO_LAMP_FLICKER_CHANGE   20 //ランプフリッカの間隔カウント
+
+#define SEMI_AUTO_TG_CLR	6
+#define SEMI_AUTO_S1		0
+#define SEMI_AUTO_S2		1
+#define SEMI_AUTO_S3		2
+
+#define SEMI_AUTO_L1		3
+#define SEMI_AUTO_L2		4
+#define SEMI_AUTO_L3		5
 
 #define PLC_IO_OFF_DELAY_COUNT		 4	//PB操作オフディレイカウント値
 
 // PLC_User IF信号構造体（機上運転室IO)
 // IO割付内容は、PLC_IO_DEF.hに定義
 typedef struct StPLCUI {
-	int notch_pos[MOTION_ID_MAX];
-	int PB[N_PLC_PB];
-	int PBsemiauto[SEMI_AUTO_TARGET_MAX];
-	int LAMP[N_PLC_LAMP];
+	INT16 notch_pos[MOTION_ID_MAX];
+	INT16 PB[N_PLC_PB];
+	INT16 PBsemiauto[SEMI_AUTO_TARGET_MAX];
+	INT16 LAMP[N_PLC_LAMP];
 }ST_PLC_UI, * LPST_PLC_UI;
 
 // PLC_状態信号構造体（機上センサ信号)
@@ -110,6 +137,86 @@ typedef struct StPLCIO {
 	ST_PLC_STATUS status;
 	CHAR faultPLC[N_PLC_FAULTS];
 }ST_PLC_IO, * LPST_PLC_IO;
+
+/****************************************************************************/
+/*   操作端末卓信号定義構造体                                  　         　*/
+/* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
+/****************************************************************************/
+#define N_OTE_PB				64 //運転操作PB数
+#define N_OTE_LAMP				64 //BIT STATUS数
+#define N_OTE_CTRL_WORDS        16 //制御信号WORD数
+#define N_OTE_ANALOG_SETTING	24  //運転操作PB数
+#define N_OTE_FAULTS			400	//PLCフォルトの割り当てサイズ
+#define N_CPC					4 //制御PC台数
+#define N_OTE					4 //操作端末数
+#define N_CPC_MAX				32 //制御PC台数最大値
+#define N_OTE_MAX				32 //制御PC台数最大値
+
+#define PLC_IO_OFF_DELAY_COUNT		 4	//PB操作オフディレイカウント値
+// IO割付内容は、OTE_IO_DEF.hに定義
+typedef struct StOTE_ComFrom {
+	INT32 id;
+	INT32 type;
+	SOCKADDR_IN ip;
+	INT32 command;
+	INT32 connected_PC;
+	CHAR  textAO[4];
+	double touch_pos[MOTION_ID_MAX];
+	double touch_dist[MOTION_ID_MAX];
+	CHAR  textPB[4];
+	INT16 PB[N_PLC_PB];
+	INT16 notch_pos[MOTION_ID_MAX];
+}ST_OTE_COM_FROM, * LPST_OTE_COM_FROM;
+
+typedef struct StOTE_ComTo {
+	INT32 id;
+	INT32 type;
+	SOCKADDR_IN ip;
+	INT32 status;
+	INT32 connected_OTE;
+	CHAR  textAO[4];
+	double pos_fb[MOTION_ID_MAX];
+	double v_fb[MOTION_ID_MAX];
+	double v_ref[MOTION_ID_MAX];
+	double ld_pos_fb[MOTION_ID_MAX];
+	double ld_v_fb[MOTION_ID_MAX];
+	double auto_tg_pos[MOTION_ID_MAX];
+	double auto_tg_dist[MOTION_ID_MAX];
+	double auto_setting[N_OTE_ANALOG_SETTING];
+	CHAR  textLAMP[4];
+	INT16 lamp[N_PLC_LAMP];
+	INT16 notch_pos[MOTION_ID_MAX];
+	CHAR  textPLC[4];
+	INT16 PLCw[99];
+}ST_OTE_COM_TO, * LPST_OTE_COM_TO;
+
+typedef struct StNOTE_ComFrom {
+	INT32 id;
+	INT32 type;
+	SOCKADDR_IN ip;
+	INT32 status;
+	INT32 connect_PC;
+	UCHAR is_connectable_PC[N_CPC_MAX];
+	INT32 n_standbyOTE;
+	INT32 seq_no_site_connect;
+	INT32 seq_no_remote_connect;
+	INT32 seq_no_my_connect;
+}ST_NOTE_COM_FROM, * LPST_NOTE_COM_FROM;
+
+typedef struct StNOTE_ComTo {
+	INT32 id;
+	INT32 type;
+	SOCKADDR_IN ip;
+	INT32 status;
+	INT32 connected_OTE;
+}ST_NOTE_COM_TO, * LPST_NOTE_COM_TO;
+
+typedef struct StOTE_IO {
+	ST_OTE_COM_FROM st_from_ote;
+	ST_OTE_COM_TO st_to_ote;
+	ST_NOTE_COM_FROM st_from_note[N_OTE_MAX];
+	ST_NOTE_COM_TO st_to_note;
+}ST_OTE_IO, * LPST_OTE_IO;
 
 /****************************************************************************/
 /*   振れセンサ信号定義構造体                                  　         　*/
@@ -156,15 +263,6 @@ typedef struct StSwayIO {
 
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
-/****************************************************************************/
-/*   遠隔操作卓信号定義構造体                                  　         　*/
-/* 　ROS_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
-/****************************************************************************/
-typedef struct StRemoteIO {
-
-	ST_PLC_UI PLCui;
-
-}ST_REMOTE_IO, * LPST_REMOTE_IO;
 
 /****************************************************************************/
 /*   シミュレーション信号定義構造体                                  　   　*/
@@ -264,23 +362,10 @@ typedef struct StCraneStatus {
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
-#define SEMI_AUTO_TG_CLR	8
-#define SEMI_AUTO_TG1		0
-#define SEMI_AUTO_TG2		1
-#define SEMI_AUTO_TG3		2
-#define SEMI_AUTO_TG4		3
-#define SEMI_AUTO_TG5		4
-#define SEMI_AUTO_TG6		5
-#define SEMI_AUTO_TG7		6
-#define SEMI_AUTO_TG8		7
-
-
-
 /****************************************************************************/
 /*   運動要素定義構造体                                                     */
 /* 　加速、定速、減速等の一連の動作は、この要素の組み合わせで構成します。   */
 /****************************************************************************/
-
 
 //レシピ　Type
 #define CTR_TYPE_WAIT_TIME					0	//待機（時間経過待ち）
@@ -337,11 +422,7 @@ typedef struct stMotionElement {	//運動要素
 #define STEP_FAULT		0x0010
 #define STEP_TIMEOVER	0x0020
 
-
 #define _ACT_STANDBY	0
-
-
-
 
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン
@@ -369,8 +450,8 @@ typedef struct stMotionStat {
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
 
-#define JOB_COMMAND_MAX			10			//　JOBを構成するコマンド最大数
-#define	CODE_TYPE_JOB			0x8000
+#define JOB_COMMAND_MAX				10			//　JOBを構成するコマンド最大数
+#define	CODE_TYPE_JOB				0x8000
 #define AUTO_TYPE_MANUAL			0x0000
 #define AUTO_TYPE_FB_ANTI_SWAY		0x0001
 #define AUTO_TYPE_SEMIAUTO			0x0010
@@ -427,7 +508,6 @@ typedef struct StPosTargets {
 	bool is_held[MOTION_ID_MAX];		//目標位置ホールド中フラグ
 }ST_POS_TARGETS, * LPST_POS_TARGETS;
 
-
 typedef struct stJobSet {
 
 	//CS SET
@@ -474,11 +554,16 @@ typedef struct stCSInfo {
 	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];							//半自動ランプ表示出力用
 	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
 	ST_POS_TARGETS semi_auto_setting_target[SEMI_AUTO_TARGET_MAX];		//半自動設定目標位置
+	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置		
 	int	 semi_auto_selected;											//選択中の半自動ID
+	int target_set_z;													//Z座標目標位置確定
+	int target_set_xy;													//XY座標目標位置確定
+	int command_type;													//PARK,PICK,GRND
 
 	//自動,遠隔設定（モード）
-	bool auto_mode;														//自動モード
-	bool antisway_mode;													//振れ止めモード
+	int auto_mode;														//自動モード
+	int antisway_mode;													//振れ止めモード
+	int auto_status;													//振れ止めモード
 
 }ST_CS_INFO, * LPST_CS_INFO;
 

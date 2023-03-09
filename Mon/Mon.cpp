@@ -29,7 +29,7 @@ CSharedMem* pSimulationStatusObj=NULL;
 LPST_CRANE_STATUS pCraneStat = NULL;
 LPST_PLC_IO pPLC_IO = NULL;
 LPST_SWAY_IO pSway_IO = NULL;
-LPST_REMOTE_IO pRemoteIO = NULL;
+LPST_OTE_IO pOTE_IO = NULL;
 LPST_CS_INFO pCSinf = NULL;
 LPST_POLICY_INFO pPolicyInf = NULL;
 LPST_AGENT_INFO pAgentInf = NULL;
@@ -156,8 +156,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME, sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
    else if ((pSway_IO = (LPST_SWAY_IO)pSwayIO_Obj->get_pMap()) == NULL) return(FALSE);
 
-   if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME, sizeof(ST_REMOTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
-   else if ((pRemoteIO = (LPST_REMOTE_IO)pRemoteIO_Obj->get_pMap()) == NULL) return(FALSE);
+   if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME, sizeof(ST_OTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
+   else if ((pOTE_IO = (LPST_OTE_IO)pRemoteIO_Obj->get_pMap()) == NULL) return(FALSE);
 
    if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) return(FALSE);
    else if ((pCSinf = (LPST_CS_INFO)pCSInfObj->get_pMap()) == NULL) return(FALSE);

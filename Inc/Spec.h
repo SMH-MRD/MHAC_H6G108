@@ -230,7 +230,7 @@ typedef struct StSpec {
 		}
 	};
 
-#define SEMI_AUTO_TARGET_MAX	8	// 半自動目標ホールド数
+#define SEMI_AUTO_TARGET_MAX	6	// 半自動目標ホールド数
 
 	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX]{//半自動デフォルト目標位置
 	//	HST,	GNT,	TRY,	BH,		SLW,	OPR,	ASSY,	COM
@@ -240,8 +240,6 @@ typedef struct StSpec {
 		{20.0,	0.0,	0.0,	25.0,	-PI90,	0.0,	0.0,	0.0},
 		{3.0,	0.0,	0.0,	5.0,	-PI90,	0.0,	0.0,	0.0},
 		{15.0,	0.0,	0.0,	18.0,	-PI60,	0.0,	0.0,	0.0},
-		{-3.0,	0.0,	0.0,	10.0,	-PI90,	0.0,	0.0,	0.0},
-		{-5.0,	0.0,	0.0,	15.0,	-PI150,	0.0,	0.0,	0.0}
 	};
 }ST_SPEC, * LPST_SPEC;
 

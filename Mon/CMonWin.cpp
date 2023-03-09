@@ -9,7 +9,7 @@
 extern LPST_CRANE_STATUS pCraneStat;
 extern LPST_PLC_IO pPLC_IO;
 extern LPST_SWAY_IO pSway_IO;
-extern LPST_REMOTE_IO pRemoteIO;
+extern LPST_OTE_IO pOTE_IO;
 extern LPST_CS_INFO pCSinf;
 extern LPST_POLICY_INFO pPolicyInf;
 extern LPST_AGENT_INFO pAgentInf;
@@ -60,7 +60,7 @@ int CMonWin::init_main_window() {
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
 		client_w - 290, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP1, hInst, NULL);
 	stComCtrl.hwnd_map2d_opt1_radio = CreateWindow(
-		L"BUTTON", L"Disp2",
+		L"BUTTON", L"UI",
 		WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE ,
 		client_w - 240, 5, 45, 25, hWnd_parent, (HMENU)IDC_MON_RADIO_DISP2, hInst, NULL);
 	stComCtrl.hwnd_map2d_opt2_radio = CreateWindow(
@@ -146,6 +146,8 @@ int CMonWin::disp_update() {
 		draw_inf_main();break;
 	case IDC_MON_RADIO_DISP1:
 		draw_inf_sway();break;
+	case IDC_MON_RADIO_DISP2:
+		draw_inf_ui();break;
 	default:
 		draw_inf_main();break;
 	}
@@ -191,6 +193,56 @@ VOID CMonWin::draw_bg() {
 
 VOID CMonWin::draw_inf() {
 	PatBlt(stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
+	return;
+}
+
+static wostringstream wos;
+
+VOID CMonWin::draw_inf_ui(){
+	PatBlt(stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
+
+	TCHAR tbuf[32];
+	wstring ws;
+	
+	ws = L"PLC UI";
+	TextOutW(stGraphic.hdc_mem_bg, 680, 35, ws.c_str(), (int)ws.length());
+
+	wos.str(L"");
+	wos << L"UŽ~ Ž©“® ‹N“®  SET_Z  SET_XY :";
+	wos << pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON] << pPLC_IO->ui.PB[ID_PB_AUTO_MODE] << pPLC_IO->ui.PB[ID_PB_AUTO_START] << L" ";
+	wos << pPLC_IO->ui.PB[ID_PB_AUTO_SET_Z] << pPLC_IO->ui.PB[ID_PB_AUTO_SET_XY];
+	TextOutW(stGraphic.hdc_mem_bg, 680, 60, wos.str().c_str(), (int)wos.str().length());
+
+	wos.str(L"");
+	wos << L"S1 S2 S3 :";
+	wos << pPLC_IO->ui.PBsemiauto[SEMI_AUTO_S1] << pPLC_IO->ui.PBsemiauto[SEMI_AUTO_S2] << pPLC_IO->ui.PBsemiauto[SEMI_AUTO_S3];
+	wos << L"    L1 L2 L3 :";
+	wos << pPLC_IO->ui.PBsemiauto[SEMI_AUTO_L1] << pPLC_IO->ui.PBsemiauto[SEMI_AUTO_L2] << pPLC_IO->ui.PBsemiauto[SEMI_AUTO_L3];
+	TextOutW(stGraphic.hdc_mem_bg, 680, 80, wos.str().c_str(), (int)wos.str().length());
+
+	wos.str(L"");
+	wos << L"PARK PICK GRND ‰ðœ:";
+	wos << pPLC_IO->ui.PB[ID_PB_PARK] << pPLC_IO->ui.PB[ID_PB_PICK] << pPLC_IO->ui.PB[ID_PB_GRND] << pPLC_IO->ui.PB[ID_PB_AUTO_RESET];
+	TextOutW(stGraphic.hdc_mem_bg, 680, 100, wos.str().c_str(), (int)wos.str().length());
+
+	wos.str(L"");
+	wos << L"MH:";
+	wos << pPLC_IO->ui.PB[ID_PB_MH_P1] << pPLC_IO->ui.PB[ID_PB_MH_P2] << pPLC_IO->ui.PB[ID_PB_MH_M1] << pPLC_IO->ui.PB[ID_PB_MH_M2];
+	wos << L" SL:";
+	wos << pPLC_IO->ui.PB[ID_PB_SL_P1] << pPLC_IO->ui.PB[ID_PB_SL_P2] << pPLC_IO->ui.PB[ID_PB_SL_M1] << pPLC_IO->ui.PB[ID_PB_SL_M2];
+	wos << L" BH:";
+	wos << pPLC_IO->ui.PB[ID_PB_BH_P1] << pPLC_IO->ui.PB[ID_PB_BH_P2] << pPLC_IO->ui.PB[ID_PB_BH_M1] << pPLC_IO->ui.PB[ID_PB_BH_M2];
+	wos << L"(+ ++ - --)";
+	TextOutW(stGraphic.hdc_mem_bg, 680, 120, wos.str().c_str(), (int)wos.str().length());
+
+	wos.str(L"                                                                 ");
+	TextOutW(stGraphic.hdc_mem_bg, 20, 40, wos.str().c_str(), (int)wos.str().length());
+	wos.str(L"");
+	wos << L"Auto Target MH:" << pCSinf->semi_auto_selected_target.pos[ID_HOIST];
+	wos << L"  SL:" << pCSinf->semi_auto_selected_target.pos[ID_SLEW];
+	wos << L"  BH:" << pCSinf->semi_auto_selected_target.pos[ID_BOOM_H];
+	TextOutW(stGraphic.hdc_mem_bg, 20, 40, wos.str().c_str(), (int)wos.str().length());
+
 	return;
 }
 
@@ -349,6 +401,14 @@ VOID CMonWin::draw_inf_main() {
 	TextOutW(stGraphic.hdc_mem_inf, 865, 155, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pSway_IO->dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 930, 155, ws.c_str(), (int)ws.length());
+
+	wos.str(L"                                                                 ");
+	TextOutW(stGraphic.hdc_mem_bg, 20, 40, wos.str().c_str(), (int)wos.str().length());
+	wos.str(L"");
+	wos << L"Auto Target MH:" << pCSinf->semi_auto_selected_target.pos[ID_HOIST];
+	wos << L"  SL:" << pCSinf->semi_auto_selected_target.pos[ID_SLEW];
+	wos << L"  BH:" << pCSinf->semi_auto_selected_target.pos[ID_BOOM_H];
+	TextOutW(stGraphic.hdc_mem_bg, 20, 40, wos.str().c_str(), (int)wos.str().length());
 
 	return;
 }

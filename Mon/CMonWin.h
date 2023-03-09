@@ -138,10 +138,11 @@ public:
     VOID draw_inf();
     VOID draw_inf_main();
     VOID draw_inf_sway();
+    VOID draw_inf_ui();
 
     VOID draw_graphic();
 
-private:
+ private:
     HWND hWnd_parent;
 
 };

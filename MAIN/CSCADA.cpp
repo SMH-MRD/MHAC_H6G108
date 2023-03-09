@@ -5,7 +5,7 @@ extern CSharedMem* pCraneStatusObj;
 extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
-extern CSharedMem* pRemoteIO_Obj;
+extern CSharedMem* pOTEioObj;
 extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
@@ -20,7 +20,7 @@ extern ST_iTask g_itask;
 CSCADA::CSCADA() {
 	pPLC_IO = NULL;
 	pCraneStat = NULL;
-	pRemoteIO = NULL;
+	pOTE_IO = NULL;
 	pSway_IO = NULL;
 	pSimStat = NULL;
 	pCSInf = NULL;
@@ -41,7 +41,7 @@ void CSCADA::init_task(void* pobj) {
 	//共有メモリ構造体のポインタセット
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
-	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
+	pOTE_IO = (LPST_OTE_IO)(pOTEioObj->get_pMap());
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 	pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
 	pCSInf = (LPST_CS_INFO)(pCSInfObj->get_pMap());

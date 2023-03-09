@@ -106,6 +106,11 @@
 #define STAT_ACTIVE      0x0002      //実行中報告
 #define STAT_PAUSED      0x0004      //一時停止報告
 
+/*** コマンド種類 ***/
+#define NON_COM          0x0000      //コマンド無し
+#define PICK_COM         0x0001      //PICK
+#define GRND_COM         0x0002      //GRND
+#define PARK_COM         0x0003      //PARK
 
 /*** ジョブ,コマンド完了コード ***/
 #define STAT_FIN         0x0080     //終了コード

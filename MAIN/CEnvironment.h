@@ -63,7 +63,7 @@ private:
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;
     LPST_SWAY_IO pSway_IO;
-    LPST_REMOTE_IO pRemoteIO;
+    LPST_OTE_IO pOTE_IO;
     LPST_SIMULATION_STATUS pSimStat;
     LPST_CS_INFO pCSInf;
     LPST_POLICY_INFO pPolicyInf;

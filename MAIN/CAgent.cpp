@@ -99,7 +99,7 @@ void CAgent::main_proc() {
 	//j実行中コマンド有
 	else if (pCom != NULL) {												//実行中コマンド有
 		if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
-			if (pCSInf->antisway_mode == true)
+			if (pCSInf->antisway_mode == L_ON)
 				AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
 			else
 				AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
@@ -110,7 +110,7 @@ void CAgent::main_proc() {
 	}
 	//振れ止め未完状態
 	else if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
-		if (pCSInf->antisway_mode == true)
+		if (pCSInf->antisway_mode == L_ON)
 			AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
 		else
 			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
@@ -338,7 +338,7 @@ int CAgent::update_auto_control() {
 
 	/*### 振れ止めコマンド設定　###*/
 	
-	if (pCSInf->antisway_mode == true){	//振れ止めモード
+	if (pCSInf->antisway_mode == L_ON){	//振れ止めモード
 		//振れ止め未完で振れ止めコマンドが実行中でなければ、振れ止めコマンド設定
 		if((AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) &&  (AgentInf_workbuf.comset_as.com_status == STAT_WAITING)){	//振れ止め用コマンドセットが要求待ち
 				setup_as_command();

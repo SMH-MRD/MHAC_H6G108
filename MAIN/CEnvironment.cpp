@@ -6,7 +6,7 @@ extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pSimulationStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
-extern CSharedMem* pRemoteIO_Obj;
+extern CSharedMem* pOTEioObj;
 extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
@@ -20,7 +20,7 @@ CEnvironment::CEnvironment() {
 	pCraneStat = NULL;
 	pPLC_IO = NULL;
 	pSway_IO = NULL;
-	pRemoteIO = NULL;
+	pOTE_IO = NULL;
 	pSimStat = NULL;
 	pCSInf = NULL;
 	pPolicyInf = NULL;
@@ -41,7 +41,7 @@ void CEnvironment::init_task(void* pobj) {
 	//共有クレーンステータス構造体のポインタセット
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
-	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
+	pOTE_IO = (LPST_OTE_IO)(pOTEioObj->get_pMap());
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 	pSimStat = (LPST_SIMULATION_STATUS)(pSimulationStatusObj->get_pMap());
 	pCSInf=(LPST_CS_INFO)(pCSInfObj->get_pMap());
@@ -145,9 +145,9 @@ void CEnvironment::output() {
 int CEnvironment::parse_notch_com() {
 
 	//ノッチ位置配列のポインタセット
-	int* p_notch;
+	INT16* p_notch;
 	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) 
-		p_notch = pRemoteIO->PLCui.notch_pos;
+		p_notch = pOTE_IO->st_from_ote.notch_pos;
 	else 
 		p_notch = pPLC_IO->ui.notch_pos;
 

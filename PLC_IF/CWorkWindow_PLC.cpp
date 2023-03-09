@@ -79,6 +79,10 @@ int CWorkWindow_PLC::close_WorkWnd() {
 
 //# コールバック関数 ########################################################################	
 
+//ボタン入力OFF Delay用
+static int off_delay_antisway = 0, off_delay_auto_mode = 0;
+#define PB_OFF_DELAY_COUNT 2
+
 LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	LPNMUPDOWN lpnmud;
@@ -108,172 +112,213 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 	
 		return TRUE;
 	}break;		//表示更新タイマ起動
-
-
 	case WM_CREATE: {
 			break;
 	}
 	case WM_COMMAND: {
 		switch (LOWORD(wp)) {
-		case IDC_BUTTON_SOURCE1_ON:
+		case IDC_CHECK_SOURCE1_ON:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE1_ON), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_source1_on = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SOURCE1_ON), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_source1_on = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_source1_on = FALSE;
+				stOpePaneStat.check_source1_on = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_SOURCE1_OFF:
+		case IDC_CHECK_SOURCE1_OFF:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE1_OFF), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_source1_off = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SOURCE1_OFF), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_source1_off = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_source1_off = FALSE;
+				stOpePaneStat.check_source1_off = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_SOURCE2_ON:
+		case IDC_CHECK_SOURCE2_ON:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE2_ON), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_source2_on = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SOURCE2_ON), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_source2_on = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_source2_on = FALSE;
+				stOpePaneStat.check_source2_on = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_SOURCE2_OFF:
+		case IDC_CHECK_SOURCE2_OFF:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_SOURCE2_OFF), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_source2_off = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SOURCE2_OFF), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_source2_off = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_source2_off = FALSE;
+				stOpePaneStat.check_source2_off = SET_OFF;
 			}
 		}break;
 		case IDC_BUTTON_AUTO_START:
 		{
 			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_AUTO_START), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_auto_start = TRUE;
+				stOpePaneStat.check_auto_start = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_auto_start = FALSE;
+				stOpePaneStat.check_auto_start = SET_OFF;
 			}
 		}break;
 		case IDC_BUTTON_AUTO_RESET:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_AUTO_RESET), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_auto_reset = TRUE;
-			}
-			else {
-				stOpePaneStat.button_auto_reset = FALSE;
-			}
+			stOpePaneStat.button_auto_reset = SET_ON;
 		}break;
-		case IDC_BUTTON_FROM1:
+		case IDC_CHECK_S1:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_FROM1), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_from1 = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_S1), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_s1 = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_from1 = FALSE;
+				stOpePaneStat.check_s1 = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_FROM2:
+		case IDC_CHECK_S2:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_FROM2), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_from2 = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_S2), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_s2 = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_from2 = FALSE;
+				stOpePaneStat.check_s2 = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_FROM3:
+		case IDC_CHECK_S3:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_FROM3), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_from3 = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_S3), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_s3 = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_from3 = FALSE;
+				stOpePaneStat.check_s3 = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_FROM4:
+		case IDC_BUTTON_SET_Z:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_FROM4), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_from4 = TRUE;
-			}
-			else {
-				stOpePaneStat.button_from4 = FALSE;
-			}
+			stOpePaneStat.button_set_z = SET_ON;
 		}break;
-		case IDC_BUTTON_TO1:
+		case IDC_CHECK_L1:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO1), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_to1 = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_L1), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_l1 = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_to1 = FALSE;
+				stOpePaneStat.check_l1 = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_TO2:
+		case IDC_CHECK_L2:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO2), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_to2 = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_L2), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_l2 = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_to2 = FALSE;
+				stOpePaneStat.check_l2 = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_TO3:
+		case IDC_CHECK_L3:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO3), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_to3 = TRUE;
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_L3), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_l3 = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_to3 = FALSE;
+				stOpePaneStat.check_l3 = SET_OFF;
 			}
 		}break;
-		case IDC_BUTTON_TO4:
+		case IDC_BUTTON_SET_XY:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_BUTTON_TO4), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_to4 = TRUE;
-			}
-			else {
-				stOpePaneStat.button_to4 = FALSE;
-			}
+			stOpePaneStat.button_set_xy = SET_ON;
 		}break;
-
 		case IDC_CHECK_ESTOP:
 		{
 			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_ESTOP), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.check_estop = TRUE;
+				stOpePaneStat.check_estop = SET_ON;
 			}
 			else {
-				stOpePaneStat.check_estop = FALSE;
+				stOpePaneStat.check_estop = SET_OFF;
 			}
 		}break;
-		case IDC_CHECK_ANTISWAY:
+		case IDC_BUTTON_ANTISWAY:
 		{
-			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_ANTISWAY), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.check_antisway = TRUE;
-			}
-			else {
-				stOpePaneStat.check_antisway = FALSE;
-			}
+			stOpePaneStat.button_antisway = SET_ON;
+		}break;
+		case IDC_BUTTON_AUTO_MODE:
+		{
+			stOpePaneStat.button_auto_mode = SET_ON;
+		}break;
+		case IDC_BUTTON_MH_P1:
+		{
+			stOpePaneStat.button_mh_p1 = SET_ON;
+		}break;
+		case IDC_BUTTON_MH_P2:
+		{
+			stOpePaneStat.button_mh_p2 = SET_ON;
+		}break;
+		case IDC_BUTTON_MH_M1:
+		{
+			stOpePaneStat.button_mh_m1 = SET_ON;
+		}break;
+		case IDC_BUTTON_MH_M2:
+		{
+			stOpePaneStat.button_mh_m2 = SET_ON;
+		}break;
+		case IDC_BUTTON_SL_P1:
+		{
+			stOpePaneStat.button_sl_p1 = SET_ON;
+		}break;
+		case IDC_BUTTON_SL_P2:
+		{
+			stOpePaneStat.button_sl_p2 = SET_ON;
+		}break;
+		case IDC_BUTTON_SL_M1:
+		{
+			stOpePaneStat.button_sl_m1 = SET_ON;
+		}break;
+		case IDC_BUTTON_SL_M2:
+		{
+			stOpePaneStat.button_sl_m2 = SET_ON;
+		}break;
+		case IDC_BUTTON_BH_P1:
+		{
+			stOpePaneStat.button_bh_p1 = SET_ON;
+		}break;
+		case IDC_BUTTON_BH_P2:
+		{
+			stOpePaneStat.button_bh_p2 = SET_ON;
+		}break;
+		case IDC_BUTTON_BH_M1:
+		{
+			stOpePaneStat.button_bh_m1 = SET_ON;
+		}break;
+		case IDC_BUTTON_BH_M2:
+		{
+			stOpePaneStat.button_bh_m2 = SET_ON;
+		}break;
+		case IDC_BUTTON_PARK:
+		{
+			stOpePaneStat.button_park = SET_ON;
+		}break;
+		case IDC_BUTTON_GRND:
+		{
+			stOpePaneStat.button_grnd = SET_ON;
+		}break;
+		case IDC_BUTTON_PICK:
+		{
+			stOpePaneStat.button_pick = SET_ON;
 		}break;
 		case IDC_CHECK_RMOTE:
 		{
 			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_RMOTE), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.button_remote = TRUE;
+				stOpePaneStat.button_remote = SET_ON;
 			}
 			else {
-				stOpePaneStat.button_remote = FALSE;
+				stOpePaneStat.button_remote = SET_OFF;
 			}
 		}break;
 		case IDC_BUTTON_SLEW_0:
 		{
 			SendMessage(GetDlgItem(hDlg, IDC_SPIN_SLEW), UDM_SETPOS, 0, SLW_SLIDAR_0_NOTCH);
 			stOpePaneStat.slider_slew = SLW_SLIDAR_0_NOTCH;
-			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, TRUE, stOpePaneStat.slider_slew);
+			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_SLEW), TBM_SETPOS, SET_ON, stOpePaneStat.slider_slew);
 			wsprintf(stOpePaneStat.static_slew_label, L"旋回 %02d", stOpePaneStat.slider_slew - SLW_SLIDAR_0_NOTCH);
 			SetWindowText(GetDlgItem(hDlg, IDC_STATIC_SLEW_LABEL), stOpePaneStat.static_slew_label);
 		}break;
@@ -281,7 +326,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		{
 			SendMessage(GetDlgItem(hDlg, IDC_SPIN_BH), UDM_SETPOS, 0, BH_SLIDAR_0_NOTCH);
 			stOpePaneStat.slider_bh = BH_SLIDAR_0_NOTCH;
-			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, TRUE, BH_SLIDAR_MAX - (INT64)stOpePaneStat.slider_bh);
+			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_BH), TBM_SETPOS, SET_ON, BH_SLIDAR_MAX - (INT64)stOpePaneStat.slider_bh);
 			wsprintf(stOpePaneStat.static_bh_label, L"引込 %02d", stOpePaneStat.slider_bh - BH_SLIDAR_0_NOTCH);
 			SetWindowText(GetDlgItem(hDlg, IDC_STATIC_BH_LABEL), stOpePaneStat.static_bh_label);
 		}break;
@@ -289,7 +334,7 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		{
 			SendMessage(GetDlgItem(hDlg, IDC_SPIN_MH), UDM_SETPOS, 0, MH_SLIDAR_0_NOTCH);
 			stOpePaneStat.slider_mh = MH_SLIDAR_0_NOTCH;
-			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, TRUE, stOpePaneStat.slider_mh);
+			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_MH), TBM_SETPOS, SET_ON, stOpePaneStat.slider_mh);
 			wsprintf(stOpePaneStat.static_mh_label, L"巻 %02d", stOpePaneStat.slider_mh - MH_SLIDAR_0_NOTCH);
 			SetWindowText(GetDlgItem(hDlg, IDC_STATIC_MH_LABEL), stOpePaneStat.static_mh_label);
 		}break;
@@ -297,50 +342,44 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 		{
 			SendMessage(GetDlgItem(hDlg, IDC_SPIN_GT), UDM_SETPOS, 0, GT_SLIDAR_0_NOTCH);
 			stOpePaneStat.slider_gt = GT_SLIDAR_0_NOTCH;
-			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_GT), TBM_SETPOS, TRUE, stOpePaneStat.slider_gt);
+			SendMessage(GetDlgItem(hDlg, IDC_SLIDER_GT), TBM_SETPOS, SET_ON, stOpePaneStat.slider_gt);
 			wsprintf(stOpePaneStat.static_gt_label, L"走行 %02d", stOpePaneStat.slider_gt - GT_SLIDAR_0_NOTCH);
 			SetWindowText(GetDlgItem(hDlg, IDC_STATIC_GT_LABEL), stOpePaneStat.static_gt_label);
 		}break;
-
 		case IDC_BUTTON_FAULT_RESET:
 		{
-			if (stOpePaneStat.button_fault_reset) stOpePaneStat.button_fault_reset = false;
-			else stOpePaneStat.button_fault_reset = true;
-		}break ;
-
+			if (stOpePaneStat.button_fault_reset) stOpePaneStat.button_fault_reset = SET_OFF;
+			else stOpePaneStat.button_fault_reset = SET_ON;
+		}break;
 		case IDC_CHECK_SPD_MODE:
 		{
 			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SPD_MODE), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.chk_PC_ref_spd = TRUE;
+				stOpePaneStat.chk_PC_ref_spd = SET_ON;
 			}
 			else {
-				stOpePaneStat.chk_PC_ref_spd = FALSE;
+				stOpePaneStat.chk_PC_ref_spd = SET_OFF;
 			}
 		}break;
 		case IDC_CHECK_SIM_FB:
 		{
 			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_SIM_FB), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.chk_sim_fb = TRUE;
+				stOpePaneStat.chk_sim_fb = SET_ON;
 			}
 			else {
-				stOpePaneStat.chk_sim_fb = FALSE;
+				stOpePaneStat.chk_sim_fb = SET_OFF;
 			}
 		}break;
 		case IDC_DISABLE_PANEL_INPUT:
 		{
 			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_DISABLE_PANEL_INPUT), BM_GETCHECK, 0, 0)) {
-				stOpePaneStat.chk_input_disable = TRUE;
+				stOpePaneStat.chk_input_disable = SET_ON;
 			}
 			else {
-				stOpePaneStat.chk_input_disable = FALSE;
+				stOpePaneStat.chk_input_disable = SET_OFF;
 			}
 		}break;
-
-		}
-
-
-
-	}break;
+		}break;
+	}
 	case WM_PAINT:{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hDlg, &ps);
@@ -408,6 +447,28 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 	}
 
 	case WM_TIMER: {
+
+		//PB入力オフディレイ
+		if (stOpePaneStat.button_antisway > 0) stOpePaneStat.button_antisway--;
+		if (stOpePaneStat.button_auto_mode > 0) stOpePaneStat.button_auto_mode--;
+		if (stOpePaneStat.button_auto_reset > 0) stOpePaneStat.button_auto_reset--;
+		if (stOpePaneStat.button_set_z > 0) stOpePaneStat.button_set_z--;
+		if (stOpePaneStat.button_set_xy > 0) stOpePaneStat.button_set_xy--;
+		if (stOpePaneStat.button_mh_p1 > 0) stOpePaneStat.button_mh_p1--;
+		if (stOpePaneStat.button_mh_p2 > 0) stOpePaneStat.button_mh_p2--;
+		if (stOpePaneStat.button_mh_m1 > 0) stOpePaneStat.button_mh_m1--;
+		if (stOpePaneStat.button_mh_m2 > 0) stOpePaneStat.button_mh_m2--;
+		if (stOpePaneStat.button_sl_p1 > 0) stOpePaneStat.button_sl_p1--;
+		if (stOpePaneStat.button_sl_p2 > 0) stOpePaneStat.button_sl_p2--;
+		if (stOpePaneStat.button_sl_m1 > 0) stOpePaneStat.button_sl_m1--;
+		if (stOpePaneStat.button_sl_m2 > 0) stOpePaneStat.button_sl_m2--;
+		if (stOpePaneStat.button_bh_p1 > 0) stOpePaneStat.button_bh_p1--;
+		if (stOpePaneStat.button_bh_p2 > 0) stOpePaneStat.button_bh_p2--;
+		if (stOpePaneStat.button_bh_m1 > 0) stOpePaneStat.button_bh_m1--;
+		if (stOpePaneStat.button_bh_m2 > 0) stOpePaneStat.button_bh_m2--;
+		if (stOpePaneStat.button_park > 0) stOpePaneStat.button_park--;
+		if (stOpePaneStat.button_grnd > 0) stOpePaneStat.button_grnd--;
+		if (stOpePaneStat.button_pick > 0) stOpePaneStat.button_pick--;
 
 		update_Work(hDlg);
 	}break;
@@ -768,17 +829,27 @@ int CWorkWindow_PLC::update_all_controls(HWND hDlg) {
 	SetWindowText(GetDlgItem(hDlg, IDC_STATIC_GT_LABEL), stOpePaneStat.static_gt_label);
 	return 0;
 }
+
+/******************************************************************************************************/
+/*　　                 パネル上のランプ表示更新（TIMERイベントで呼び出し）　　　　　　　　　　　　　　*/
+/******************************************************************************************************/
 int CWorkWindow_PLC::update_Work(HWND hwnd) {
 
 	//振れ止め
 	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_as_on[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_as_on[ID_BPOS]) {
 		SetWindowText(GetDlgItem(hwnd, IDC_ANTISWAY_LAMP), L"●");
 	}else SetWindowText(GetDlgItem(hwnd, IDC_ANTISWAY_LAMP), L"○");
-	//自動開始
+	//起動
 	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_start[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_start[ID_BPOS]) {
 		SetWindowText(GetDlgItem(hwnd, IDC_AUTOSTART_LAMP), L"●");
 	}
 	else SetWindowText(GetDlgItem(hwnd, IDC_AUTOSTART_LAMP), L"○");
+
+	//自動モード
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_mode[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_mode[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_AUTO_MODE_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_AUTO_MODE_LAMP), L"○");
 
 	//半自動リセット
 	if (stOpePaneStat.button_auto_reset == TRUE) {
@@ -786,48 +857,69 @@ int CWorkWindow_PLC::update_Work(HWND hwnd) {
 	}
 	else SetWindowText(GetDlgItem(hwnd, IDC_SEMI_RESET_LAMP), L"○");
 
+	//目標位置セット確定
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_set_xy[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_set_xy[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_SET_XY_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_SET_XY_LAMP), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_set_xy[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_set_xy[ID_BPOS]) {
+			SetWindowText(GetDlgItem(hwnd, IDC_STATIC_SET_XY_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_SET_XY_LAMP), L"○");
+
+	//自動コマンド設定
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_park[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_park[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_PARK_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_PARK_LAMP), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_pick[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_pick[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_PICK_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_PICK_LAMP), L"○");
+
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_grnd[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_grnd[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_GRND_LAMP), L"●");
+	}
+	else SetWindowText(GetDlgItem(hwnd, IDC_GRND_LAMP), L"○");
+
+
 	//半自動設定
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg1[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg1[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP1), L"●");
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg_s1[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg_s1[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_S1_LAMP), L"●");
 	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP1), L"○");
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_S1_LAMP), L"○");
 
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg2[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg2[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP2), L"●");
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg_s2[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg_s2[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_S2_LAMP), L"●");
 	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP2), L"○");
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_S2_LAMP), L"○");
 
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg3[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg3[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP3), L"●");
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg_s3[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg_s3[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_S3_LAMP), L"●");
 	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP3), L"○");
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_S3_LAMP), L"○");
 
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg4[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg4[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP4), L"●");
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_set_z[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_set_z[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_SET_Z_LAMP), L"●");
 	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_FROM_LAMP4), L"○");
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_SET_Z_LAMP), L"○");
 
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg5[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg5[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP1), L"●");
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg_l1[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg_l1[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_L1_LAMP), L"●");
 	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP1), L"○");
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_L1_LAMP), L"○");
 
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg6[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg6[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP2), L"●");
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg_l2[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg_l2[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_L2_LAMP), L"●");
 	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP2), L"○");
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_L2_LAMP), L"○");
 
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg7[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg7[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP3), L"●");
+	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg_l3[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg_l3[ID_BPOS]) {
+		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_L3_LAMP), L"●");
 	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP3), L"○");
-
-	if (pProcObj->melnet.pc_b_out[pProcObj->melnet.pc_b_map.lamp_auto_tg8[ID_WPOS]] & pProcObj->melnet.pc_b_map.lamp_auto_tg8[ID_BPOS]) {
-		SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP4), L"●");
-	}
-	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_TO_LAMP4), L"○");
-
-
+	else SetWindowText(GetDlgItem(hwnd, IDC_STATIC_L3_LAMP), L"○");
 
 
 	return 0;
@@ -854,7 +946,6 @@ int CWorkWindow_PLC::update_IOChk(HWND hwnd) {
 
 	wsprintf(wc, L"%04x", stIOCheckObj.wo_addr);
 	SetWindowText(stIOCheckObj.hwnd_wo_addr_static, wc);
-
 
 	if (stIOCheckObj.is_pause_update == false) { //表示アップデートポーズフラグOFF
 		for (int i = 0; i < PLCIO_IO_DISP_NUM; i++) {

@@ -9,8 +9,8 @@ extern CSharedMem* pCraneStatusObj;
 extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
-extern CSharedMem* pRemoteIO_Obj;
-extern CSharedMem*  pCSInfObj;
+extern CSharedMem* pOTEioObj;
+extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
 
@@ -24,7 +24,7 @@ CPolicy::CPolicy() {
 	pPolicyInf = NULL;
 	pPLC_IO = NULL;
 	pCraneStat = NULL;
-	pRemoteIO = NULL;
+	pOTE_IO = NULL;
 	pSway_IO = NULL;
 	pCSInf = NULL;
 	pAgentInf = NULL;
@@ -51,7 +51,7 @@ void CPolicy::init_task(void* pobj) {
 	pPolicyInf = (LPST_POLICY_INFO)(pPolicyInfObj->get_pMap());
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
-	pRemoteIO = (LPST_REMOTE_IO)(pRemoteIO_Obj->get_pMap());
+	pOTE_IO = (LPST_OTE_IO)(pOTEioObj->get_pMap());
 	pAgentInf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
 	pCSInf = (LPST_CS_INFO)(pCSInfObj->get_pMap());

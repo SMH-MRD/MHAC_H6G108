@@ -58,7 +58,7 @@ private:
     LPST_POLICY_INFO pPolicyInf;
     LPST_PLC_IO pPLC_IO;
     LPST_CRANE_STATUS pCraneStat;
-    LPST_REMOTE_IO pRemoteIO;
+    LPST_OTE_IO pOTE_IO;
     LPST_AGENT_INFO pAgentInf;
     LPST_SWAY_IO pSway_IO;
     LPST_CS_INFO pCSInf;
