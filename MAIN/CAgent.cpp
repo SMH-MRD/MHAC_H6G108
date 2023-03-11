@@ -74,7 +74,7 @@ void CAgent::input() {
 	
 	//ジョブリストのチェック →　コマンドの取り込み
 	if (can_job_trigger()) {														//ジョブ可否判定
-		if ((pCSInf->job_list.semiauto_wait_n + pCSInf->job_list.job_wait_n) > 0) {	//ジョブ待ちあり
+		if ((pCSInf->job_list.n_semiauto_hold + pCSInf->job_list.n_job_hold) > 0) {	//ジョブ待ちあり
 			pCom = pPolicy->req_command();											//コマンド取り込み
 			if (pCom != NULL) {														//コマンドステータス初期化											
 				AgentInf_workbuf.auto_on_going = pCom->type;						//JOB or SEMIAUTO
@@ -340,7 +340,7 @@ int CAgent::update_auto_control() {
 	
 	if (pCSInf->antisway_mode == L_ON){	//振れ止めモード
 		//振れ止め未完で振れ止めコマンドが実行中でなければ、振れ止めコマンド設定
-		if((AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) &&  (AgentInf_workbuf.comset_as.com_status == STAT_WAITING)){	//振れ止め用コマンドセットが要求待ち
+		if((AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) &&  (AgentInf_workbuf.comset_as.com_status == STAT_REQ_WAIT)){	//振れ止め用コマンドセットが要求待ち
 				setup_as_command();
 		}
 	}

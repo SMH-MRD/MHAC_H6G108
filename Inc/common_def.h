@@ -101,10 +101,17 @@
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
 /*** ジョブ,コマンドステータス ***/
-#define STAT_WAITING     0x0000      //受け待ち報告
-#define STAT_STANDBY     0x0001      //準備完了報告
-#define STAT_ACTIVE      0x0002      //実行中報告
-#define STAT_PAUSED      0x0004      //一時停止報告
+#define JOB_TYPE_MASK           0xFF00      //JOB種別部マスク
+#define JOB_TYPE_JOB            0x0100      //種別JOB
+#define JOB_TYPE_SEMIAUTO       0x0200      //種別半自動
+
+#define STAT_MASK               0x00FF      //ステータス部マスク
+#define STAT_OUT_OF_SERVICE     0x0000      //対応不可
+#define STAT_STANDBY            0x0001      //準備完了報告
+#define STAT_ACTIVE             0x0002      //実行中報告
+#define STAT_SUSPEND            0x0004      //一時停止報告
+#define STAT_ABOTED             0x0008      //中断
+#define STAT_REQ_WAIT           0x0010      //要求待ち
 
 /*** コマンド種類 ***/
 #define NON_COM          0x0000      //コマンド無し

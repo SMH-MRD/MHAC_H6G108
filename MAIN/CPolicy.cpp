@@ -119,7 +119,7 @@ LPST_COMMAND_BLOCK CPolicy::req_command() {
 		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status == STAT_STANDBY) {					// JOB準備完了（クライアントからのJOB受信済）
 			return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_active]));					// JOBコマンドを作成してポインタを返す
 		}
-		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_WAITING) {		// 半自動要求待ち（自動開始入力待ち）
+		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_REQ_WAIT) {		// 半自動要求待ち（自動開始入力待ち）
 			return NULL;																						//NULLポインタを返す
 		}
 		else {

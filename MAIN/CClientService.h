@@ -9,9 +9,9 @@
 
 
 #define SEMI_AUTO_TG_RESET_TIME     100
-#define SEMI_AUTO_TG_SELECT_TIME    5
-#define AUTO_START_CHECK_TIME       5
-#define LAMP_FLICKER_BASE_COUNT     10
+#define SEMI_AUTO_TG_SELECT_TIME    4
+#define AUTO_START_CHECK_TIME       4
+#define LAMP_FLICKER_BASE_COUNT     8
 #define LAMP_FLICKER_CHANGE_COUNT   5
 
 
@@ -21,9 +21,13 @@
 #define CS_ADD_JOB             4
 
 #define AUTO_TG_ADJUST_100mm      0.1 //目標位置補正距離0.1m
-#define AUTO_TG_ADJUST_1000mm      1.0 //目標位置補正距離01m
+#define AUTO_TG_ADJUST_1000mm     1.0 //目標位置補正距離01m
 
-#define CS_NORMAL_MODE 0
+#define CS_NORMAL_OPERATION_MODE 0
+
+#define CS_SEMIAUTO_TG_SEL_DEFAULT  0
+#define CS_SEMIAUTO_TG_SEL_ACTIVE   1
+#define CS_SEMIAUTO_TG_SEL_FIXED    2
 
 class CClientService :public CTaskObj
 {
@@ -42,6 +46,7 @@ private:
     int parce_onboard_input(int mode);
     int parce_ote_imput(int mode);
     int can_ote_activate();
+    int judge_job_list_status();
 
     int update_semiauto_list(int command, int type, int code);      //半自動のジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...
     int update_job_list(int command, int code);                     //クライアントジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...

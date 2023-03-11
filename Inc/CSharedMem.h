@@ -70,7 +70,7 @@ using namespace std;
 #define ID_PB_AUTO_MODE			4
 #define ID_PB_AUTO_SET_Z		5
 #define ID_PB_AUTO_SET_XY		6
-#define ID_PB_REMOTE_SEL		7
+
 
 #define ID_PB_CRANE_MODE		12
 #define ID_PB_REMOTE_MODE		13
@@ -528,9 +528,10 @@ typedef struct stJobSet {
 
 //JOB LIST
 typedef struct _stJobList {
-	int job_wait_n;									//完了待ち登録Job数
-	int semiauto_wait_n;							//完了待ち登録Semiauto数
-	int i_job_active;									//次完了待ちJob(実行中or待機中）	  id
+	int hot_job_status;								//現在実行対象のJOBの状態
+	int n_job_hold;									//完了待ち登録Job数
+	int n_semiauto_hold;							//完了待ち登録Semiauto数 半自動は0か1
+	int i_job_active;								//次完了待ちJob(実行中or待機中）	  id
 	int i_semiauto_active;							//次完了待ちSemiauto(実行中or待機中） id
 	ST_JOB_SET job[JOB_REGIST_MAX];					//登録job
 	ST_JOB_SET semiauto[JOB_REGIST_MAX];			//登録job
@@ -563,7 +564,7 @@ typedef struct stCSInfo {
 	//自動,遠隔設定（モード）
 	int auto_mode;														//自動モード
 	int antisway_mode;													//振れ止めモード
-	int auto_status;													//振れ止めモード
+	int semiauto_status;												//半自動自動状態
 
 }ST_CS_INFO, * LPST_CS_INFO;
 
