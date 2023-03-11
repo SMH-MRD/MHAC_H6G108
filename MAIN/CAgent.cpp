@@ -74,15 +74,15 @@ void CAgent::input() {
 	
 	//ジョブリストのチェック →　コマンドの取り込み
 	if (can_job_trigger()) {														//ジョブ可否判定
-		if ((pCSInf->job_list.n_semiauto_hold + pCSInf->job_list.n_job_hold) > 0) {	//ジョブ待ちあり
+		if (pCSInf->job_list.hot_job_status & STAT_STANDBY) {						//実行待ちジョブあり
 			pCom = pPolicy->req_command();											//コマンド取り込み
 			if (pCom != NULL) {														//コマンドステータス初期化											
 				AgentInf_workbuf.auto_on_going = pCom->type;						//JOB or SEMIAUTO
-				startup_command(pCom);
-				pCom->com_status = STAT_STANDBY;
+				startup_command(pCom);												//取り込んだコマンド実行用変数を初期化してステータスを実行中にする
 			}
 		}
 	}
+
 
 
 	return;

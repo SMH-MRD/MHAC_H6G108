@@ -50,13 +50,16 @@ void CClientService::init_task(void* pobj) {
 
 	set_panel_tip_txt();
 
-	inf.is_init_complete = true;
+
 	CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
-	CS_workbuf.semiauto_status = STAT_OUT_OF_SERVICE;
-	CS_workbuf.command_type = NON_COM;							//PICK, GRND, PARK
+	CS_workbuf.command_type = COM_TYPE_NON;							//PICK, GRND, PARK
 
+	CS_workbuf.job_list.i_job_active = 0;
+	CS_workbuf.job_list.i_semiauto_active = 0;
+	CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].status = STAT_NA;
+	CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status = STAT_NA;
 
-
+	inf.is_init_complete = true;
 	return;
 };
 
@@ -87,21 +90,27 @@ void CClientService::input() {
 		}
 	}
 
+
 	//PLC入力処理
 	parce_onboard_input(CS_NORMAL_OPERATION_MODE);
 	//操作端末処理
 	if (can_ote_activate()) {
 		parce_ote_imput(CS_NORMAL_OPERATION_MODE);
 	}
+
+	//ActiveなJOBSET
+	p_active_job_set = &CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active];
+	p_active_semiauto_set = &CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active];
+
 	return;
 };
-
 static int as_pb_last = 0, auto_pb_last = 0, set_z_pb_last = 0, set_xy_pb_last = 0;
 static int park_pb_last = 0, pick_pb_last = 0, grnd_pb_last = 0;
 static int mhp1_pb_last = 0, mhp2_pb_last = 0, mhm1_pb_last = 0, mhm2_pb_last = 0;
 static int slp1_pb_last = 0, slp2_pb_last = 0, slm1_pb_last = 0, slm2_pb_last = 0;
 static int bhp1_pb_last = 0, bhp2_pb_last = 0, bhm1_pb_last = 0, bhm2_pb_last = 0;
 
+//# 機上操作入力取り込み処理
 int CClientService::parce_onboard_input(int mode) { 
 	//自動起動PB
 	if (pPLC_IO->ui.PB[ID_PB_AUTO_START])CS_workbuf.plc_pb[ID_PB_AUTO_START]++;
@@ -126,21 +135,9 @@ int CClientService::parce_onboard_input(int mode) {
 	}
 	auto_pb_last = pPLC_IO->ui.PB[ID_PB_AUTO_MODE];
 
-
+	//半自動設定
 	if (CS_workbuf.auto_mode == L_ON) {
-		//目標位置確定セット
-		if ((pPLC_IO->ui.PB[ID_PB_AUTO_SET_Z]) && (set_z_pb_last == 0)) { // PB入力立ち上がり
-			if (CS_workbuf.target_set_z & CS_SEMIAUTO_TG_SEL_FIXED)
-				CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
-			else
-				CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_FIXED;
-		}
-		if ((pPLC_IO->ui.PB[ID_PB_AUTO_SET_XY]) && (set_xy_pb_last == 0)) { // PB入力立ち上がり
-			if (CS_workbuf.target_set_xy & CS_SEMIAUTO_TG_SEL_FIXED)
-				CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
-			else
-				CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;
-		}
+
 
 		bool tg_sel_trigger_z = false, tg_sel_trigger_xy = false;
 
@@ -248,9 +245,23 @@ int CClientService::parce_onboard_input(int mode) {
 		}
 
 
-		//半自動目標設定有状態セット
+		//半自動目標設定入力検出状態セット（画面クリック入力）
 		if (tg_sel_trigger_z)CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_ACTIVE;
 		if (tg_sel_trigger_xy)CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_ACTIVE;
+
+		//目標位置確定セット
+		if ((pPLC_IO->ui.PB[ID_PB_AUTO_SET_Z]) && (set_z_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.target_set_z & CS_SEMIAUTO_TG_SEL_FIXED)
+				CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			else
+				CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_FIXED;
+		}
+		if ((pPLC_IO->ui.PB[ID_PB_AUTO_SET_XY]) && (set_xy_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.target_set_xy & CS_SEMIAUTO_TG_SEL_FIXED)
+				CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			else
+				CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;
+		}
 
 		//半自動解除ボタン入力で設定クリア
 		if (pPLC_IO->ui.PB[ID_PB_AUTO_RESET]) {
@@ -259,7 +270,12 @@ int CClientService::parce_onboard_input(int mode) {
 			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
 			CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
 		}
-
+		//半自動JOB完了で目標確定クリア
+		if (p_active_semiauto_set->status & (STAT_ABOTED | STAT_NOMAL_END | STAT_ABOTED)) {
+			tg_sel_trigger_z = false, tg_sel_trigger_xy = false;
+			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
+		}
 	}
 	else {
 	//自動モードでないときは半自動設定クリア
@@ -271,55 +287,54 @@ int CClientService::parce_onboard_input(int mode) {
 		CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
 	}
 
-
 	//前回値保持
-	set_z_pb_last = pPLC_IO->ui.PB[ID_PB_AUTO_SET_Z];
-	set_xy_pb_last = pPLC_IO->ui.PB[ID_PB_AUTO_SET_XY];
-	mhp1_pb_last = pPLC_IO->ui.PB[ID_PB_MH_P1];
-	mhp2_pb_last = pPLC_IO->ui.PB[ID_PB_MH_P2];
-	mhm1_pb_last = pPLC_IO->ui.PB[ID_PB_MH_M1];
-	mhm2_pb_last = pPLC_IO->ui.PB[ID_PB_MH_M2];
-	bhp1_pb_last = pPLC_IO->ui.PB[ID_PB_BH_P1];
-	bhp2_pb_last = pPLC_IO->ui.PB[ID_PB_BH_P2];
-	bhm1_pb_last = pPLC_IO->ui.PB[ID_PB_BH_M1];
-	bhm2_pb_last = pPLC_IO->ui.PB[ID_PB_BH_M2];
-	slp1_pb_last = pPLC_IO->ui.PB[ID_PB_SL_P1];
-	slp2_pb_last = pPLC_IO->ui.PB[ID_PB_SL_P2];
-	slm1_pb_last = pPLC_IO->ui.PB[ID_PB_SL_M1];
-	slm2_pb_last = pPLC_IO->ui.PB[ID_PB_SL_M2];
-
+	set_z_pb_last	= pPLC_IO->ui.PB[ID_PB_AUTO_SET_Z];
+	set_xy_pb_last	= pPLC_IO->ui.PB[ID_PB_AUTO_SET_XY];
+	mhp1_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_P1];
+	mhp2_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_P2];
+	mhm1_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_M1];
+	mhm2_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_M2];
+	bhp1_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_P1];
+	bhp2_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_P2];
+	bhm1_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_M1];
+	bhm2_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_M2];
+	slp1_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_P1];
+	slp2_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_P2];
+	slm1_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_M1];
+	slm2_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_M2];
 
 	//自動コマンドセット
 	if ((pPLC_IO->ui.PB[ID_PB_PARK]) && (park_pb_last == 0)) { // PB入力立ち上がり
-		if (CS_workbuf.command_type == PARK_COM)
-			CS_workbuf.command_type = NON_COM;
+		if (CS_workbuf.command_type == COM_TYPE_PARK)
+			CS_workbuf.command_type = COM_TYPE_NON;
 		else
-			CS_workbuf.command_type = PARK_COM;
+			CS_workbuf.command_type = COM_TYPE_PARK;
 	}
 	park_pb_last = pPLC_IO->ui.PB[ID_PB_PARK];
 
 	if ((pPLC_IO->ui.PB[ID_PB_PICK]) && (pick_pb_last == 0)) { // PB入力立ち上がり
-		if (CS_workbuf.command_type == PICK_COM)
-			CS_workbuf.command_type = NON_COM;
+		if (CS_workbuf.command_type == COM_TYPE_PICK)
+			CS_workbuf.command_type = COM_TYPE_NON;
 		else
-			CS_workbuf.command_type = PICK_COM;
+			CS_workbuf.command_type = COM_TYPE_PICK;
 	}
 	pick_pb_last = pPLC_IO->ui.PB[ID_PB_PICK];
 
 	if ((pPLC_IO->ui.PB[ID_PB_GRND]) && (grnd_pb_last == 0)) { // PB入力立ち上がりK
-		if (CS_workbuf.command_type == GRND_COM)
-			CS_workbuf.command_type = NON_COM;
+		if (CS_workbuf.command_type == COM_TYPE_GRND)
+			CS_workbuf.command_type = COM_TYPE_NON;
 		else
-			CS_workbuf.command_type = GRND_COM;
+			CS_workbuf.command_type = COM_TYPE_GRND;
 	}
 	grnd_pb_last = pPLC_IO->ui.PB[ID_PB_GRND];
 
 	return 0; 
 }
-
+//# 操作端末入力取り込み処理
 int CClientService::parce_ote_imput(int mode) {
 	return 0;
 }
+//# 操作端末有効判断
 int CClientService::can_ote_activate() {
 	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE]) {
 		return L_ON;
@@ -329,53 +344,90 @@ int CClientService::can_ote_activate() {
 	}
 }
 
-//# 定周期処理手順2　メイン処理
-/***  モード管理,JOB/半自動監視更新処理   ***/
-
-
 /****************************************************************************/
 /*  メイン処理																*/
 /****************************************************************************/
 void CClientService::main_proc() {
 
-	//JOB登録処理（自動開始PB処理）
+	//半自動ジョブ状態セット
 
-	//半自動ジョブステータスセット
-	if (CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status == STAT_ACTIVE){
-		CS_workbuf.semiauto_status = STAT_ACTIVE;
+	int* p_semi_status = &CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status;
+
+	if (CS_workbuf.auto_mode == L_OFF) {
+		*p_semi_status = STAT_NA;
 	}
-	else if ((CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_FIXED) && (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_FIXED)) {
-		if(CS_workbuf.semiauto_status != STAT_ACTIVE) CS_workbuf.semiauto_status = STAT_STANDBY;
+	else if ((*p_semi_status != STAT_ACTIVE) && (*p_semi_status != STAT_TRIGED)) {
+		//半自動目標クリアで待ち状態へ　異常完了、ABORT等のステータスクリア
+		if (pPLC_IO->ui.PB[ID_PB_AUTO_RESET]) {
+			*p_semi_status = STAT_REQ_WAIT;
+		}
+		else if ((*p_semi_status != STAT_ABOTED) && (*p_semi_status != STAT_SUSPEND)) {
+			//半自動実行中でないときに目標セット完了でトリガ待ちへ
+			if ((CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_FIXED) && (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_FIXED)) {		//目標確定入力完了
+				*p_semi_status = STAT_STANDBY;
+			}
+		}
+		else;
 	}
-	else if(CS_workbuf.auto_mode){
-		CS_workbuf.semiauto_status = STAT_REQ_WAIT;
-	}
-	else {
-		CS_workbuf.semiauto_status = STAT_OUT_OF_SERVICE;
-	}
+	else;
 
 
 
+	//JOB状態セット
+		// 後日定義 
 	
-	if (CS_workbuf.plc_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
-		if(CS_workbuf.semi_auto_selected != SEMI_AUTO_TG_CLR) update_semiauto_list(CS_ADD_SEMIAUTO, AUTO_TYPE_SEMIAUTO | COM_TYPE_PARK, CS_workbuf.semi_auto_selected);
-		else update_semiauto_list(CS_CLEAR_SEMIAUTO, AUTO_TYPE_MANUAL, CS_workbuf.semi_auto_selected);
-	}
+	//JOBリストhot_job_statusセット
+	set_hot_job_status();
+
+	//JOB起動処理
+
+	bool autoPB_triggered = false;
+	if (CS_workbuf.plc_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME)	autoPB_triggered = true;
+	else																autoPB_triggered = false;
 
 
-
-	/*### Job処理 ###*/
-	//現在のジョブの状況セット
-	judge_job_list_status();
 
 	return;
 
 }
 
-//# 定周期処理手順3　信号出力, 上位レスポンス処理
-//ジョブ関連ランプ表示他
+// job_list.hot_job_statusの更新
+int CClientService::set_hot_job_status() {
+
+	//自動モードOFF
+	if (CS_workbuf.auto_mode == L_OFF) {
+		CS_workbuf.job_list.hot_job_status = STAT_NA;
+	}
+	//JOB、半自動共、登録済のもの無し
+	else if((p_active_job_set->status == STAT_NA)  && (p_active_semiauto_set->status == STAT_NA)){
+		CS_workbuf.job_list.hot_job_status = STAT_NA;
+	}
+	//登録済のJOB有、半自動登録済のもの無し
+	else if ((p_active_job_set->status != STAT_NA) && (p_active_semiauto_set->status == STAT_NA)) {
+		CS_workbuf.job_list.hot_job_status = JOB_TYPE_JOB | p_active_job_set->status;
+	}
+	//登録済のJOB無、半自動登録済有
+	else if ((p_active_job_set->status == STAT_NA) && (p_active_semiauto_set->status != STAT_NA)) {
+		CS_workbuf.job_list.hot_job_status = JOB_TYPE_SEMIAUTO | p_active_semiauto_set->status;
+	}
+	//JOB、半自動共登録済有
+	else {
+		//JOBが実行中または起動待ち
+		if ((p_active_job_set->status == STAT_TRIGED) ||(p_active_job_set->status == STAT_ACTIVE))
+		{
+			CS_workbuf.job_list.hot_job_status = JOB_TYPE_JOB | p_active_job_set->status;
+		}
+		//JOBが実行中で無ければ半自動優先
+		else
+			CS_workbuf.job_list.hot_job_status = JOB_TYPE_SEMIAUTO | p_active_semiauto_set->status;
+	}
+
+	return 0;
+}
+
 /****************************************************************************/
 /*  出力処理																*/
+/*  ジョブ関連ランプ表示他													*/
 /****************************************************************************/
 void CClientService::output() {
 
@@ -402,7 +454,7 @@ void CClientService::output() {
 	if (CS_workbuf.job_list.hot_job_status & STAT_ACTIVE) {
 		CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
 	}
-	else if ((CS_workbuf.semiauto_status & STAT_STANDBY) || (CS_workbuf.job_list.hot_job_status & STAT_STANDBY)) {
+	else if (CS_workbuf.job_list.hot_job_status & STAT_STANDBY) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
 			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
 		else
@@ -445,17 +497,17 @@ void CClientService::output() {
 		CS_workbuf.plc_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
 	}
 	//自動コマンドランプ
-	if (CS_workbuf.command_type == PICK_COM) {
+	if (CS_workbuf.command_type == COM_TYPE_PICK) {
 		CS_workbuf.plc_lamp[ID_PB_PICK] = L_ON;
 		CS_workbuf.plc_lamp[ID_PB_GRND] = L_OFF;
 		CS_workbuf.plc_lamp[ID_PB_PARK] = L_OFF;
 	}
-	else if (CS_workbuf.command_type == GRND_COM) {
+	else if (CS_workbuf.command_type == COM_TYPE_GRND) {
 		CS_workbuf.plc_lamp[ID_PB_PICK] = L_OFF;
 		CS_workbuf.plc_lamp[ID_PB_GRND] = L_ON;
 		CS_workbuf.plc_lamp[ID_PB_PARK] = L_OFF;
 	}
-	else if (CS_workbuf.command_type == PARK_COM) {
+	else if (CS_workbuf.command_type == COM_TYPE_PICK) {
 		CS_workbuf.plc_lamp[ID_PB_PICK] = L_OFF;
 		CS_workbuf.plc_lamp[ID_PB_GRND] = L_OFF;
 		CS_workbuf.plc_lamp[ID_PB_PARK] = L_ON;
@@ -486,7 +538,6 @@ void CClientService::output() {
 		}
 	}
 
-
 	//共有メモリ出力
 	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CS_workbuf, sizeof(ST_CS_INFO));
 
@@ -496,21 +547,21 @@ void CClientService::output() {
 
 	if (job_stat & JOB_TYPE_JOB) {
 		wostrs << L" >JOB: ";
-		if (job_stat & STAT_STANDBY) wostrs << L"STANDBY";
-		else if (job_stat & STAT_ACTIVE) wostrs << L"ACTIVE";
-		else if (job_stat & STAT_SUSPEND) wostrs << L"SUSPEND";
-		else if (job_stat & STAT_REQ_WAIT) wostrs << L"WAITING";
+		if (job_stat & STAT_STANDBY)		wostrs << L"STANDBY";
+		else if (job_stat & STAT_ACTIVE)	wostrs << L"ACTIVE";
+		else if (job_stat & STAT_SUSPEND)	wostrs << L"SUSPEND";
+		else if (job_stat & STAT_REQ_WAIT)	wostrs << L"WAIT REQ";
 		else wostrs << L"OUT OF SERV";
 	}
 	else if (job_stat & JOB_TYPE_SEMIAUTO) {
 		wostrs << L" >SEMIAUTO: ";
-		if (job_stat & STAT_STANDBY) wostrs << L"STANDBY";
-		else if (job_stat & STAT_ACTIVE) wostrs << L"ACTIVE";
-		else if (job_stat & STAT_SUSPEND) wostrs << L"SUSPEND";
-		else if (job_stat & STAT_REQ_WAIT) wostrs << L"WAITING";
+		if (job_stat & STAT_STANDBY)		wostrs << L"STANDBY";
+		else if (job_stat & STAT_ACTIVE)	wostrs << L"ACTIVE";
+		else if (job_stat & STAT_SUSPEND)	wostrs << L"SUSPEND";
+		else if (job_stat & STAT_REQ_WAIT)	wostrs << L"WAIT REQ";
 		else wostrs << L"OUT OF SERV";
 	}
-	else  wostrs << L" >JOB WAITING ";
+	else  wostrs << L" >NO JOB REQUEST ";
 
 	wostrs << L" --Scan " << inf.period;
 
@@ -520,51 +571,18 @@ void CClientService::output() {
 };
 
 /****************************************************************************/
-/*   JOB LIST関連															*/
-/****************************************************************************/
-int CClientService::judge_job_list_status() {
-
-
-	//ジョブリストステータスセット
-	if (CS_workbuf.auto_mode == L_OFF) {
-		CS_workbuf.job_list.hot_job_status = STAT_OUT_OF_SERVICE;
-	}
-	else if (CS_workbuf.job_list.hot_job_status & STAT_ACTIVE) {
-		CS_workbuf.job_list.hot_job_status &= JOB_TYPE_MASK;
-		if (CS_workbuf.job_list.hot_job_status & JOB_TYPE_JOB) {
-			CS_workbuf.job_list.hot_job_status |= CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].status;
-		}
-		else if (CS_workbuf.job_list.hot_job_status & JOB_TYPE_SEMIAUTO) {
-			CS_workbuf.job_list.hot_job_status |= CS_workbuf.job_list.job[CS_workbuf.job_list.i_job_active].status;
-		}
-		else {
-			CS_workbuf.job_list.hot_job_status = STAT_ABOTED;
-		}
-	}
-	else if (CS_workbuf.semiauto_status & STAT_STANDBY) {
-		CS_workbuf.job_list.hot_job_status = STAT_OUT_OF_SERVICE;
-		CS_workbuf.job_list.hot_job_status |= JOB_TYPE_SEMIAUTO;
-		CS_workbuf.job_list.hot_job_status |= STAT_STANDBY;
-	}
-	else {
-		CS_workbuf.job_list.hot_job_status |= STAT_REQ_WAIT;
-	}
-
-	return 0;
-}
-
-/****************************************************************************/
 /*   半自動関連処理															*/
 /*   command	:追加,削除等												*/
 /*   type		:半自動種類　PARK,PICK,GRAND								*/
 /*   code		:半自動動作指定コード　選択中半自動PB  						*/
 /****************************************************************************/
 int CClientService:: update_semiauto_list(int command, int type, int code){
+#if 0
 	switch (command) {
 	case CS_CLEAR_SEMIAUTO: {	//半自動ジョブクリア
 		CS_workbuf.job_list.n_semiauto_hold = 0;
 		CS_workbuf.job_list.i_semiauto_active = 0;
-		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status = STAT_STANDBY;
+		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].status = STAT_NA;
 		CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].type = type;
 		return ID_OK;
 	}break;
@@ -573,7 +591,7 @@ int CClientService:: update_semiauto_list(int command, int type, int code){
 			return ID_NG;
 		}
 		else {
-			CS_workbuf.job_list.n_semiauto_hold = 1;
+			CS_workbuf.job_list.n_semiauto_hold = 1;		//未完の起動処理済JOB数セット（半自動は最大１）
 			CS_workbuf.job_list.i_semiauto_active = 0;		//当面半自動はid=0のみ使用
 			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].n_command = JOB_N_STEP_SEMIAUTO;
 			CS_workbuf.job_list.semiauto[CS_workbuf.job_list.i_semiauto_active].target[0] = CS_workbuf.semi_auto_setting_target[code];
@@ -586,12 +604,17 @@ int CClientService:: update_semiauto_list(int command, int type, int code){
 		return ID_NA;
 		break;
 	}
+#else
+		return 0;
+#endif
+
 }
 
 /****************************************************************************/
 /*   JOB関連																*/
 /****************************************************************************/
 int CClientService::update_job_list(int command, int code) {
+#if 0
 	switch (command) {
 	case CS_CLEAR_JOB: {	//ジョブクリア
 		CS_workbuf.job_list.n_job_hold = 0;
@@ -607,6 +630,9 @@ int CClientService::update_job_list(int command, int code) {
 		return ID_NA;
 		break;
 	}
+#else
+	return 0;
+#endif
 }
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */

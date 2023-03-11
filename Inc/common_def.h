@@ -100,33 +100,6 @@
 #define USE_REMOTE_SIM_COMMAND          0x0010//遠隔操作入力にリモートシミュレータの出力値を使う
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
-/*** ジョブ,コマンドステータス ***/
-#define JOB_TYPE_MASK           0xFF00      //JOB種別部マスク
-#define JOB_TYPE_JOB            0x0100      //種別JOB
-#define JOB_TYPE_SEMIAUTO       0x0200      //種別半自動
-
-#define STAT_MASK               0x00FF      //ステータス部マスク
-#define STAT_OUT_OF_SERVICE     0x0000      //対応不可
-#define STAT_STANDBY            0x0001      //準備完了報告
-#define STAT_ACTIVE             0x0002      //実行中報告
-#define STAT_SUSPEND            0x0004      //一時停止報告
-#define STAT_ABOTED             0x0008      //中断
-#define STAT_REQ_WAIT           0x0010      //要求待ち
-
-/*** コマンド種類 ***/
-#define NON_COM          0x0000      //コマンド無し
-#define PICK_COM         0x0001      //PICK
-#define GRND_COM         0x0002      //GRND
-#define PARK_COM         0x0003      //PARK
-
-/*** ジョブ,コマンド完了コード ***/
-#define STAT_FIN         0x0080     //終了コード
-#define STAT_FAULT       0x8000     //異常コード
-#define FIN_NORMAL       0x0081     //正常完了
-#define FIN_ABORT        0x0082     //中断完了
-#define FIN_FAULT        0x8080     //異常完了
-#define FIN_TIME_OVER    0x8081     //タイムオーバー
-
 /*** 応答 ***/
 #define ID_ACCEPTED      1        //受付完了
 #define ID_REJECTED      -1       //受付不可

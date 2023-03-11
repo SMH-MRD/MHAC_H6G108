@@ -456,12 +456,44 @@ typedef struct stMotionStat {
 #define AUTO_TYPE_FB_ANTI_SWAY		0x0001
 #define AUTO_TYPE_SEMIAUTO			0x0010
 #define AUTO_TYPE_JOB				0x0020
-#define COM_TYPE_PICK				0x0100
-#define COM_TYPE_GRND				0x0200
-#define COM_TYPE_PARK				0x0400
-#define COM_TYPE_FROM_TO			0x0800
 
-#define COM_NO_SEMIAUTO 0
+
+/*** ジョブ,コマンドステータス ***/
+#define JOB_TYPE_MASK           0xF000      //JOB種別部マスク
+#define JOB_TYPE_JOB            0x1000      //種別JOB
+#define JOB_TYPE_SEMIAUTO       0x2000      //種別半自動
+
+/*** コマンド種類 ***/
+#define COM_MASK				0x0F00      
+#define COM_TYPE_PICK			0x0100
+#define COM_TYPE_GRND			0x0200
+#define COM_TYPE_PARK			0x0400
+#define COM_TYPE_FROM_TO		0x0800
+#define COM_TYPE_NON 			0x0000
+
+/*** コマンド種類 ***/
+#define STAT_MASK               0x00FF      //ステータス部マスク
+#define STAT_NA					0x0000      //適用不可
+#define STAT_STANDBY			0x0001      //適用不可
+#define STAT_TRIGED             0x0002      //起動済実行待ち
+#define STAT_ACTIVE             0x0004      //実行中報告
+#define STAT_SUSPEND            0x0008      //一時停止報告
+#define STAT_ABOTED             0x0010      //中断
+#define STAT_NOMAL_END          0x0020      //正常完了
+#define STAT_REQ_WAIT           0x0080      //要求待ち
+
+
+
+/*** ジョブ,コマンド完了コード ***/
+#define FIN_CODE_MASK			0x00FF     //終了コード
+#define FIN_NORMAL				0x0001     //正常完了
+#define FIN_ABORT				0x0002     //中断完了
+#define FIN_FAULT				0x0004     //Fault完了
+#define FIN_FAULT_MASK			0xFF00     //異常種別コード
+#define FIN_COM_ERROR			0x0100     //コマンド異常
+#define FIN_TIME_OVER			0x0200     //タイムオーバー
+
+#define COM_NO_SEMIAUTO			0
 
 typedef struct stCommandBlock {
 	//POLICY SET
@@ -564,7 +596,6 @@ typedef struct stCSInfo {
 	//自動,遠隔設定（モード）
 	int auto_mode;														//自動モード
 	int antisway_mode;													//振れ止めモード
-	int semiauto_status;												//半自動自動状態
 
 }ST_CS_INFO, * LPST_CS_INFO;
 

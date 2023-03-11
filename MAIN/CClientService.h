@@ -46,7 +46,7 @@ private:
     int parce_onboard_input(int mode);
     int parce_ote_imput(int mode);
     int can_ote_activate();
-    int judge_job_list_status();
+    int set_hot_job_status();
 
     int update_semiauto_list(int command, int type, int code);      //半自動のジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...
     int update_job_list(int command, int code);                     //クライアントジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...
@@ -61,6 +61,10 @@ private:
     CEnvironment* pEnvironment;
 
     ST_CS_INFO CS_workbuf;
+
+    LPST_JOB_SET p_active_job_set;
+    LPST_JOB_SET p_active_semiauto_set;
+
 
    void input();               //外部データ取り込み
    void main_proc();           //処理内容
