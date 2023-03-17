@@ -3,6 +3,7 @@
 #include "CTaskObj.h"
 #include "Spec.h"
 #include "CSharedMem.h"
+#include "ClientIf.h"
 
 #include "CPolicy.h"
 #include "CEnvironment.h"
@@ -25,9 +26,25 @@
 
 #define CS_NORMAL_OPERATION_MODE 0
 
-#define CS_SEMIAUTO_TG_SEL_DEFAULT  0
-#define CS_SEMIAUTO_TG_SEL_ACTIVE   1
-#define CS_SEMIAUTO_TG_SEL_FIXED    2
+#define CS_SEMIAUTO_TG_SEL_DEFAULT      0
+#define CS_SEMIAUTO_TG_SEL_ACTIVE       1
+#define CS_SEMIAUTO_TG_SEL_FIXED        2
+
+#define CS_JOBSET_EVENT_CLEAR           0
+#define CS_JOBSET_EVENT_JOB_STANDBY         1
+#define CS_JOBSET_EVENT_SEMI_STANDBY        2
+#define CS_JOBSET_EVENT_JOB_TRIG            4
+#define CS_JOBSET_EVENT_SEMI_TRIG           8
+#define CS_JOBSET_EVENT_JOB_OVERFLOW       16
+
+#define CS_N_MSG_HOLD                       10
+
+#define CS_FB_CODE_COM_FIN_NORMAL           2 //コマンド正常完了
+#define CS_FB_CODE_COM_FIN_ABNORMAL         3 //コマンド異常完了
+#define CS_FB_CODE_COM_SUSPENDED            4 //コマンド保留
+#define CS_FB_CODE_RECEIPE_FIN_NORMAL       5 //コマンドレシピ正常完了
+#define CS_FB_CODE_RECEIPE_FIN_ABNORMAL     6 //コマンドレシピ異常完了
+
 
 class CClientService :public CTaskObj
 {
@@ -39,17 +56,27 @@ public:
 
     void init_task(void* pobj);
     void routine_work(void* param);
-    int report_job_fb(LPST_JOB_SET job, int fb_code);               //Jobの実行状況アンサバック
+ 
+   
+    //AGENTアクセス関数
+    LPST_JOB_SET get_next_job();                                    //次のJob問い合わせ
+
+    //POLICYアクセス関数
+    int update_job_status(LPST_JOB_SET pjobset, int fb_code);       //Jobの実行状況アンサバック
 
 private:
 
     int parce_onboard_input(int mode);
     int parce_ote_imput(int mode);
     int can_ote_activate();
-    int set_hot_job_status();
-
-    int update_semiauto_list(int command, int type, int code);      //半自動のジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...
-    int update_job_list(int command, int code);                     //クライアントジョブリストの更新　command:CLEAR ADD, code, type:JOB_SEMI_PARK...
+   
+    //クライアントからのメッセージ解析
+    int perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg);
+    
+    //レシピセット
+    LPST_JOB_SET set_job_receipe(LPST_JOB_SET pjob_set);
+    LPST_JOB_SET set_semi_receipe(LPST_JOB_SET pjob_set);
+ 
    
     LPST_CRANE_STATUS pCraneStat;
     LPST_PLC_IO pPLC_IO;
@@ -62,9 +89,10 @@ private:
 
     ST_CS_INFO CS_workbuf;
 
-    LPST_JOB_SET p_active_job_set;
-    LPST_JOB_SET p_active_semiauto_set;
+    LPST_JOB_SET p_active_job;
+    int job_set_event;
 
+    ST_CLIENT_COM_RCV_MSG client_rcv_msg[CS_N_MSG_HOLD];
 
    void input();               //外部データ取り込み
    void main_proc();           //処理内容

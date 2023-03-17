@@ -1,6 +1,7 @@
 #include "CAgent.h"
 #include "CPolicy.h"
 #include "CEnvironment.h"
+#include "CClientService.h"
 
 //-共有メモリオブジェクトポインタ:
 extern CSharedMem* pCraneStatusObj;
@@ -15,6 +16,7 @@ extern CSharedMem* pAgentInfObj;
 extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
 extern ST_iTask g_itask;
 
+static CClientService* pCS;
 static CPolicy* pPolicy;
 static CEnvironment* pEnv;
 
@@ -48,10 +50,12 @@ void CAgent::init_task(void* pobj) {
 
 	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
 	pEnv = (CEnvironment*)VectpCTaskObj[g_itask.environment];
+	pCS = (CClientService*)VectpCTaskObj[g_itask.client];
 	
 	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
 
 	AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+	pjob_hot = NULL;
 
 	set_panel_tip_txt();
 
@@ -73,12 +77,17 @@ void CAgent::routine_work(void* param) {
 void CAgent::input() {
 	
 	//ジョブリストのチェック →　コマンドの取り込み
-	if (can_job_trigger()) {														//ジョブ可否判定
-		if (pCSInf->job_list.hot_job_status & STAT_STANDBY) {						//実行待ちジョブあり
-			pCom = pPolicy->req_command();											//コマンド取り込み
-			if (pCom != NULL) {														//コマンドステータス初期化											
-				AgentInf_workbuf.auto_on_going = pCom->type;						//JOB or SEMIAUTO
-				startup_command(pCom);												//取り込んだコマンド実行用変数を初期化してステータスを実行中にする
+	if (can_job_trigger()) {
+		//ジョブ可否判定
+		pjob_hot = pCS->get_next_job();
+		if (pjob_hot != NULL) {						//実行待ちジョブあり
+			pCom_hot = pPolicy->req_command(pjob_hot);	//コマンド取り込み
+			if (pCom_hot != NULL) {	
+				//コマンドステータス初期化											
+				AgentInf_workbuf.auto_on_going = pjob_hot->type;	//JOB or SEMIAUTO
+				pPolicy->up
+				//
+
 			}
 		}
 	}
@@ -166,12 +175,12 @@ void CAgent::output() {
 /****************************************************************************/
 //ジョブの起動可否判定
 bool CAgent::can_job_trigger() { 
-	if (AgentInf_workbuf.auto_on_going | CODE_TYPE_JOB) return false;
+	if (AgentInf_workbuf.auto_on_going | AUTO_TYPE_JOB) return false;
 	return true; 
 }
 
 //コマンド完了判定
-bool CAgent::is_command_completed(LPST_COMMAND_BLOCK pCom) {
+bool CAgent::is_command_completed(LPST_COMMAND_SET pCom) {
 
 	bool ans = true;
 	
@@ -272,11 +281,11 @@ int CAgent::check_as_completion() {
 	return check;
 }
 
-int CAgent::set_receipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork) {
+int CAgent::set_receipe_as_bh(LPST_COM_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork) {
 
 	return 0;
 };
-int CAgent::set_receipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork) {
+int CAgent::set_receipe_as_slw(LPST_COM_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork) {
 
 	return 0;
 };
@@ -427,7 +436,7 @@ int CAgent::set_ref_slew(){
 /****************************************************************************/
 int CAgent::set_ref_bh(){
 
-	LPST_COMMAND_BLOCK pcom;
+	LPST_COMMAND_SET pcom;
 
 	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_BOOM_H) {									//制御PC指令選択ON
 		
@@ -460,7 +469,7 @@ int CAgent::set_ref_bh(){
 /*  コマンドブロック実行前初期化処理                                        */
 /*  実行管理ステータスのクリアとコマンド実行中ステータスセット				*/
 /****************************************************************************/
-int CAgent::startup_command(LPST_COMMAND_BLOCK pcom) {
+int CAgent::startup_command(LPST_COMMAND_SET pcom) {
 
 	for (int i = 0; i < MOTION_ID_MAX;i++) {						//各軸の実行ステータスの初期化
 		if (AgentInf_workbuf.auto_active[i] == AUTO_TYPE_MANUAL) {
@@ -491,12 +500,12 @@ int CAgent::startup_command(LPST_COMMAND_BLOCK pcom) {
 /****************************************************************************/
 /*   STEP処理		                                                        */
 /****************************************************************************/
-double CAgent::cal_step(LPST_COMMAND_BLOCK pCom,int motion) {
+double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 
 
 	double v_out = 0.0;
 
-	LPST_MOTION_RECIPE precipe = &pCom->recipe[motion];
+	LPST_COM_RECIPE precipe = &pCom->recipe[motion];
 	LPST_MOTION_STAT pmotion_stat = &pCom->motion_stat[motion];
 	LPST_MOTION_STEP pStep = &precipe->steps[pmotion_stat->iAct];
 

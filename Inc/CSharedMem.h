@@ -393,17 +393,17 @@ typedef struct StCraneStatus {
 #define TIME_LIMIT_CONFIRMATION				0.1		//パターン出力調整時間 秒
 #define TIME_LIMIT_FINE_POS					10.0	//微小位置合わせ制限時間 秒
 #define TIME_LIMIT_ERROR_DETECT				120		//異常検出時間
+#define N_STEP_OPTION_MAX					8
 
 typedef struct stMotionElement {	//運動要素
-	int type;				//制御種別
-	int status;				//制御状態
-	int time_count;			//予定継続時間のカウンタ変換値
-	double _a;				//目標加減速度
-	double _v;				//目標速度
-	double _p;				//目標位置
-	double _t;				//継続時間
-	double opt_d[8];		//オプションdouble
-	int opt_i[8];			//オプションint
+	int type;								//制御種別
+	double _a;								//目標加減速度
+	double _v;								//目標速度
+	double _p;								//目標位置
+	double _t;								//予定継続時間
+	int time_count;							//予定継続時間のカウンタ変換値
+	double opt_d[N_STEP_OPTION_MAX];		//オプションdouble
+	int opt_i[N_STEP_OPTION_MAX];			//オプションint
 }ST_MOTION_STEP, * LPST_MOTION_STEP;
 
 /****************************************************************************/
@@ -426,45 +426,41 @@ typedef struct stMotionElement {	//運動要素
 
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン
-	DWORD motion_type;							//動作種別、
+	//CS set
+	int axis_id;
+	int motion_type;
+	int option_i;								//オプション条件
+	int direction;								//動作方向(-1,0,+1)
 	int n_step;									//動作構成要素数
-	int direction;								//動作方向
-	DWORD opt_dw;								//オプション条件
 	int time_limit;								//タイムオーバー判定値
 	ST_MOTION_STEP steps[M_STEP_MAX];			//動作定義要素配列
+
+	//Agent set
+	int i_hot_step;								//実行中要素配列index -1で完了
+	int motion_act_count;						//動作実行時間カウントカウント数
+	int step_act_count[M_STEP_MAX];				//各ステップ実行カウント数
+	int step_status[M_STEP_MAX];				//各ステップ実行カウント数
+	int fin_code;								//完了コード
+
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
-//Status
-
-typedef struct stMotionStat {
-	int status;									//動作実行状況
-	int iAct;									//実行中要素配列index -1で完了
-	int step_act_count;							//実行中要素の実行カウント数
-	int elapsed;								//MOTION開始後経過時間
-	int error_code;								//エラーコード　異常完了時
-
-}ST_MOTION_STAT, * LPST_MOTION_STAT;
 
 /********************************************************************************/
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
 
-#define JOB_COMMAND_MAX				10			//　JOBを構成するコマンド最大数
-#define	CODE_TYPE_JOB				0x8000
-#define AUTO_TYPE_MANUAL			0x0000
-#define AUTO_TYPE_FB_ANTI_SWAY		0x0001
-#define AUTO_TYPE_SEMIAUTO			0x0010
-#define AUTO_TYPE_JOB				0x0020
-
-
 /*** ジョブ,コマンドステータス ***/
-#define JOB_TYPE_MASK           0xF000      //JOB種別部マスク
-#define JOB_TYPE_JOB            0x1000      //種別JOB
-#define JOB_TYPE_SEMIAUTO       0x2000      //種別半自動
+#define AUTO_TYPE_MASK           0xF000      //JOB種別部マスク
+#define JOB_TYPE_MASK            0x7000      //JOB種別部マスク
+#define AUTO_TYPE_MANUAL		 0x0000
+#define AUTO_TYPE_JOB            0x1000      //種別JOB
+#define AUTO_TYPE_SEMIAUTO       0x2000      //種別半自動
+#define AUTO_TYPE_OPERATION      0x4000      //種別クレーン操作
+#define AUTO_TYPE_FB_ANTI_SWAY	 0x8000
 
 /*** コマンド種類 ***/
-#define COM_MASK				0x0F00      
+#define COM_TYPE_MASK			0x0F00      
 #define COM_TYPE_PICK			0x0100
 #define COM_TYPE_GRND			0x0200
 #define COM_TYPE_PARK			0x0400
@@ -482,8 +478,6 @@ typedef struct stMotionStat {
 #define STAT_NOMAL_END          0x0020      //正常完了
 #define STAT_REQ_WAIT           0x0080      //要求待ち
 
-
-
 /*** ジョブ,コマンド完了コード ***/
 #define FIN_CODE_MASK			0x00FF     //終了コード
 #define FIN_NORMAL				0x0001     //正常完了
@@ -495,29 +489,25 @@ typedef struct stMotionStat {
 
 #define COM_NO_SEMIAUTO			0
 
-typedef struct stCommandBlock {
+typedef struct StCommandCode {
+	int i_list;
+	int i_job;
+	int i_receipe;
+}ST_COM_CODE, * LPST_COM_CODE;
+
+typedef struct stCommandSet {
 	//POLICY SET
-	int no;											//コマンド No(シーケンス番号）
-	int type;										//コマンド種別
-	bool is_active_axis[MOTION_ID_MAX];				//動作対象軸　特定の軸を動作させない時に使用
+	ST_COM_CODE com_code;
+	int n_motion;									//コマンドで動作する軸の数
+	int active_motion[MOTION_ID_MAX];				//コマンド動作する軸のID配列（MOTION　RECIPEの対象配列）
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
 
 	//AGENT SET
-	SYSTEMTIME time_start;					//開始時の時間 SYSTEMTIME
-	SYSTEMTIME time_end;					//終了時の時間 SYSTEMTIME
-	int com_status;							//実行状態　
-	int status_code;						//エラーコード等（異常完了時）　
-	ST_MOTION_STAT	motion_stat[MOTION_ID_MAX];
+	int motion_status[MOTION_ID_MAX];
 
-}ST_COMMAND_BLOCK, * LPST_COMMAND_BLOCK;
+}ST_COMMAND_SET, * LPST_COMMAND_SET;
 
-typedef struct stCommandList {
-	int job_type;							//JOB種別 (job,semiauto)
-	int job_id;								//紐付けられているjobのシーケンス番号
-	int current_step;						//実行中コマンドステップ
-	ST_COMMAND_BLOCK commands[JOB_COMMAND_MAX];
-}ST_COMMAND_LIST, * LPST_COMMAND_LIST;
-
+#define JOB_COMMAND_MAX				10			//　JOBを構成するコマンド最大数
 
 //# Policy タスクセット領域
 
@@ -535,38 +525,54 @@ typedef struct stCommandList {
 #define JOB_REGIST_MAX			10					//　JOB登録最大数
 #define JOB_N_STEP_SEMIAUTO		1
 
+
 typedef struct StPosTargets {
 	double pos[MOTION_ID_MAX];
-	bool is_held[MOTION_ID_MAX];		//目標位置ホールド中フラグ
+	bool is_held[MOTION_ID_MAX];				//目標位置ホールド中フラグ
 }ST_POS_TARGETS, * LPST_POS_TARGETS;
 
-typedef struct stJobSet {
+#define COM_RECEIPE_OPTION_N			8
+
+typedef struct stComRecipe {
 
 	//CS SET
-	int no;										//JOB No(シーケンス番号）
-	int type;									//JOB種別（JOB,半自動,PARK,PICK,GRAND））
-	int n_command;								//JOB構成コマンド数
-	int step_type[JOB_COMMAND_MAX];				//各ステップのタイプ
-	ST_POS_TARGETS target[JOB_COMMAND_MAX];		//各コマンドの目標位置	
-		
-	//POLICY SET
-	int status;									//JOB実行状態
-	DWORD step_elapsed[JOB_COMMAND_MAX];		//step経過時間ms
+	int id;
+	int type;									//JOB種別（PICK,GRND,PARK...）
+	int time_limit;								//JOB構成コマンド数
+	ST_POS_TARGETS target;						//各コマンドの目標位置	
+
+	int option_i[COM_RECEIPE_OPTION_N];
+	double option_d[COM_RECEIPE_OPTION_N];
+
+	ST_COMMAND_SET coms[JOB_COMMAND_MAX];		//レシピを展開したコマンドセット
+	int status;
+
 	SYSTEMTIME time_start;
 	SYSTEMTIME time_end;
-	LPST_COMMAND_LIST lp_commands;				//対応するコマンドのリスト
+}ST_COM_RECEIPE, * LPST_COM_RECEIPE;
 
+typedef struct stJobSet {
+	int list_id;								//登録されているJOB listのid
+	int id;										//登録されているJOB list内でのid
+	int status;									//現在実行対象のJOBの状態
+	int n_com;									//JOB構成コマンド数
+	int type;									//JOB種別（JOB,半自動,OPERATION））
+	ST_COM_RECEIPE receipe[JOB_COMMAND_MAX];	//各コマンドのレシピ
+	int i_hot_com;
+
+	SYSTEMTIME time_start;
+	SYSTEMTIME time_end;
 }ST_JOB_SET, * LPST_JOB_SET;
 
+
 //JOB LIST
+
 typedef struct _stJobList {
-	int hot_job_status;								//現在実行対象のJOBの状態
-	int n_job_hold;									//完了待ち登録Job数
-	int n_semiauto_hold;							//完了待ち登録Semiauto数 半自動は0か1
-	int i_job_active;								//次完了待ちJob(実行中or待機中）	  id
-	int i_semiauto_active;							//次完了待ちSemiauto(実行中or待機中） id
-	ST_JOB_SET job[JOB_REGIST_MAX];					//登録job
-	ST_JOB_SET semiauto[JOB_REGIST_MAX];			//登録job
+	int id;
+	int type;									//JOB種別（JOB,半自動）
+	int n_hold_job;								//未完Job数
+	int i_job_hot;								//次完了待ちJob(実行中or待機中）	  id
+	ST_JOB_SET job[JOB_REGIST_MAX];				//登録job
 }ST_JOB_LIST, * LPST_JOB_LIST;
 
 
@@ -575,11 +581,14 @@ typedef struct _stJobList {
 /* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
 /****************************************************************************/
 
-#define JOB_HOLD_MAX			10					//	保持可能JOB最大数
+#define N_JOB_LIST				2				//JOB LIST登録数
+#define ID_JOBTYPE_JOB			0				//JOB Type index番号
+#define ID_JOBTYPE_SEMI			1				//SEMIAUTO Type index番号
+#define JOB_HOLD_MAX			10				//保持可能JOB最大数
 
 typedef struct stCSInfo {
 
-	ST_JOB_LIST	job_list;
+	ST_JOB_LIST	job_list[N_JOB_LIST];
 
 	//UI関連
 	int plc_lamp[N_PLC_LAMP];											//PLCランプ表示出力用（自動開始）
@@ -604,12 +613,40 @@ typedef struct stCSInfo {
 /* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
 /****************************************************************************/
 
+#define N_JOB_TARGET_MAX	10
+#define N_JOB_OPTION_MAX	10
+
+typedef struct stClientMSG {
+
+	int JOB_CODE;
+	double target[N_JOB_TARGET_MAX][MOTION_ID_MAX];
+	int option[N_JOB_OPTION_MAX];
+
+}ST_CLIENT_MSG, * LPST_CLIENT_MSG;
+
+typedef struct stOteUi {
+
+	int JOB_CODE;
+	double target[N_JOB_TARGET_MAX][MOTION_ID_MAX];
+	int option[N_JOB_OPTION_MAX];
+
+}ST_OTE_UI, * LPST_OTE_UI;
+
+#define N_CLIENT_MSG_HOLD_MAX	10
+
+typedef struct stClientIO {
+
+	ST_CLIENT_MSG msg[N_CLIENT_MSG_HOLD_MAX];
+	ST_PLC_UI ui;
+
+}ST_CLIENT_IO, * LPST_CLIENT_IO;
+
+
 #define FAULT_MAP_W_SIZE	64	//フォルトマップサイズ
 
 typedef struct stPolicyInfo {
 
 	WORD fault_map[FAULT_MAP_W_SIZE];
-	ST_COMMAND_LIST command_list;
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;
 
@@ -619,12 +656,12 @@ typedef struct stPolicyInfo {
 /****************************************************************************/
 typedef struct stAgentInfo {
 
-	ST_COMMAND_BLOCK comset_as;						//振れ止め用コマンドセット
+	ST_COMMAND_SET comset_as;						//振れ止め用コマンドセット
 	ST_POS_TARGETS auto_pos_target;					//自動目標位置
 	int antisway_comple_status;						//振れ止め完了状態
 	double dist_for_target[MOTION_ID_MAX];			//目標までの距離
 	int auto_on_going;								//実行中の自動種別
-	int auto_active[MOTION_ID_MAX];				//自動実行中フラグ(軸毎)
+	int auto_active[MOTION_ID_MAX];					//自動実行中フラグ(軸毎)
 	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め起動判定用速度FB条件
 
 	WORD pc_ctrl_mode;								//PCからの指令で動作させる軸の指定

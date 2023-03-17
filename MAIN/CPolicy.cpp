@@ -100,7 +100,7 @@ void CPolicy::output() {
 /*　　COMMAND 処理															*/
 /****************************************************************************/
 // AGENTからのコマンド要求処理
-LPST_COMMAND_BLOCK CPolicy::req_command() {
+LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 
 	/* ###
 		CSがセットしているJOB LISTのJOBタイプのものが実行中でないとき　
@@ -109,17 +109,22 @@ LPST_COMMAND_BLOCK CPolicy::req_command() {
 			JOBタイプのものが実行待ちであれば、JOB用のバッファにコマンドパターンをセットしてポインタをリターン
 			その他の時はNULLポインタをリターン　
 	### */
-	if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status != STAT_ACTIVE) {							// Job実行中でない
-		if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_STANDBY) {				// 半自動準備完了（自動開始入力済）
-			return create_semiauto_command(&(pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active]));	//　半自動コマンドを作成してポインタを返す
+	
+	int com_hot_stat = pjob_set->com_status[pjob_set->i_hot_com];
+
+
+
+	if (com_hot_stat != STAT_ACTIVE) {							// Job実行中でない
+		if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {				// 半自動準備完了（自動開始入力済）
+			return create_semiauto_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));	//　半自動コマンドを作成してポインタを返す
 		}
-		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_ACTIVE) {			// 半自動実行中
+		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_ACTIVE) {			// 半自動実行中
 			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);		//実行中コマンドのポインタを返す
 		}
-		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_active].status == STAT_STANDBY) {					// JOB準備完了（クライアントからのJOB受信済）
-			return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_active]));					// JOBコマンドを作成してポインタを返す
+		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {					// JOB準備完了（クライアントからのJOB受信済）
+			return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));					// JOBコマンドを作成してポインタを返す
 		}
-		else if (pCSInf->job_list.semiauto[pCSInf->job_list.i_semiauto_active].status == STAT_REQ_WAIT) {		// 半自動要求待ち（自動開始入力待ち）
+		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_REQ_WAIT) {		// 半自動要求待ち（自動開始入力待ち）
 			return NULL;																						//NULLポインタを返す
 		}
 		else {
@@ -133,7 +138,57 @@ LPST_COMMAND_BLOCK CPolicy::req_command() {
 	### */
 	else {
 		if ((PolicyInf_workbuf.command_list.job_type == AUTO_TYPE_JOB)										// コマンドリスト内容がJOB
-			&& (PolicyInf_workbuf.command_list.job_id == pCSInf->job_list.i_job_active)){					// コマンドリストの対象Jobが実行中Jobと一致
+			&& (PolicyInf_workbuf.command_list.job_id == pCSInf->job_list.i_job_hot)){					// コマンドリストの対象Jobが実行中Jobと一致
+			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);	//実行中コマンドのポインタを返す
+		}
+		else {																								//実行中jobとセット中のコマンドが一致しない　→　異常
+			return NULL;
+		}
+	}
+	return	NULL;
+};
+
+LPST_COMMAND_SET CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
+	return &comset_dummy;
+}
+
+	/* ###
+		CSがセットしているJOB LISTのJOBタイプのものが実行中でないとき　
+	　		SEMIAUTOタイプのものが実行待ちであれば、Policyのコマンドリストにコマンドをセットして実行対象のコマンドのポインタをリターン　
+			SEMIAUTOタイプのものが実行中であれば、実行中のバッファポインタをリターン　
+			JOBタイプのものが実行待ちであれば、JOB用のバッファにコマンドパターンをセットしてポインタをリターン
+			その他の時はNULLポインタをリターン　
+	### */
+
+	int com_hot_stat = pjob_set->com_status[pjob_set->i_hot_com];
+
+
+
+	if () - ]status != STAT_ACTIVE) {							// Job実行中でない
+	if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {				// 半自動準備完了（自動開始入力済）
+		return create_semiauto_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));	//　半自動コマンドを作成してポインタを返す
+	}
+	else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_ACTIVE) {			// 半自動実行中
+		return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);		//実行中コマンドのポインタを返す
+	}
+	else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {					// JOB準備完了（クライアントからのJOB受信済）
+		return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));					// JOBコマンドを作成してポインタを返す
+	}
+	else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_REQ_WAIT) {		// 半自動要求待ち（自動開始入力待ち）
+		return NULL;																						//NULLポインタを返す
+	}
+	else {
+		return NULL;
+	}
+	}
+	/* ###
+		CSがセットしているJOB LISTのJOBタイプのものが実行中のとき　
+			Policyのコマンドリストに設定しているJOBのタイプがJOBリストの実行中JOBと一致していたら現在実行中のコマンドのポインタをリターン
+			その他の時はNULLポインタをリターン　
+	### */
+	else {
+		if ((PolicyInf_workbuf.command_list.job_type == AUTO_TYPE_JOB)										// コマンドリスト内容がJOB
+			&& (PolicyInf_workbuf.command_list.job_id == pCSInf->job_list.i_job_hot)) {					// コマンドリストの対象Jobが実行中Jobと一致
 			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);	//実行中コマンドのポインタを返す
 		}
 		else {																								//実行中jobとセット中のコマンドが一致しない　→　異常
@@ -756,9 +811,9 @@ int CPolicy::set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 }
 
 
-LPST_COMMAND_BLOCK CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {							//実行する半自動コマンドをセットする
+LPST_COMMAND_SET CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {							//実行する半自動コマンドをセットする
 	
-	LPST_COMMAND_BLOCK lp_semiauto_com = &(pPolicyInf->command_list.commands[0]);					//コマンドブロックのポインタセット
+	LPST_COMMAND_SET lp_semiauto_com = &(pPolicyInf->command_list.commands[0]);					//コマンドブロックのポインタセット
 	
 	lp_semiauto_com->no = COM_NO_SEMIAUTO;
 	lp_semiauto_com->type = AUTO_TYPE_SEMIAUTO;
@@ -780,9 +835,9 @@ LPST_COMMAND_BLOCK CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {							/
 
 };
 
-LPST_COMMAND_BLOCK CPolicy::create_job_command(LPST_JOB_SET pjob) {		//実行するJOBコマンドをセットする
+LPST_COMMAND_SET CPolicy::create_job_command(LPST_JOB_SET pjob) {		//実行するJOBコマンドをセットする
 
-	LPST_COMMAND_BLOCK lp_job_com = NULL;
+	LPST_COMMAND_SET lp_job_com = NULL;
 
 	return lp_job_com;
 };        

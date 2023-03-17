@@ -66,19 +66,22 @@ public:
     ST_AGENT_INFO   AgentInf_workbuf;
     ST_AGENT_WORK   st_as_work;                     //振れ止めパターン作成用
 
+    LPST_JOB_SET        pjob_hot;
+    LPST_COMMAND_SET    pCom_hot;
+
     bool can_job_trigger();                         //ジョブの起動可否判定
     int update_auto_control();                      //自動条件の更新
-    int startup_command(LPST_COMMAND_BLOCK pcom);   //実行管理ステータスのクリアとコマンド実行中ステータスセット
+    int startup_command(LPST_COMMAND_SET pcom);   //実行管理ステータスのクリアとコマンド実行中ステータスセット
 
     void set_as_workbuf(); //振れ止めパターン作成用データ取り込み
     int setup_as_command();
     int set_receipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
     int set_receipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
         
-    bool is_command_completed(LPST_COMMAND_BLOCK pCom);
+    bool is_command_completed(LPST_COMMAND_SET pCom);
     int check_as_completion();
    
-    LPST_COMMAND_BLOCK pCom;
+
        
     int dbg_mont[8];//デバッグ用
 
@@ -96,7 +99,7 @@ public:
     void update_pb_lamp_com();                              //ランプ表示出力
      
  
-    double cal_step(LPST_COMMAND_BLOCK pCom, int motion);   //自動指令出力値の計算
+    double cal_step(LPST_COMMAND_SET pCom, int motion);   //自動指令出力値の計算
 
                                                         
     //タブパネルのStaticテキストを設定

@@ -50,8 +50,8 @@ public:
    void init_task(void* pobj);
    void routine_work(void* param);
  
-   LPST_COMMAND_BLOCK req_command();                                        //Agentからの要求に応じて実行コマンドをセットして返す
-   int report_command_fb(LPST_COMMAND_BLOCK pcom, int fb_code);             //Agentからのコマンド実行状況報告を受付
+   LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);                             //Agentからの要求に応じて実行コマンドをセットして返す
+   LPST_COMMAND_SET update_command_status(LPST_COMMAND_SET pcom, int code);         //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
  
 private:
 
@@ -67,8 +67,9 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    LPST_COMMAND_BLOCK create_semiauto_command(LPST_JOB_SET pjob);                      //実行する半自動コマンドをセットする
-    LPST_COMMAND_BLOCK create_job_command(LPST_JOB_SET pjob);                           //実行するジョブコマンドをセットする
+    LPST_COMMAND_SET create_semiauto_command(LPST_JOB_SET pjob);                      //実行する半自動コマンドをセットする
+    LPST_COMMAND_SET create_job_command(LPST_JOB_SET pjob);                           //実行するジョブコマンドをセットする
+    ST_COMMAND_SET comset_dummy;
 
     int set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
     int set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
