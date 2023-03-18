@@ -18,6 +18,8 @@
 #define SMEM_CS_INFO_NAME				L"CS_INFO"
 #define SMEM_POLICY_INFO_NAME			L"POLICY_INFO"
 #define SMEM_AGENT_INFO_NAME			L"AGENT_INFO"
+#define SMEM_OTE_IO_NAME				L"OTE_IO"
+#define SMEM_CLIENT_IO_NAME				L"CLIENT_IO"
 
 #define MUTEX_CRANE_STATUS_NAME			L"MU_CRANE_STATUS"
 #define MUTEX_SWAY_STATUS_NAME			L"MU_SWAY_STATUS"
@@ -26,10 +28,11 @@
 #define MUTEX_SIMULATION_STATUS_NAME	L"MU_SIMULATION_STATUS"
 #define MUTEX_PLC_IO_NAME				L"MU_PLC_IO"
 #define MUTEX_SWAY_IO_NAME				L"MU_SWAY_IO"
-#define MUTEX_REMOTE_IO_NAME			L"MU_REMOTE_IO"
+#define MUTEX_OTE_IO_NAME				L"MU_OTE_IO"
 #define MUTEX_CS_INFO_NAME				L"MU_CS_INFO"
 #define MUTEX_POLICY_INFO_NAME			L"MU_POLICY_INFO"
 #define MUTEX_AGENT_INFO_NAME			L"MU_AGENT_INFO"
+#define MUTEX_CLIENT_IO_NAME			L"MU_CLIENT_IO"
 
 #define SMEM_OBJ_ID_CRANE_STATUS		0
 #define SMEM_OBJ_ID_SWAY_STATUS			1
@@ -42,6 +45,7 @@
 #define SMEM_OBJ_ID_CS_INFO				8
 #define SMEM_OBJ_ID_POLICY_INFO			9
 #define SMEM_OBJ_ID_AGENT_INFO			10
+#define SMEM_OBJ_ID_CLIENT_IO			11
 
 //  共有メモリステータス
 #define	OK_SHMEM						0	// 共有メモリ 生成/破棄正常
@@ -404,6 +408,8 @@ typedef struct stMotionElement {	//運動要素
 	int time_count;							//予定継続時間のカウンタ変換値
 	double opt_d[N_STEP_OPTION_MAX];		//オプションdouble
 	int opt_i[N_STEP_OPTION_MAX];			//オプションint
+	int act_count;
+	int status;
 }ST_MOTION_STEP, * LPST_MOTION_STEP;
 
 /****************************************************************************/
@@ -438,8 +444,6 @@ typedef struct stMotionRecipe {					//移動パターン
 	//Agent set
 	int i_hot_step;								//実行中要素配列index -1で完了
 	int motion_act_count;						//動作実行時間カウントカウント数
-	int step_act_count[M_STEP_MAX];				//各ステップ実行カウント数
-	int step_status[M_STEP_MAX];				//各ステップ実行カウント数
 	int fin_code;								//完了コード
 
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
@@ -475,7 +479,7 @@ typedef struct stMotionRecipe {					//移動パターン
 #define STAT_ACTIVE             0x0004      //実行中報告
 #define STAT_SUSPEND            0x0008      //一時停止報告
 #define STAT_ABOTED             0x0010      //中断
-#define STAT_NOMAL_END          0x0020      //正常完了
+#define STAT_NORMAL_END          0x0020      //正常完了
 #define STAT_REQ_WAIT           0x0080      //要求待ち
 
 /*** ジョブ,コマンド完了コード ***/
@@ -487,12 +491,10 @@ typedef struct stMotionRecipe {					//移動パターン
 #define FIN_COM_ERROR			0x0100     //コマンド異常
 #define FIN_TIME_OVER			0x0200     //タイムオーバー
 
-#define COM_NO_SEMIAUTO			0
-
 typedef struct StCommandCode {
 	int i_list;
 	int i_job;
-	int i_receipe;
+	int i_recipe;
 }ST_COM_CODE, * LPST_COM_CODE;
 
 typedef struct stCommandSet {
@@ -531,7 +533,7 @@ typedef struct StPosTargets {
 	bool is_held[MOTION_ID_MAX];				//目標位置ホールド中フラグ
 }ST_POS_TARGETS, * LPST_POS_TARGETS;
 
-#define COM_RECEIPE_OPTION_N			8
+#define COM_RECIPE_OPTION_N			8
 
 typedef struct stComRecipe {
 
@@ -541,15 +543,15 @@ typedef struct stComRecipe {
 	int time_limit;								//JOB構成コマンド数
 	ST_POS_TARGETS target;						//各コマンドの目標位置	
 
-	int option_i[COM_RECEIPE_OPTION_N];
-	double option_d[COM_RECEIPE_OPTION_N];
+	int option_i[COM_RECIPE_OPTION_N];
+	double option_d[COM_RECIPE_OPTION_N];
 
-	ST_COMMAND_SET coms[JOB_COMMAND_MAX];		//レシピを展開したコマンドセット
+	ST_COMMAND_SET comset;							//レシピを展開したコマンドセット
 	int status;
 
 	SYSTEMTIME time_start;
 	SYSTEMTIME time_end;
-}ST_COM_RECEIPE, * LPST_COM_RECEIPE;
+}ST_COM_RECIPE, * LPST_COM_RECIPE;
 
 typedef struct stJobSet {
 	int list_id;								//登録されているJOB listのid
@@ -557,7 +559,7 @@ typedef struct stJobSet {
 	int status;									//現在実行対象のJOBの状態
 	int n_com;									//JOB構成コマンド数
 	int type;									//JOB種別（JOB,半自動,OPERATION））
-	ST_COM_RECEIPE receipe[JOB_COMMAND_MAX];	//各コマンドのレシピ
+	ST_COM_RECIPE recipe[JOB_COMMAND_MAX];	//各コマンドのレシピ
 	int i_hot_com;
 
 	SYSTEMTIME time_start;
@@ -616,13 +618,18 @@ typedef struct stCSInfo {
 #define N_JOB_TARGET_MAX	10
 #define N_JOB_OPTION_MAX	10
 
-typedef struct stClientMSG {
-
-	int JOB_CODE;
+typedef struct stClientRcvMSG {
+	int req_code;
+	int JOB_ID;
 	double target[N_JOB_TARGET_MAX][MOTION_ID_MAX];
 	int option[N_JOB_OPTION_MAX];
+}ST_CLIENT_RCV_MSG, * LPST_CLIENT_RCV_MSG;
 
-}ST_CLIENT_MSG, * LPST_CLIENT_MSG;
+typedef struct stClientSndMSG {
+	int fb_code;
+	int JOB_ID;
+	int option[N_JOB_OPTION_MAX];
+}ST_CLIENT_SND_MSG, * LPST_CLIENT_SND_MSG;
 
 typedef struct stOteUi {
 
@@ -635,10 +642,10 @@ typedef struct stOteUi {
 #define N_CLIENT_MSG_HOLD_MAX	10
 
 typedef struct stClientIO {
-
-	ST_CLIENT_MSG msg[N_CLIENT_MSG_HOLD_MAX];
-	ST_PLC_UI ui;
-
+	int i_rcv_hot;
+	int i_snd_hot;
+	ST_CLIENT_RCV_MSG rmsg[N_CLIENT_MSG_HOLD_MAX];
+	ST_CLIENT_SND_MSG smsg[N_CLIENT_MSG_HOLD_MAX];
 }ST_CLIENT_IO, * LPST_CLIENT_IO;
 
 
@@ -656,7 +663,7 @@ typedef struct stPolicyInfo {
 /****************************************************************************/
 typedef struct stAgentInfo {
 
-	ST_COMMAND_SET comset_as;						//振れ止め用コマンドセット
+	ST_COM_RECIPE comrecipe_as;						//振れ止め用コマンドセット
 	ST_POS_TARGETS auto_pos_target;					//自動目標位置
 	int antisway_comple_status;						//振れ止め完了状態
 	double dist_for_target[MOTION_ID_MAX];			//目標までの距離

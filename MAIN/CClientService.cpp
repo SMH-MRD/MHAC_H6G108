@@ -281,7 +281,7 @@ int CClientService::parce_onboard_input(int mode) {
 		}
 
 		//半自動JOB完了で目標確定クリア
-		if (p_active_job->status & (STAT_ABOTED | STAT_NOMAL_END | STAT_ABOTED)) {
+		if (p_active_job->status & (STAT_ABOTED | STAT_NORMAL_END | STAT_ABOTED)) {
 			tg_sel_trigger_z = false, tg_sel_trigger_xy = false;
 			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
 			CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
@@ -413,7 +413,7 @@ void CClientService::main_proc() {
 			p_job->status = STAT_STANDBY;
 			p_job->list_id = ID_JOBTYPE_SEMI;
 			p_job->id = i_job;
-			set_semi_receipe(p_job);							//JOBレシピセット
+			set_semi_recipe(p_job);							//JOBレシピセット
 		}
 		else;//現在のJOB既に起動待ち→ステータスホールド
 
@@ -436,7 +436,7 @@ void CClientService::main_proc() {
 			p_job->status = STAT_STANDBY;
 			p_job->list_id = ID_JOBTYPE_SEMI;
 			p_job->id = i_job;
-			set_job_receipe(p_job);							//JOBレシピセット
+			set_job_recipe(p_job);							//JOBレシピセット
 
 			job_set_event = CS_JOBSET_EVENT_CLEAR;
 		}
@@ -466,19 +466,19 @@ void CClientService::main_proc() {
 }
 
 //ジョブのレシピセット
-LPST_JOB_SET CClientService::set_job_receipe(LPST_JOB_SET pjob_set) {
+LPST_JOB_SET CClientService::set_job_recipe(LPST_JOB_SET pjob_set) {
 	LPST_JOB_SET pjob = NULL;
 	return pjob;
 }
 
 //半自動のレシピセット
-LPST_JOB_SET CClientService::set_semi_receipe(LPST_JOB_SET pjob_set) {
+LPST_JOB_SET CClientService::set_semi_recipe(LPST_JOB_SET pjob_set) {
 	//JOBのコマンド数　半自動は１
 	pjob_set->n_com = 1;
 	//目標位置セット
-	pjob_set->receipe[0].target.pos[ID_HOIST] = CS_workbuf.semi_auto_selected_target.pos[ID_HOIST];
-	pjob_set->receipe[0].target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H];
-	pjob_set->receipe[0].target.pos[ID_SLEW] = CS_workbuf.semi_auto_selected_target.pos[ID_SLEW];
+	pjob_set->recipe[0].target.pos[ID_HOIST] = CS_workbuf.semi_auto_selected_target.pos[ID_HOIST];
+	pjob_set->recipe[0].target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H];
+	pjob_set->recipe[0].target.pos[ID_SLEW] = CS_workbuf.semi_auto_selected_target.pos[ID_SLEW];
 
 	return pjob_set;
 }
@@ -608,6 +608,7 @@ void CClientService::output() {
 
 	wostrs << L" AS: " << CS_workbuf.antisway_mode << L" AUTO: " << CS_workbuf.auto_mode;
 	
+	p_active_job = &CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[0];
 	int status = p_active_job->status;
 
 	if (p_active_job->list_id == ID_JOBTYPE_JOB) {
@@ -656,7 +657,7 @@ LPST_JOB_SET CClientService::get_next_job() {
 	case STAT_SUSPEND:
 	case STAT_STANDBY:
 	case STAT_ABOTED:
-	case STAT_NOMAL_END:
+	case STAT_NORMAL_END:
 	case STAT_REQ_WAIT:
 		//実行待ち(TRIGGER）状態以外はスルー
 		break;
@@ -674,7 +675,7 @@ LPST_JOB_SET CClientService::get_next_job() {
 	case STAT_SUSPEND:
 	case STAT_STANDBY:
 	case STAT_ABOTED:
-	case STAT_NOMAL_END:
+	case STAT_NORMAL_END:
 	case STAT_REQ_WAIT:
 		//実行待ち(TRIGGER）状態以外はスルー
 		break;
@@ -689,7 +690,7 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 
 	if (pjobset->list_id == ID_JOBTYPE_JOB) {
 		switch (fb_code) {
-		case CS_FB_CODE_RECEIPE_FIN_NORMAL:
+		case CS_FB_CODE_RECIPE_FIN_NORMAL:
 		{
 
 
@@ -697,22 +698,22 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 		case CS_FB_CODE_COM_FIN_NORMAL:break;
 		case CS_FB_CODE_COM_FIN_ABNORMAL:break;
 		case CS_FB_CODE_COM_SUSPENDED:break;
-		case CS_FB_CODE_RECEIPE_FIN_ABNORMAL:break;
+		case CS_FB_CODE_RECIPE_FIN_ABNORMAL:break;
 		default:break;
 		}
 	}
 	else if (pjobset->list_id == ID_JOBTYPE_SEMI) {
 		switch (fb_code) {
-		case CS_FB_CODE_RECEIPE_FIN_NORMAL:
+		case CS_FB_CODE_RECIPE_FIN_NORMAL:
 		{
 			pCSinf->job_list[ID_JOBTYPE_SEMI].n_hold_job--;
-			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_NOMAL_END;
+			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_NORMAL_END;
 			return L_ON;
 		}break;
 		case CS_FB_CODE_COM_FIN_NORMAL:break;
 		case CS_FB_CODE_COM_FIN_ABNORMAL:break;
 		case CS_FB_CODE_COM_SUSPENDED:break;
-		case CS_FB_CODE_RECEIPE_FIN_ABNORMAL:break;
+		case CS_FB_CODE_RECIPE_FIN_ABNORMAL:break;
 		default:break;
 		}
 	}

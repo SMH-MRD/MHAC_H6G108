@@ -75,8 +75,8 @@ public:
 
     void set_as_workbuf(); //振れ止めパターン作成用データ取り込み
     int setup_as_command();
-    int set_receipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
-    int set_receipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
+    int set_recipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
+    int set_recipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
         
     bool is_command_completed(LPST_COMMAND_SET pCom);
     int check_as_completion();

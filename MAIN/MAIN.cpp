@@ -44,6 +44,7 @@ CSharedMem*  pOTEioObj;
 CSharedMem*  pCSInfObj;
 CSharedMem*  pPolicyInfObj;
 CSharedMem*  pAgentInfObj;
+CSharedMem*  pClientIO_Obj;
                                                 
  //-スタティック変数:
 static HWND                 hWnd_status_bar;    //ステータスバーのウィンドウのハンドル
@@ -104,6 +105,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     pCSInfObj               = new CSharedMem;
     pPolicyInfObj           = new CSharedMem;
     pAgentInfObj            = new CSharedMem;
+    pClientIO_Obj           = new CSharedMem;
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -204,8 +206,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    if (OK_SHMEM != pSimulationStatusObj->create_smem(SMEM_SIMULATION_STATUS_NAME,  sizeof(ST_SIMULATION_STATUS), MUTEX_SIMULATION_STATUS_NAME)) return(FALSE);
    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME,  sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME,  sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
-   if (OK_SHMEM != pOTEioObj->create_smem(SMEM_REMOTE_IO_NAME,  sizeof(ST_OTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
+   if (OK_SHMEM != pOTEioObj->create_smem(SMEM_OTE_IO_NAME,  sizeof(ST_OTE_IO), MUTEX_OTE_IO_NAME)) return(FALSE);
    if (OK_SHMEM !=  pCSInfObj->create_smem(SMEM_CS_INFO_NAME,  sizeof(ST_CS_INFO),MUTEX_CS_INFO_NAME)) return(FALSE);
+   if (OK_SHMEM != pClientIO_Obj->create_smem(SMEM_CLIENT_IO_NAME, sizeof(ST_CLIENT_IO), MUTEX_CLIENT_IO_NAME)) return(FALSE);
    if (OK_SHMEM != pPolicyInfObj->create_smem(SMEM_POLICY_INFO_NAME,  sizeof(ST_POLICY_INFO),MUTEX_POLICY_INFO_NAME)) return(FALSE);
    if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME,  sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) return(FALSE);
    

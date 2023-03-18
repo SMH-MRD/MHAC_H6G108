@@ -42,8 +42,8 @@
 #define CS_FB_CODE_COM_FIN_NORMAL           2 //コマンド正常完了
 #define CS_FB_CODE_COM_FIN_ABNORMAL         3 //コマンド異常完了
 #define CS_FB_CODE_COM_SUSPENDED            4 //コマンド保留
-#define CS_FB_CODE_RECEIPE_FIN_NORMAL       5 //コマンドレシピ正常完了
-#define CS_FB_CODE_RECEIPE_FIN_ABNORMAL     6 //コマンドレシピ異常完了
+#define CS_FB_CODE_RECIPE_FIN_NORMAL       5 //コマンドレシピ正常完了
+#define CS_FB_CODE_RECIPE_FIN_ABNORMAL     6 //コマンドレシピ異常完了
 
 
 class CClientService :public CTaskObj
@@ -74,8 +74,8 @@ private:
     int perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg);
     
     //レシピセット
-    LPST_JOB_SET set_job_receipe(LPST_JOB_SET pjob_set);
-    LPST_JOB_SET set_semi_receipe(LPST_JOB_SET pjob_set);
+    LPST_JOB_SET set_job_recipe(LPST_JOB_SET pjob_set);
+    LPST_JOB_SET set_semi_recipe(LPST_JOB_SET pjob_set);
  
    
     LPST_CRANE_STATUS pCraneStat;

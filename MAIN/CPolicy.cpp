@@ -102,106 +102,80 @@ void CPolicy::output() {
 // AGENTからのコマンド要求処理
 LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 
-	/* ###
-		CSがセットしているJOB LISTのJOBタイプのものが実行中でないとき　
-	　		SEMIAUTOタイプのものが実行待ちであれば、Policyのコマンドリストにコマンドをセットして実行対象のコマンドのポインタをリターン　
-			SEMIAUTOタイプのものが実行中であれば、実行中のバッファポインタをリターン　
-			JOBタイプのものが実行待ちであれば、JOB用のバッファにコマンドパターンをセットしてポインタをリターン
-			その他の時はNULLポインタをリターン　
-	### */
-	
-	int com_hot_stat = pjob_set->com_status[pjob_set->i_hot_com];
+	int _i_hot_com = pjob_set->i_hot_com;
+	LPST_COMMAND_SET pcom_set;
 
+	if (pjob_set->status & STAT_TRIGED) {						//JOBのステータスが実行待ち
+		_i_hot_com = pjob_set->i_hot_com = 0;
 
-
-	if (com_hot_stat != STAT_ACTIVE) {							// Job実行中でない
-		if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {				// 半自動準備完了（自動開始入力済）
-			return create_semiauto_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));	//　半自動コマンドを作成してポインタを返す
-		}
-		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_ACTIVE) {			// 半自動実行中
-			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);		//実行中コマンドのポインタを返す
-		}
-		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {					// JOB準備完了（クライアントからのJOB受信済）
-			return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));					// JOBコマンドを作成してポインタを返す
-		}
-		else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_REQ_WAIT) {		// 半自動要求待ち（自動開始入力待ち）
-			return NULL;																						//NULLポインタを返す
+		if (pjob_set->list_id == ID_JOBTYPE_SEMI) {
+			setup_semiauto_command(&(pjob_set->recipe[_i_hot_com]));
 		}
 		else {
-			return NULL;
+			setup_job_command(&(pjob_set->recipe[_i_hot_com]));
+		}
+
+		pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;
+		//### コマンドセットのアドレスを確定してコードをセット
+		pcom_set = &(pjob_set->recipe[_i_hot_com].comset);
+		pcom_set->com_code.i_list = pjob_set->list_id;
+		pcom_set->com_code.i_job = pjob_set->id;
+		pcom_set->com_code.i_recipe = _i_hot_com;
+
+	}
+	else if (pjob_set->status & STAT_ACTIVE) {						//JOBのステータスが実行中
+		if (pjob_set->i_hot_com < (pjob_set->n_com - 1)) {			//次レシピ有 
+			_i_hot_com = pjob_set->i_hot_com++;
+
+			if (pjob_set->list_id == ID_JOBTYPE_SEMI) {
+				setup_semiauto_command(&(pjob_set->recipe[_i_hot_com]));
+			}
+			else {
+				setup_job_command(&(pjob_set->recipe[_i_hot_com]));
+			}
+
+			pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;
+			//### コマンドセットのアドレスを確定してコードをセット
+			pcom_set = &(pjob_set->recipe[_i_hot_com].comset);
+			pcom_set->com_code.i_list = pjob_set->list_id;
+			pcom_set->com_code.i_job = pjob_set->id;
+			pcom_set->com_code.i_recipe = _i_hot_com;
+
+		}
+		else {														//次レシピ無　既に完了済 
+			_i_hot_com = pjob_set->i_hot_com;
+			int end_status = pjob_set->recipe[_i_hot_com].status;
+			pCS->update_job_status(pjob_set, STAT_ABOTED);			//JOBのステータスをABOTE更新　正常完了の時はupdate_command_status()から報告
+			//pjob_set->recipe[_i_hot_com].status の更新無し
+			pcom_set = NULL;										//次レシピ無し→NULLリターン
 		}
 	}
-	/* ###
-		CSがセットしているJOB LISTのJOBタイプのものが実行中のとき　
-			Policyのコマンドリストに設定しているJOBのタイプがJOBリストの実行中JOBと一致していたら現在実行中のコマンドのポインタをリターン
-			その他の時はNULLポインタをリターン　
-	### */
 	else {
-		if ((PolicyInf_workbuf.command_list.job_type == AUTO_TYPE_JOB)										// コマンドリスト内容がJOB
-			&& (PolicyInf_workbuf.command_list.job_id == pCSInf->job_list.i_job_hot)){					// コマンドリストの対象Jobが実行中Jobと一致
-			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);	//実行中コマンドのポインタを返す
-		}
-		else {																								//実行中jobとセット中のコマンドが一致しない　→　異常
-			return NULL;
-		}
+		_i_hot_com = pjob_set->i_hot_com;
+		pCS->update_job_status(pjob_set, STAT_ABOTED);				//JOBのステータスをABOTE更新　正常完了の時はupdate_command_status()から報告
+		pjob_set->recipe[_i_hot_com].status = STAT_ABOTED;			//レシピのステータスはABOTEDに更新（本来ここが処理される事は無い）
+		pcom_set= NULL;
 	}
-	return	NULL;
+	return pcom_set;
+
 };
 
-LPST_COMMAND_SET CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
-	return &comset_dummy;
+int CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
+
+	LPST_JOB_SET pjob_set = &pCSInf->job_list[pcom->com_code.i_list].job[pcom->com_code.i_job];
+	LPST_COM_RECIPE pcom_recipe = &pjob_set->recipe[pcom->com_code.i_recipe];
+	
+	pcom_recipe->status = code;
+	pCS->update_job_status(pjob_set, code);		//JOBのステータス更新
+
+	return 0;
 }
 
-	/* ###
-		CSがセットしているJOB LISTのJOBタイプのものが実行中でないとき　
-	　		SEMIAUTOタイプのものが実行待ちであれば、Policyのコマンドリストにコマンドをセットして実行対象のコマンドのポインタをリターン　
-			SEMIAUTOタイプのものが実行中であれば、実行中のバッファポインタをリターン　
-			JOBタイプのものが実行待ちであれば、JOB用のバッファにコマンドパターンをセットしてポインタをリターン
-			その他の時はNULLポインタをリターン　
-	### */
-
-	int com_hot_stat = pjob_set->com_status[pjob_set->i_hot_com];
-
-
-
-	if () - ]status != STAT_ACTIVE) {							// Job実行中でない
-	if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {				// 半自動準備完了（自動開始入力済）
-		return create_semiauto_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));	//　半自動コマンドを作成してポインタを返す
-	}
-	else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_ACTIVE) {			// 半自動実行中
-		return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);		//実行中コマンドのポインタを返す
-	}
-	else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_STANDBY) {					// JOB準備完了（クライアントからのJOB受信済）
-		return create_job_command(&(pCSInf->job_list.job[pCSInf->job_list.i_job_hot]));					// JOBコマンドを作成してポインタを返す
-	}
-	else if (pCSInf->job_list.job[pCSInf->job_list.i_job_hot].status == STAT_REQ_WAIT) {		// 半自動要求待ち（自動開始入力待ち）
-		return NULL;																						//NULLポインタを返す
-	}
-	else {
-		return NULL;
-	}
-	}
-	/* ###
-		CSがセットしているJOB LISTのJOBタイプのものが実行中のとき　
-			Policyのコマンドリストに設定しているJOBのタイプがJOBリストの実行中JOBと一致していたら現在実行中のコマンドのポインタをリターン
-			その他の時はNULLポインタをリターン　
-	### */
-	else {
-		if ((PolicyInf_workbuf.command_list.job_type == AUTO_TYPE_JOB)										// コマンドリスト内容がJOB
-			&& (PolicyInf_workbuf.command_list.job_id == pCSInf->job_list.i_job_hot)) {					// コマンドリストの対象Jobが実行中Jobと一致
-			return &(PolicyInf_workbuf.command_list.commands[PolicyInf_workbuf.command_list.current_step]);	//実行中コマンドのポインタを返す
-		}
-		else {																								//実行中jobとセット中のコマンドが一致しない　→　異常
-			return NULL;
-		}
-	}
-	return	NULL;
-};
 /****************************************************************************/
 /*　　移動パターンレシピ生成												*/
 /****************************************************************************/
 /* # 起伏レシピ　*/
-int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
+int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
 
 	LPST_MOTION_STEP pelement;
 	int id = ID_BOOM_H;
@@ -231,8 +205,8 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		else ptn = PTN_FBSWAY_AS;
 	}
 	else {
-		if (D > dist_inch_max) ptn = PTN_NO_FBSWAY_FULL;
-		else ptn = PTN_NO_FBSWAY_2INCH;
+		if (D > dist_inch_max) ptn = PTN_NON_FBSWAY_FULL;
+		else ptn = PTN_NON_FBSWAY_2INCH;
 	}
 
 	/*### パターン作成 ###*/
@@ -242,8 +216,8 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 	switch (ptn) {
 
-	case PTN_NO_FBSWAY_FULL:	//FB無のフルパターン
-	case PTN_NO_FBSWAY_2INCH:	//FB無のインチングパターン
+	case PTN_NON_FBSWAY_FULL:	//FB無のフルパターン
+	case PTN_NON_FBSWAY_2INCH:	//FB無のインチングパターン
 	case PTN_FBSWAY_AS:			//FB振れ止めパターン
 	{																			// 巻、旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し									
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
@@ -269,7 +243,7 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 	/*### STEP1,2 速度ステップ出力　2段分###*/
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:	//FB無のフルパターン
+	case PTN_NON_FBSWAY_FULL:	//FB無のフルパターン
 	case PTN_FBSWAY_FULL:		//FB有のフルパターン		
 	//台形パターン部 減速を２段階にして距離を調整
 	{																			// 出力するノッチ速度を計算して設定
@@ -354,7 +328,7 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	}break;
 
 	//台形部無いケースはスキップ
-	case PTN_NO_FBSWAY_2INCH:	//FB無のインチングパターン												
+	case PTN_NON_FBSWAY_2INCH:	//FB無のインチングパターン												
 	case PTN_FBSWAY_AS:			//FB振れ止めパターン	
 	{
 		D = D;
@@ -364,8 +338,8 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 	/*### STEP3,4,5,6  2回インチング移動部　###*/
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:	//FB無のフルパターン	
-	case PTN_NO_FBSWAY_2INCH:	//FB無のインチングパターン	
+	case PTN_NON_FBSWAY_FULL:	//FB無のフルパターン	
+	case PTN_NON_FBSWAY_2INCH:	//FB無のインチングパターン	
 	{
 		double v_inch = sqrt(0.5 * D * st_com_work.a[id]);
 		double ta = v_inch/st_com_work.a[id];
@@ -427,8 +401,8 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 	/*### STEP7  ###*/
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:	//FB無のフルパターン													
-	case PTN_NO_FBSWAY_2INCH:	//FB無のインチングパターン	
+	case PTN_NON_FBSWAY_FULL:	//FB無のフルパターン													
+	case PTN_NON_FBSWAY_2INCH:	//FB無のインチングパターン	
 																				{//微小位置決め
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_FINE_POS;										// 微小位置決め
@@ -455,7 +429,7 @@ int CPolicy::set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	return POLICY_PTN_OK;
 }
 /* # 旋回レシピ　*/
-int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
+int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
 
 	LPST_MOTION_STEP pelement;
 	int id = ID_SLEW;
@@ -476,8 +450,8 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 	}
 
 	if (is_fbtype) {
-		if (D > dist_inch_max) ptn = PTN_NO_FBSWAY_FULL;
-		else ptn = PTN_NO_FBSWAY_2INCH;
+		if (D > dist_inch_max) ptn = PTN_NON_FBSWAY_FULL;
+		else ptn = PTN_NON_FBSWAY_2INCH;
 	}
 	else {
 		if (D > dist_inch_max) ptn = PTN_FBSWAY_FULL;
@@ -490,8 +464,8 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 	/*### STEP0  待機　###*/
 
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:		//FB無のフルパターン
-	case PTN_NO_FBSWAY_2INCH:		//FB無のインチング
+	case PTN_NON_FBSWAY_FULL:		//FB無のフルパターン
+	case PTN_NON_FBSWAY_2INCH:		//FB無のインチング
 	case PTN_FBSWAY_AS:				//FB振止
 	{																			// 巻、引込位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  引込：引き出し時は条件無し、引き込み時は引込位置が目標＋Xｍ以下
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
@@ -521,7 +495,7 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 	/*### 旋回ではFBパターンでは、振れ周期ステップパターンは無し、減速タイミングを調整し最後にFB振れ止めパターンを入れる ###*/
 
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:												// 旋回はFBなしの時のみ振れ周期パターン
+	case PTN_NON_FBSWAY_FULL:												// 旋回はFBなしの時のみ振れ周期パターン
 	{
 		double d_step = D;													//ステップでの移動距離
 		double v_top = 0.0;													//ステップ速度用
@@ -633,7 +607,7 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 		D -= d_move;																	// 残り距離更新
 	}break;
 
-	case PTN_NO_FBSWAY_2INCH:													//台形部無いケースはスキップ
+	case PTN_NON_FBSWAY_2INCH:													//台形部無いケースはスキップ
 	case PTN_FBSWAY_AS:
 	{
 		D = D;
@@ -643,8 +617,8 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 
 	/*### STEP3,4,5,6  FB無しのインチング移動パターン　###*/
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:													
-	case PTN_NO_FBSWAY_2INCH:
+	case PTN_NON_FBSWAY_FULL:													
+	case PTN_NON_FBSWAY_2INCH:
 	{
 		double v_inch = sqrt(0.5 * D * st_com_work.a[id]);
 		double ta = v_inch / st_com_work.a[id];
@@ -710,8 +684,8 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 
 	/*### STEP7  ###*/
 	switch (ptn) {
-	case PTN_NO_FBSWAY_FULL:													//巻、旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し
-	case PTN_NO_FBSWAY_2INCH:
+	case PTN_NON_FBSWAY_FULL:													//巻、旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し
+	case PTN_NON_FBSWAY_2INCH:
 	{
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_FINE_POS;										// 微小位置決め
@@ -741,7 +715,7 @@ int CPolicy::set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, b
 	return POLICY_PTN_OK;
 }
 /* # 巻レシピ　*/
-int CPolicy::set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
+int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
 
 	LPST_MOTION_STEP pelement;
 	int id = ID_HOIST;
@@ -810,112 +784,103 @@ int CPolicy::set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	return POLICY_PTN_OK;
 }
 
-
-LPST_COMMAND_SET CPolicy::create_semiauto_command(LPST_JOB_SET pjob) {							//実行する半自動コマンドをセットする
+int CPolicy::setup_semiauto_command(LPST_COM_RECIPE pcom_recipe) {							//実行する半自動コマンドをセットする
 	
-	LPST_COMMAND_SET lp_semiauto_com = &(pPolicyInf->command_list.commands[0]);					//コマンドブロックのポインタセット
-	
-	lp_semiauto_com->no = COM_NO_SEMIAUTO;
-	lp_semiauto_com->type = AUTO_TYPE_SEMIAUTO;
+	LPST_COMMAND_SET pcom_set = &pcom_recipe->comset;
 
 	//半自動は、巻、旋回、引込が対象
-	for (int i = 0;i < MOTION_ID_MAX;i++) lp_semiauto_com->is_active_axis[i]= false;
-	lp_semiauto_com->is_active_axis[ID_HOIST] = true;
-	lp_semiauto_com->is_active_axis[ID_SLEW] = true;
-	lp_semiauto_com->is_active_axis[ID_BOOM_H] = true;
+	for (int i = 0;i < MOTION_ID_MAX;i++) pcom_set->active_motion[i] = L_OFF;
+	pcom_set->active_motion[ID_HOIST] = true;
+	pcom_set->active_motion[ID_SLEW] = true;
+	pcom_set->active_motion[ID_BOOM_H] = true;
 	
-	set_com_workbuf(pjob->target[0], AUTO_TYPE_SEMIAUTO);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
+	set_com_workbuf(pcom_recipe->target);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
 
-	//旋回,引込,巻のレシピセット　set_receipe_semiauto_bh(JOBタイプ,レシピアドレス,isFBタイプ,レシピ設定条件バッファアドレス
-	set_receipe_semiauto_bh(pjob->type, &(lp_semiauto_com->recipe[ID_BOOM_H]), true, &st_com_work);
-	set_receipe_semiauto_slw(pjob->type, &(lp_semiauto_com->recipe[ID_SLEW]), true, &st_com_work);
-	set_receipe_semiauto_mh(pjob->type, &(lp_semiauto_com->recipe[ID_HOIST]), true, &st_com_work);
+	bool is_fb_antisway = false;
+	if (pCSInf->antisway_mode == L_ON) {
+		is_fb_antisway = true;
+	}
 
-	return lp_semiauto_com;
+
+	//旋回,引込,巻のレシピセット　set_recipe_semiauto_bh(JOBタイプ,レシピアドレス,isFBタイプ,レシピ設定条件バッファアドレス
+	set_recipe_semiauto_bh(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_BOOM_H]), is_fb_antisway, &st_com_work);
+	set_recipe_semiauto_slw(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_SLEW]), is_fb_antisway, &st_com_work);
+	set_recipe_semiauto_mh(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_HOIST]), is_fb_antisway, &st_com_work);
+
+	return L_ON;
 
 };
 
-LPST_COMMAND_SET CPolicy::create_job_command(LPST_JOB_SET pjob) {		//実行するJOBコマンドをセットする
+int CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe) {		//実行するJOBコマンドをセットする
 
-	LPST_COMMAND_SET lp_job_com = NULL;
-
-	return lp_job_com;
+	return L_OFF;
 };        
 
 /****************************************************************************/
 /*　　コマンドパターン計算用の素材データ計算,セット									*/
 /*　　目標位置,目標までの距離,最大速度,加速度,加速時間,加速振れ中心,振れ振幅*/
 /****************************************************************************/
-LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS targets, int type) {
+LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS target) {
 
-	st_com_work.agent_scan_ms = pAgent->inf.cycle_ms;;                 //AGENTタスクのスキャンタイム
-	switch(type){
-	case AUTO_TYPE_SEMIAUTO: {
+	st_com_work.agent_scan_ms = pAgent->inf.cycle_ms;				//AGENTタスクのスキャンタイム
+	st_com_work.target = target;									//目標位置
 
-		st_com_work.target = targets;																//目標位置
-
-
-
-		double temp_d;
-		for (int i = 0; i < MOTION_ID_MAX; i++) {
-			if ((i == ID_HOIST) || (i == ID_BOOM_H) || (i == ID_SLEW)) {
-				st_com_work.pos[i] = pPLC_IO->status.pos[i];										//現在位置
-				st_com_work.v[i] = pPLC_IO->status.v_fb[i];											//現在速度
-				temp_d = st_com_work.target.pos[i] - st_com_work.pos[i];
-
-				if (i == ID_SLEW) {		//旋回は、180を越えるときは逆方向が近い
-					if (temp_d > PI180)	temp_d -= PI360;
-					else if (temp_d < -PI180) temp_d += PI360;
-					else;
-				}
-
-				if (temp_d < 0.0) {
-					st_com_work.motion_dir[i] = ID_REV;												//移動方向
-					st_com_work.dist_for_target[i] = -1.0 * temp_d;									//移動距離
-				}
-				else if(temp_d > 0.0) {
-					st_com_work.motion_dir[i] = ID_FWD;												//移動方向
-					st_com_work.dist_for_target[i] = temp_d;										//移動距離
-				}
-				else{
-					st_com_work.motion_dir[i] = ID_STOP;											//移動方向
-					st_com_work.dist_for_target[i] = 0.0;											//移動距離
-				}
-
-
-				st_com_work.a[i] = pCraneStat->spec.accdec[i][FWD][ACC];	//動作軸加速度
-				st_com_work.vmax[i]= pCraneStat->spec.notch_spd_f[i][NOTCH_MAX - 1];				//最大速度
-				st_com_work.acc_time2Vmax[i] = st_com_work.vmax[i]/ st_com_work.a[i];   //最大加速時間
-			}
-			if ((i == ID_BOOM_H) || (i == ID_SLEW)) {
-				st_com_work.a_hp[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);		//吊点の加速度
-				st_com_work.pp_th0[i][ACC] = pEnvironment->cal_arad_acc(i, FWD);					//加速時振れ中心
-				st_com_work.pp_th0[i][DEC] = pEnvironment->cal_arad_dec(i, REV);					//減速時振れ中心
-			}
-
+	double temp_d;
+	for (int i = 0; i < MOTION_ID_MAX; i++) {
+		//現在位置
+		st_com_work.pos[i] = pPLC_IO->status.pos[i];
+		//現在速度
+		st_com_work.v[i] = pPLC_IO->status.v_fb[i];
+		//移動距離　方向
+		temp_d = st_com_work.target.pos[i] - st_com_work.pos[i];
+		if (i == ID_SLEW) {		//旋回は、180を越えるときは逆方向が近い
+			if (temp_d > PI180)	temp_d -= PI360;
+			else if (temp_d < -PI180) temp_d += PI360;
+			else;
 		}
-
-		//巻きの目標位置が上の時は、巻上後に旋回引き込み動作をするので目標位置の周期でパターンを作る
-		if (targets.pos[ID_HOIST] > st_com_work.pos[ID_HOIST]) {
-			st_com_work.T = pEnvironment->cal_T(targets.pos[ID_HOIST]);								//振れ周期
-			st_com_work.w = pEnvironment->cal_w(targets.pos[ID_HOIST]);								//振れ角周波数
-			st_com_work.w2 = pEnvironment->cal_w2(targets.pos[ID_HOIST]);							//振れ角周波数2乗
+		if (temp_d < 0.0) {
+			st_com_work.motion_dir[i] = ID_REV;												//移動方向
+			st_com_work.dist_for_target[i] = -1.0 * temp_d;									//移動距離
+		}
+		else if (temp_d > 0.0) {
+			st_com_work.motion_dir[i] = ID_FWD;												//移動方向
+			st_com_work.dist_for_target[i] = temp_d;										//移動距離
 		}
 		else {
-			st_com_work.T = pCraneStat->T;															//振れ周期
-			st_com_work.w = pCraneStat->w;															//振れ角周波数
-			st_com_work.w2 = pCraneStat->w2;														//振れ角周波数2乗
+			st_com_work.motion_dir[i] = ID_STOP;											//移動方向
+			st_com_work.dist_for_target[i] = 0.0;											//移動距離
 		}
-		break;
-	}
-	case AUTO_TYPE_JOB: {
-		return NULL;
-		break;
-	}
-	default:return NULL;
 
+		//動作軸加速度
+		st_com_work.a[i] = pCraneStat->spec.accdec[i][FWD][ACC];
+		//最大速度
+		st_com_work.vmax[i] = pCraneStat->spec.notch_spd_f[i][NOTCH_MAX - 1];
+		//最大加速時間
+		st_com_work.acc_time2Vmax[i] = st_com_work.vmax[i] / st_com_work.a[i];
+
+		if ((i == ID_BOOM_H) || (i == ID_SLEW)) {
+			//吊点の加速度
+			st_com_work.a_hp[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);
+			//加速時振れ中心
+			st_com_work.pp_th0[i][ACC] = pEnvironment->cal_arad_acc(i, FWD);
+			//減速時振れ中心
+			st_com_work.pp_th0[i][DEC] = pEnvironment->cal_arad_dec(i, REV);
+		}
 	}
-	return &st_com_work;
+
+	//巻きの目標位置が上の時は、巻上後に旋回引き込み動作をするので目標位置の周期でパターンを作る
+	if (target.pos[ID_HOIST] > st_com_work.pos[ID_HOIST]) {
+		st_com_work.T = pEnvironment->cal_T(target.pos[ID_HOIST]);								//振れ周期
+		st_com_work.w = pEnvironment->cal_w(target.pos[ID_HOIST]);								//振れ角周波数
+		st_com_work.w2 = pEnvironment->cal_w2(target.pos[ID_HOIST]);							//振れ角周波数2乗
+	}
+	else {
+		st_com_work.T = pCraneStat->T;															//振れ周期
+		st_com_work.w = pCraneStat->w;															//振れ角周波数
+		st_com_work.w2 = pCraneStat->w2;
+
+		return &st_com_work;
+	}
 }
 
 #if 0

@@ -41,7 +41,7 @@ typedef struct ClientComRcvMsg {      //振れセンサ受信メッセージ
 }ST_CLIENT_COM_RCV_MSG, * LPST_CLIENT_COM_RCV_MSG;
 
 typedef struct ClientComSndMsg {      //振れセンサ受信メッセージ
-    ST_OTE_COM_HEAD         head;
+    ST_CLIENT_COM_HEAD         head;
   }ST_CLIENT_COM_SND_MSG, * LPST_CLIENT_COM_SND_MSG;
 
 

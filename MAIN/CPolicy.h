@@ -4,9 +4,9 @@
 #include "Spec.h"
 #include "CSharedMem.h"
 
-#define PTN_NO_FBSWAY_FULL          0x00000001
+#define PTN_NON_FBSWAY_FULL          0x00000001
 #define PTN_FBSWAY_FULL             0x00000002
-#define PTN_NO_FBSWAY_2INCH         0x00000004
+#define PTN_NON_FBSWAY_2INCH         0x00000004
 #define PTN_FBSWAY_AS               0x00000008
 
 #define PTN_FBSWAY_AS               0x00000008
@@ -18,7 +18,6 @@
 
 #define SPD_FB_DELAY_TIME           0.3             //速度指令-FB遅れ時間
 #define FINE_POS_TIMELIMIT          5.0             //ファインポジショニング制限時間
-
 
 
 typedef struct stPolicyWork {
@@ -50,8 +49,9 @@ public:
    void init_task(void* pobj);
    void routine_work(void* param);
  
+  //AGENT
    LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);                             //Agentからの要求に応じて実行コマンドをセットして返す
-   LPST_COMMAND_SET update_command_status(LPST_COMMAND_SET pcom, int code);         //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
+   int update_command_status(LPST_COMMAND_SET pcom, int code);         //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
  
 private:
 
@@ -67,15 +67,14 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    LPST_COMMAND_SET create_semiauto_command(LPST_JOB_SET pjob);                      //実行する半自動コマンドをセットする
-    LPST_COMMAND_SET create_job_command(LPST_JOB_SET pjob);                           //実行するジョブコマンドをセットする
-    ST_COMMAND_SET comset_dummy;
+    int setup_semiauto_command(LPST_COM_RECIPE pcom_recipe);        //実行する半自動のコマンドをセットする
+    int setup_job_command(LPST_COM_RECIPE pcom_recipe);             //実行するジョブのコマンドをセットする
+ 
+    int set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
 
-    int set_receipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
-    int set_receipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
-    int set_receipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
-
-    LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trgets, int type);
+    LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trget);
     ST_POLICY_INFO   PolicyInf_workbuf;
     ST_POLICY_WORK   st_com_work;
     int command_id = 0;

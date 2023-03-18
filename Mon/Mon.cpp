@@ -156,7 +156,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    if (OK_SHMEM != pSwayIO_Obj->create_smem(SMEM_SWAY_IO_NAME, sizeof(ST_SWAY_IO), MUTEX_SWAY_IO_NAME)) return(FALSE);
    else if ((pSway_IO = (LPST_SWAY_IO)pSwayIO_Obj->get_pMap()) == NULL) return(FALSE);
 
-   if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_REMOTE_IO_NAME, sizeof(ST_OTE_IO), MUTEX_REMOTE_IO_NAME)) return(FALSE);
+   if (OK_SHMEM != pRemoteIO_Obj->create_smem(SMEM_OTE_IO_NAME, sizeof(ST_OTE_IO), MUTEX_OTE_IO_NAME)) return(FALSE);
    else if ((pOTE_IO = (LPST_OTE_IO)pRemoteIO_Obj->get_pMap()) == NULL) return(FALSE);
 
    if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) return(FALSE);
