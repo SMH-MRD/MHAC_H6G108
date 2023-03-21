@@ -67,8 +67,8 @@ private:
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    int setup_semiauto_command(LPST_COM_RECIPE pcom_recipe);        //実行する半自動のコマンドをセットする
-    int setup_job_command(LPST_COM_RECIPE pcom_recipe);             //実行するジョブのコマンドをセットする
+    LPST_COMMAND_SET setup_job_command(LPST_COM_RECIPE pcom_recipe, int type);  //実行する半自動のコマンドをセットする
+  
  
     int set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
     int set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);

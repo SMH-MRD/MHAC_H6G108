@@ -55,7 +55,7 @@ void CAgent::init_task(void* pobj) {
 	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
 
 	AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-	pjob_hot = NULL;
+	pjob_active = NULL;
 
 	set_panel_tip_txt();
 
@@ -74,26 +74,45 @@ void CAgent::routine_work(void* param) {
 };
 
 //定周期処理手順1　外部信号入力加工処理
+
+//定周期処理手順3　信号出力処理
+/****************************************************************************/
+/*   信号出力	共有メモリ出力												*/
+/****************************************************************************/
 void CAgent::input() {
 	
 	//ジョブリストのチェック →　コマンドの取り込み
-	if ((pjob_hot == NULL) && (pCSInf->auto_mode == L_ON) ){						//自動モードでジョブ実行中でない
-		if (can_job_trigger()) {													//ジョブ実行可否チェック
-			pjob_hot = pCS->get_next_job();											//CSにジョブ問い合わせ
-			if (pjob_hot != NULL) {													//実行待ちジョブあり
-				pCom_hot = pPolicy->req_command(pjob_hot);							//POLICYにコマンド展開依頼
-				if (pCom_hot != NULL) {												//コマンド展開応答有
-					//コマンドステータス初期化											
-					AgentInf_workbuf.auto_on_going = pjob_hot->type;				//自動のステータスをJOB or SEMIAUTO
-					pPolicy->update_command_status(pCom_hot, STAT_ACTIVE);			//コマンド実行開始報告
-				}
-			}
+	if (pCSInf->auto_mode == L_ON){	//自動モード
+		if (can_job_trigger()) { //ジョブ実行可否チェック （ジョブ実行中でない）
+			pjob_active = pCS->get_next_job();							//CSにジョブ問い合わせ
+			pCom_hot = pPolicy->req_command(pjob_active);				//POLICYにコマンド展開依頼 pjob NULLならばNULLが帰ってくる
+			AgentInf_workbuf.auto_on_going = pjob_active->type;			//実行中自動のステータス更新
+			pPolicy->update_command_status(pCom_hot, STAT_ACTIVE);		//コマンド実行開始報告
 		}
+	}
+	//自動モードが解除されたら実行中のJOB　コマンドクリア
+	if (pCSInf->auto_mode == L_OFF) {
+		pjob_active = NULL;
+		pCom_hot = NULL;
 	}
 
 	return;
 
 };
+
+//ジョブの起動可否判定
+bool CAgent::can_job_trigger() {
+
+	//現在自動実行中でなければ起動可
+	if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO))
+		return false;
+	else if ((pjob_active != NULL) || (pCom_hot == NULL))	//実行中のジョブがあるときは不可
+		return false;
+
+	else
+		return true;
+
+}
 
 //定周期処理手順2　メイン処理
 void CAgent::main_proc() {
@@ -106,20 +125,20 @@ void CAgent::main_proc() {
 	else if (pCom_hot != NULL) {												//実行中コマンド有
 		if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
 			if (pCSInf->antisway_mode == L_ON)
-				AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
+				AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;		//FB AS SET
 			else
-				AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
+				AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;		//FB AS CLEAR
 		}
 
-		if(pjob_hot->list_id == ID_JOBTYPE_JOB)		AgentInf_workbuf.auto_on_going |= AUTO_TYPE_JOB;
+		if(pjob_active->list_id == ID_JOBTYPE_JOB)		AgentInf_workbuf.auto_on_going |= AUTO_TYPE_JOB;
 	    else										AgentInf_workbuf.auto_on_going |= AUTO_TYPE_SEMIAUTO;
 	}
 	//振れ止め未完状態
-	else if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
+	else if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {		//振れ止め条件未完
 		if (pCSInf->antisway_mode == L_ON)
-			AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
+			AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;			//FB AS SET
 		else
-			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
+			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;			//FB AS CLEAR
 	}
 	else {
 		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
@@ -170,11 +189,7 @@ void CAgent::output() {
 /****************************************************************************/
 /*   JOB関連処理															*/
 /****************************************************************************/
-//ジョブの起動可否判定
-bool CAgent::can_job_trigger() { 
-	if (AgentInf_workbuf.auto_on_going | AUTO_TYPE_JOB) return false;
-	return true; 
-}
+
 
 //コマンド完了判定
 bool CAgent::is_command_completed(LPST_COMMAND_SET pCom) {
@@ -200,7 +215,7 @@ bool CAgent::is_command_completed(LPST_COMMAND_SET pCom) {
 /****************************************************************************/
 int CAgent::update_motion_setting() {
 	/*
-
+		//FOR DEBUG
 		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
 		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
@@ -210,13 +225,10 @@ int CAgent::update_motion_setting() {
 	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
 		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
 	}
-	else if((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO)||(AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
+	else if((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
 		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
 	}
-	else if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
-	}
-	else {
+	else {//FB振れ止め
 		AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
 		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
 	}

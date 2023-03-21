@@ -26,24 +26,15 @@
 
 #define CS_NORMAL_OPERATION_MODE 0
 
-#define CS_SEMIAUTO_TG_SEL_DEFAULT      0
-#define CS_SEMIAUTO_TG_SEL_ACTIVE       1
-#define CS_SEMIAUTO_TG_SEL_FIXED        2
-
-#define CS_JOBSET_EVENT_CLEAR           0
+#define CS_JOBSET_EVENT_CLEAR               0
 #define CS_JOBSET_EVENT_JOB_STANDBY         1
 #define CS_JOBSET_EVENT_SEMI_STANDBY        2
 #define CS_JOBSET_EVENT_JOB_TRIG            4
 #define CS_JOBSET_EVENT_SEMI_TRIG           8
 #define CS_JOBSET_EVENT_JOB_OVERFLOW       16
+#define CS_JOBSET_EVENT_SEMI_SEL_CLEAR     32
 
 #define CS_N_MSG_HOLD                       10
-
-#define CS_FB_CODE_COM_FIN_NORMAL           2 //コマンド正常完了
-#define CS_FB_CODE_COM_FIN_ABNORMAL         3 //コマンド異常完了
-#define CS_FB_CODE_COM_SUSPENDED            4 //コマンド保留
-#define CS_FB_CODE_RECIPE_FIN_NORMAL       5 //コマンドレシピ正常完了
-#define CS_FB_CODE_RECIPE_FIN_ABNORMAL     6 //コマンドレシピ異常完了
 
 
 class CClientService :public CTaskObj
@@ -58,11 +49,14 @@ public:
     void routine_work(void* param);
  
    
-    //AGENTアクセス関数
+    //AGENTからのアクセス関数
     LPST_JOB_SET get_next_job();                                    //次のJob問い合わせ
 
-    //POLICYアクセス関数
+    //POLICYからのアクセス関数
     int update_job_status(LPST_JOB_SET pjobset, int fb_code);       //Jobの実行状況アンサバック
+
+    //CLIENTへの報告関数
+    int job_report2client(LPST_JOB_SET pjobset, int fb_code);       //Jobの実行状況報告
 
 private:
 
@@ -89,9 +83,9 @@ private:
 
     ST_CS_INFO CS_workbuf;
 
-    LPST_JOB_SET p_active_job;
-    int job_set_event;
 
+
+ 
     ST_CLIENT_COM_RCV_MSG client_rcv_msg[CS_N_MSG_HOLD];
 
    void input();               //外部データ取り込み

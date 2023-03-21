@@ -105,71 +105,113 @@ LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 	int _i_hot_com = pjob_set->i_hot_com;
 	LPST_COMMAND_SET pcom_set;
 
-	if (pjob_set->status & STAT_TRIGED) {						//JOBのステータスが実行待ち
-		_i_hot_com = pjob_set->i_hot_com = 0;
+	if (pjob_set == NULL) return NULL;	//NULL jobにはNULLリターン
 
-		if (pjob_set->list_id == ID_JOBTYPE_SEMI) {
-			setup_semiauto_command(&(pjob_set->recipe[_i_hot_com]));
-		}
-		else {
-			setup_job_command(&(pjob_set->recipe[_i_hot_com]));
-		}
-
-		pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;
-		//### コマンドセットのアドレスを確定してコードをセット
-		pcom_set = &(pjob_set->recipe[_i_hot_com].comset);
-		pcom_set->com_code.i_list = pjob_set->list_id;
-		pcom_set->com_code.i_job = pjob_set->id;
-		pcom_set->com_code.i_recipe = _i_hot_com;
-
+	if (pjob_set->status & STAT_TRIGED) {							//JOBのステータスが実行待ち
+		_i_hot_com = pjob_set->i_hot_com = 0;						//起動時は、実行レシピののインデックスは、0
+		pcom_set=setup_job_command(&(pjob_set->recipe[_i_hot_com]), pjob_set->list_id);
+		pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;			//コマンドステータス更新
+		pCS->update_job_status(pjob_set, STAT_ACTIVE);				//JOBのステータスをACTIVEに更新
 	}
-	else if (pjob_set->status & STAT_ACTIVE) {						//JOBのステータスが実行中
-		if (pjob_set->i_hot_com < (pjob_set->n_com - 1)) {			//次レシピ有 
+	else if (pjob_set->status & STAT_ACTIVE) {						//JOB実行中からの呼び出し＝ 次のレシピ実行待ち
+		if (pjob_set->i_hot_com < (pjob_set->n_com - 1)) {			//次のレシピ有
 			_i_hot_com = pjob_set->i_hot_com++;
-
-			if (pjob_set->list_id == ID_JOBTYPE_SEMI) {
-				setup_semiauto_command(&(pjob_set->recipe[_i_hot_com]));
-			}
-			else {
-				setup_job_command(&(pjob_set->recipe[_i_hot_com]));
-			}
-
-			pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;
-			//### コマンドセットのアドレスを確定してコードをセット
-			pcom_set = &(pjob_set->recipe[_i_hot_com].comset);
-			pcom_set->com_code.i_list = pjob_set->list_id;
-			pcom_set->com_code.i_job = pjob_set->id;
-			pcom_set->com_code.i_recipe = _i_hot_com;
-
+			pcom_set = setup_job_command(&(pjob_set->recipe[_i_hot_com]), pjob_set->list_id);
+			pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;		//コマンドステータス更新
+			//pCS->update_job_status(pjob_set, STAT_ACTIVE);		//JOBのステータスの更新無し
 		}
 		else {														//次レシピ無　既に完了済 
 			_i_hot_com = pjob_set->i_hot_com;
-			int end_status = pjob_set->recipe[_i_hot_com].status;
-			pCS->update_job_status(pjob_set, STAT_ABOTED);			//JOBのステータスをABOTE更新　正常完了の時はupdate_command_status()から報告
-			//pjob_set->recipe[_i_hot_com].status の更新無し
 			pcom_set = NULL;										//次レシピ無し→NULLリターン
+			pjob_set->recipe[_i_hot_com].status = STAT_NORMAL_END;	//コマンドステータス更新
+			pCS->update_job_status(pjob_set, STAT_NORMAL_END);		//JOBのステータスをNORMAL　END更新
 		}
 	}
 	else {
-		_i_hot_com = pjob_set->i_hot_com;
-		pCS->update_job_status(pjob_set, STAT_ABOTED);				//JOBのステータスをABOTE更新　正常完了の時はupdate_command_status()から報告
-		pjob_set->recipe[_i_hot_com].status = STAT_ABOTED;			//レシピのステータスはABOTEDに更新（本来ここが処理される事は無い）
 		pcom_set= NULL;
+		pCS->update_job_status(pjob_set, STAT_ABOTED);				//JOBのステータスをABOTE更新　正常完了の時はupdate_command_status()から報告
+	}
+
+	if (pcom_set != NULL) {
+		//### コマンドコードセット
+		pcom_set->com_code.i_list = pjob_set->list_id;
+		pcom_set->com_code.i_job = pjob_set->id;
+		pcom_set->com_code.i_recipe = _i_hot_com;
 	}
 	return pcom_set;
 
 };
 
+// AGENTからのコマンド実行報告処理
 int CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
 
-	LPST_JOB_SET pjob_set = &pCSInf->job_list[pcom->com_code.i_list].job[pcom->com_code.i_job];
-	LPST_COM_RECIPE pcom_recipe = &pjob_set->recipe[pcom->com_code.i_recipe];
-	
-	pcom_recipe->status = code;
-	pCS->update_job_status(pjob_set, code);		//JOBのステータス更新
+	LPST_JOB_SET pjob_set = &pCSInf->job_list[pcom->com_code.i_list].job[pcom->com_code.i_job];//紐付きJOB
 
-	return 0;
+	//コマンドコードとJOB＿SETの内容に不整合でエラー
+	int _i_recipe = pcom->com_code.i_recipe;
+	if (_i_recipe != pjob_set->i_hot_com) return STAT_LOGICAL_ERROR;
+
+	LPST_COM_RECIPE pcom_recipe = &pjob_set->recipe[_i_recipe];
+	switch (code) {
+	case STAT_NORMAL_END: {
+		pcom_recipe->status = code;		//コマンドのステータスを報告内容に更新
+		if(_i_recipe >= pjob_set->n_com -1) pCS->update_job_status(pjob_set, STAT_NORMAL_END);	//JOBのステータス更新
+		return STAT_ACCEPTED;
+	}break;
+	case STAT_ABNORMAL_END: {
+		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
+		pCS->update_job_status(pjob_set, STAT_ABNORMAL_END);	//JOBのステータス更新
+		return STAT_ACCEPTED;
+	}break;
+	case STAT_ACTIVE: {
+		pCS->update_job_status(pjob_set, STAT_ACTIVE);	//JOBのステータス更新
+		pcom_recipe->status = code;		//コマンドのステータスを報告内容に更新
+		return STAT_ACCEPTED;
+	}break;
+	case STAT_ABOTED: {
+		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
+		pCS->update_job_status(pjob_set, STAT_ABOTED);	//JOBのステータス更新
+		return STAT_ACCEPTED;
+	}break;
+	case STAT_SUSPENDED: {
+		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
+		pCS->update_job_status(pjob_set, STAT_SUSPENDED);	//JOBのステータス更新
+		return STAT_ACCEPTED;
+	}break;
+	default: break;
+	}
+	return STAT_CODE_ERROR;
 }
+
+
+LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe, int type) {							//実行する半自動コマンドをセットする
+
+	LPST_COMMAND_SET pcom_set = &pcom_recipe->comset;
+
+	//半自動は、巻、旋回、引込が対象
+	for (int i = 0;i < MOTION_ID_MAX;i++) pcom_set->active_motion[i] = L_OFF;
+	pcom_set->active_motion[ID_HOIST] = true;
+	pcom_set->active_motion[ID_SLEW] = true;
+	pcom_set->active_motion[ID_BOOM_H] = true;
+
+	set_com_workbuf(pcom_recipe->target);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
+
+	bool is_fb_antisway = false;
+	if (pCSInf->antisway_mode == L_ON) {
+		is_fb_antisway = true;
+	}
+
+
+	//旋回,引込,巻のレシピセット　set_recipe_semiauto_bh(JOBタイプ,レシピアドレス,isFBタイプ,レシピ設定条件バッファアドレス
+	set_recipe_semiauto_bh(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_BOOM_H]), is_fb_antisway, &st_com_work);
+	set_recipe_semiauto_slw(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_SLEW]), is_fb_antisway, &st_com_work);
+	set_recipe_semiauto_mh(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_HOIST]), is_fb_antisway, &st_com_work);
+
+	return pcom_set;
+
+};
+
+
 
 /****************************************************************************/
 /*　　移動パターンレシピ生成												*/
@@ -784,37 +826,6 @@ int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	return POLICY_PTN_OK;
 }
 
-int CPolicy::setup_semiauto_command(LPST_COM_RECIPE pcom_recipe) {							//実行する半自動コマンドをセットする
-	
-	LPST_COMMAND_SET pcom_set = &pcom_recipe->comset;
-
-	//半自動は、巻、旋回、引込が対象
-	for (int i = 0;i < MOTION_ID_MAX;i++) pcom_set->active_motion[i] = L_OFF;
-	pcom_set->active_motion[ID_HOIST] = true;
-	pcom_set->active_motion[ID_SLEW] = true;
-	pcom_set->active_motion[ID_BOOM_H] = true;
-	
-	set_com_workbuf(pcom_recipe->target);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
-
-	bool is_fb_antisway = false;
-	if (pCSInf->antisway_mode == L_ON) {
-		is_fb_antisway = true;
-	}
-
-
-	//旋回,引込,巻のレシピセット　set_recipe_semiauto_bh(JOBタイプ,レシピアドレス,isFBタイプ,レシピ設定条件バッファアドレス
-	set_recipe_semiauto_bh(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_BOOM_H]), is_fb_antisway, &st_com_work);
-	set_recipe_semiauto_slw(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_SLEW]), is_fb_antisway, &st_com_work);
-	set_recipe_semiauto_mh(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_HOIST]), is_fb_antisway, &st_com_work);
-
-	return L_ON;
-
-};
-
-int CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe) {		//実行するJOBコマンドをセットする
-
-	return L_OFF;
-};        
 
 /****************************************************************************/
 /*　　コマンドパターン計算用の素材データ計算,セット									*/

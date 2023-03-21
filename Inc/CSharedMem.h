@@ -101,15 +101,18 @@ using namespace std;
 #define ID_PB_GRND              43
 #define ID_PB_PICK              44
 
+#define SEMI_AUTO_REGIST_MAX		8
 
-#define SEMI_AUTO_TG_CLR	6
-#define SEMI_AUTO_S1		0
-#define SEMI_AUTO_S2		1
-#define SEMI_AUTO_S3		2
+#define SEMI_AUTO_TG_CLR			6
+#define SEMI_AUTO_S1				0
+#define SEMI_AUTO_S2				1
+#define SEMI_AUTO_S3				2
 
-#define SEMI_AUTO_L1		3
-#define SEMI_AUTO_L2		4
-#define SEMI_AUTO_L3		5
+#define SEMI_AUTO_L1				3
+#define SEMI_AUTO_L2				4
+#define SEMI_AUTO_L3				5
+
+#define SEMI_AUTO_TOUCH_SEL			7
 
 #define PLC_IO_OFF_DELAY_COUNT		 4	//PB操作オフディレイカウント値
 
@@ -477,10 +480,18 @@ typedef struct stMotionRecipe {					//移動パターン
 #define STAT_STANDBY			0x0001      //適用不可
 #define STAT_TRIGED             0x0002      //起動済実行待ち
 #define STAT_ACTIVE             0x0004      //実行中報告
-#define STAT_SUSPEND            0x0008      //一時停止報告
+#define STAT_SUSPENDED          0x0008      //一時停止報告
 #define STAT_ABOTED             0x0010      //中断
-#define STAT_NORMAL_END          0x0020      //正常完了
 #define STAT_REQ_WAIT           0x0080      //要求待ち
+#define STAT_POSITIVE			0x1000		//OK
+#define STAT_SUCCEED			0x1000		//成功
+#define STAT_ACCEPTED			0x1001		//正常受付
+#define STAT_NORMAL_END         0x0020      //正常完了
+#define STAT_NEGATIVE			0x8000		//NG
+#define STAT_FAILED				0x8000		//失敗
+#define STAT_ABNORMAL_END       0x8001      //異常完了
+#define STAT_LOGICAL_ERROR		0x8004      //整合性異常
+#define STAT_CODE_ERROR			0x8008      //整合性異常
 
 /*** ジョブ,コマンド完了コード ***/
 #define FIN_CODE_MASK			0x00FF     //終了コード
@@ -583,10 +594,14 @@ typedef struct _stJobList {
 /* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
 /****************************************************************************/
 
-#define N_JOB_LIST				2				//JOB LIST登録数
-#define ID_JOBTYPE_JOB			0				//JOB Type index番号
-#define ID_JOBTYPE_SEMI			1				//SEMIAUTO Type index番号
-#define JOB_HOLD_MAX			10				//保持可能JOB最大数
+#define N_JOB_LIST						2				//JOB LIST登録数
+#define ID_JOBTYPE_JOB					0				//JOB Type index番号
+#define ID_JOBTYPE_SEMI					1				//SEMIAUTO Type index番号
+#define JOB_HOLD_MAX					10				//保持可能JOB最大数
+
+#define CS_SEMIAUTO_TG_SEL_DEFAULT      0
+#define CS_SEMIAUTO_TG_SEL_ACTIVE       1
+#define CS_SEMIAUTO_TG_SEL_FIXED        2
 
 typedef struct stCSInfo {
 
@@ -599,10 +614,12 @@ typedef struct stCSInfo {
 	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
 	ST_POS_TARGETS semi_auto_setting_target[SEMI_AUTO_TARGET_MAX];		//半自動設定目標位置
 	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置		
-	int	 semi_auto_selected;											//選択中の半自動ID
-	int target_set_z;													//Z座標目標位置確定
-	int target_set_xy;													//XY座標目標位置確定
+	int	semi_auto_selected;												//選択中の半自動ID
 	int command_type;													//PARK,PICK,GRND
+	int tg_sel_trigger_z = L_OFF, tg_sel_trigger_xy = L_OFF;			//目標位置の設定入力（半自動PB、モニタタッチ）があったかどうかの判定値
+	int target_set_z = CS_SEMIAUTO_TG_SEL_FIXED, target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;		//Z座標目標位置確定
+	LPST_JOB_SET p_active_job;
+	int job_set_event;
 
 	//自動,遠隔設定（モード）
 	int auto_mode;														//自動モード

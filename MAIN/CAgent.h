@@ -66,7 +66,7 @@ public:
     ST_AGENT_INFO   AgentInf_workbuf;
     ST_AGENT_WORK   st_as_work;                     //振れ止めパターン作成用
 
-    LPST_JOB_SET        pjob_hot;
+    LPST_JOB_SET        pjob_active;
     LPST_COMMAND_SET    pCom_hot;
 
     bool can_job_trigger();                         //ジョブの起動可否判定
