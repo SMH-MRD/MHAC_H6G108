@@ -345,7 +345,6 @@ typedef struct StCraneStatus {
 	bool is_tasks_standby_ok;												//タスクの立ち上がり確認
 	ST_SPEC spec;															//クレーン仕様
 
-
 //Periodical Update			：定周期更新
 	DWORD env_act_count=0;													//ヘルシー信号
 	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
@@ -457,14 +456,6 @@ typedef struct stMotionRecipe {					//移動パターン
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
 
-/*** ジョブ,コマンドステータス ***/
-#define AUTO_TYPE_MASK           0xF000      //JOB種別部マスク
-#define JOB_TYPE_MASK            0x7000      //JOB種別部マスク
-#define AUTO_TYPE_MANUAL		 0x0000
-#define AUTO_TYPE_JOB            0x1000      //種別JOB
-#define AUTO_TYPE_SEMIAUTO       0x2000      //種別半自動
-#define AUTO_TYPE_OPERATION      0x4000      //種別クレーン操作
-#define AUTO_TYPE_FB_ANTI_SWAY	 0x8000
 
 /*** コマンド種類 ***/
 #define COM_TYPE_MASK			0x0F00      
@@ -491,7 +482,7 @@ typedef struct stMotionRecipe {					//移動パターン
 #define STAT_FAILED				0x8000		//失敗
 #define STAT_ABNORMAL_END       0x8001      //異常完了
 #define STAT_LOGICAL_ERROR		0x8004      //整合性異常
-#define STAT_CODE_ERROR			0x8008      //整合性異常
+#define STAT_CODE_ERROR			0x8008      //適合コード無し
 
 /*** ジョブ,コマンド完了コード ***/
 #define FIN_CODE_MASK			0x00FF     //終了コード
@@ -678,17 +669,43 @@ typedef struct stPolicyInfo {
 /*   Agent	情報定義構造体                                   　   　		*/
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
+
+/*** ジョブ,コマンドステータス ***/
+//auto_ongoing用
+#define AUTO_TYPE_JOB_MASK       0x7000      //JOB種別部マスク
+#define AUTO_TYPE_SEL_MASK       0xf000      //自動種別部マスク
+#define AUTO_TYPE_MANUAL		 0x0000
+#define AUTO_TYPE_JOB            0x1000      //種別JOB
+#define AUTO_TYPE_SEMIAUTO       0x2000      //種別半自動
+#define AUTO_TYPE_OPERATION      0x4000      //種別クレーン操作
+#define AUTO_TYPE_FB_ANTI_SWAY	 0x8000
+
+//antisway_on_going用
+#define ANTISWAY_ALL_MANUAL		 0x00000000      //振れ止め無し
+#define ANTISWAY_BH_ACTIVE		 0x00000001      //引込振止実行中
+#define ANTISWAY_BH_PAUSED		 0x00000002      //引込振止一時停止
+#define ANTISWAY_BH_COMPLETE	 0x00000008      //引込振止完了
+#define ANTISWAY_SLEW_ACTIVE	 0x00000010      //引込振止実行
+#define ANTISWAY_SLEW_PAUSED	 0x00000020      //引込振止実行
+#define ANTISWAY_SLEW_COMPLETE	 0x00000080      //引込振止実行 
+
+//axis_status用
+#define AG_AXIS_STAT_FB0				0x000000001	 //停止中
+#define AG_AXIS_STAT_PC_ENABLE			0x800000000	 //PC指令可
+#define AG_AXIS_STAT_AUTO_ENABLE		0x100000000	 //自動可
+#define AG_AXIS_STAT_ANTISWAY_ENABLE	0x200000000	 //振れ止め可
+
 typedef struct stAgentInfo {
 
 	ST_COM_RECIPE comrecipe_as;						//振れ止め用コマンドセット
 	ST_POS_TARGETS auto_pos_target;					//自動目標位置
-	int antisway_comple_status;						//振れ止め完了状態
 	double dist_for_target[MOTION_ID_MAX];			//目標までの距離
 	int auto_on_going;								//実行中の自動種別
+	int antisway_on_going;							//実行中振れ止め
+	int pc_ctrl_mode;								//PCからの指令で動作させる軸の指定
 	int auto_active[MOTION_ID_MAX];					//自動実行中フラグ(軸毎)
-	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め起動判定用速度FB条件
+	int axis_status[MOTION_ID_MAX];					//各軸の状態（fb0,異常等）
 
-	WORD pc_ctrl_mode;								//PCからの指令で動作させる軸の指定
 	double v_ref[MOTION_ID_MAX];					//速度指令出力値
 	int PLC_PB_com[N_PLC_PB];						//PLCへのDO指令（PB入力相当指令）
 

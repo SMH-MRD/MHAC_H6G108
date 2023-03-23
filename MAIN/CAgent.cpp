@@ -57,6 +57,11 @@ void CAgent::init_task(void* pobj) {
 	AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
 	pjob_active = NULL;
 
+	//軸ステータスクリア
+	for (int i = 0;i < MOTION_ID_MAX;i++) {
+		AgentInf_workbuf.axis_status[i] = 0;
+	}
+
 	set_panel_tip_txt();
 
 	inf.is_init_complete = true;
@@ -73,31 +78,119 @@ void CAgent::routine_work(void* param) {
 	output();
 };
 
-//定周期処理手順1　外部信号入力加工処理
-
-//定周期処理手順3　信号出力処理
 /****************************************************************************/
-/*   信号出力	共有メモリ出力												*/
+/*  定周期処理手順1 信号入力　外部信号入力加工処理　モード管理				*/
 /****************************************************************************/
 void CAgent::input() {
 	
-	//ジョブリストのチェック →　コマンドの取り込み
-	if (pCSInf->auto_mode == L_ON){	//自動モード
-		if (can_job_trigger()) { //ジョブ実行可否チェック （ジョブ実行中でない）
-			pjob_active = pCS->get_next_job();							//CSにジョブ問い合わせ
-			pCom_hot = pPolicy->req_command(pjob_active);				//POLICYにコマンド展開依頼 pjob NULLならばNULLが帰ってくる
-			AgentInf_workbuf.auto_on_going = pjob_active->type;			//実行中自動のステータス更新
-			pPolicy->update_command_status(pCom_hot, STAT_ACTIVE);		//コマンド実行開始報告
+	//# 各軸条件設定（FB0,AUTO_ENABLE...)
+	{
+		//PC指令可設定
+		for (int i = 0;i < MOTION_ID_MAX;i++) {
+			AgentInf_workbuf.axis_status[i]		|= AG_AXIS_STAT_PC_ENABLE;
+		}
+
+		//自動実行可設定
+		AgentInf_workbuf.axis_status[ID_HOIST]	|= AG_AXIS_STAT_AUTO_ENABLE;
+		AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_AUTO_ENABLE;
+		AgentInf_workbuf.axis_status[ID_SLEW]	|= AG_AXIS_STAT_AUTO_ENABLE;
+
+		//振れ止め自動実行可設定
+		AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_ANTISWAY_ENABLE;
+		AgentInf_workbuf.axis_status[ID_SLEW]	|= AG_AXIS_STAT_ANTISWAY_ENABLE;
+
+		//速度0状態設定
+		if (pEnv->is_speed_0(ID_HOIST))	AgentInf_workbuf.axis_status[ID_HOIST] |= AG_AXIS_STAT_FB0;
+		else							AgentInf_workbuf.axis_status[ID_HOIST] &= ~AG_AXIS_STAT_FB0;
+		if(pEnv->is_speed_0(ID_BOOM_H))	AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_FB0;
+		else							AgentInf_workbuf.axis_status[ID_BOOM_H] &= ~AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_SLEW))	AgentInf_workbuf.axis_status[ID_SLEW] |= AG_AXIS_STAT_FB0;
+		else							AgentInf_workbuf.axis_status[ID_SLEW] &= ~AG_AXIS_STAT_FB0;
+	}
+	
+	//# 振れ止め完了判定
+	{
+		//引込
+		//振れ振幅、位置ずれともに完了判定レベル以内
+		if ((pEnv->cal_sway_r_amp2_m() < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
+			&& (pEnv->cal_dist4target(ID_BOOM_H, true) < pCraneStat->spec.as_pos_level[ID_BOOM_H][ID_LV_COMPLE])) {
+
+			AgentInf_workbuf.antisway_on_going |= ANTISWAY_BH_COMPLETE;
+		}
+		else if (pAgentInf->antisway_on_going & ANTISWAY_BH_COMPLETE) {	//振れ止め完了フラグON
+			//振れ止め起動条件成立で完了フラグクリア
+			if ((pEnv->cal_sway_r_amp2_m() > pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_TRIGGER])
+				|| (pEnv->cal_dist4target(ID_BOOM_H, true) > pCraneStat->spec.as_pos_level[ID_BOOM_H][ID_LV_TRIGGER]))
+
+				AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_BH_COMPLETE;
+		}
+		else {
+			AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_BH_COMPLETE;
+		}
+
+		//旋回
+		if ((pEnv->cal_sway_th_amp2_m() < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE])
+			&& (pEnv->cal_dist4target(ID_SLEW, true) < pCraneStat->spec.as_pos_level[ID_SLEW][ID_LV_COMPLE])) {
+
+			AgentInf_workbuf.antisway_on_going |= ANTISWAY_SLEW_COMPLETE;
+
+		}
+		else if (pAgentInf->antisway_on_going & ANTISWAY_SLEW_COMPLETE) {
+			if ((pEnv->cal_sway_th_amp2_m() > pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_TRIGGER])
+				|| (pEnv->cal_dist4target(ID_SLEW, true) > pCraneStat->spec.as_pos_level[ID_SLEW][ID_LV_TRIGGER]))
+
+				AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_SLEW_COMPLETE;
+		}
+		else {
+			AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_SLEW_COMPLETE;
 		}
 	}
-	//自動モードが解除されたら実行中のJOB　コマンドクリア
-	if (pCSInf->auto_mode == L_OFF) {
-		pjob_active = NULL;
-		pCom_hot = NULL;
+
+	//# 振れ止め実行モードセット antisway_on_going
+	{
+		if (pCSInf->antisway_mode == L_OFF) {
+			AgentInf_workbuf.antisway_on_going = ANTISWAY_ALL_MANUAL;
+		}
+		else {
+			AgentInf_workbuf.antisway_on_going |= ANTISWAY_BH_ACTIVE;
+			AgentInf_workbuf.antisway_on_going |= ANTISWAY_SLEW_ACTIVE;
+		}
+	}
+
+	//# 振れ止め自動モード(auto_on_going)セット
+	{
+		if (pCSInf->antisway_mode) AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
+		else					   AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
+	}
+
+	//# ジョブ自動モード(auto_on_going)セット →　起動時であればコマンドの取り込み
+	{
+		if (pCSInf->auto_mode == L_ON) {	//自動モード
+			if (can_job_trigger()) { //ジョブ実行可否チェック （ジョブ実行中でない）
+				pjob_active = pCS->get_next_job();							//CSにジョブ問い合わせ
+				if (pjob_active == NULL) {
+					pCom_hot = pPolicy->req_command(pjob_active);				//POLICYにコマンド展開依頼 pjob NULLならばNULLが帰ってくる
+					pPolicy->update_command_status(pCom_hot, STAT_ACTIVE);		//コマンド実行開始報告
+				}
+				else {
+					pCom_hot = NULL;
+				}
+
+				//自動制御モードの更新
+				if ((pCom_hot == NULL)||(pjob_active == NULL)) AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_JOB_MASK;	//自動制御JOB TYPEクリア
+				else if (pjob_active->type == ID_JOBTYPE_SEMI) AgentInf_workbuf.auto_on_going |= AUTO_TYPE_SEMIAUTO;
+				else if (pjob_active->type == ID_JOBTYPE_JOB) AgentInf_workbuf.auto_on_going |= AUTO_TYPE_JOB;
+				else;
+			}
+		}
+		else {	//自動モードOFFでJOB部クリア
+			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_JOB_MASK;
+			pjob_active = NULL;
+			pCom_hot = NULL;
+		}
 	}
 
 	return;
-
 };
 
 //ジョブの起動可否判定
@@ -114,53 +207,108 @@ bool CAgent::can_job_trigger() {
 
 }
 
-//定周期処理手順2　メイン処理
+
+/****************************************************************************/
+/*   定周期処理手順2　メイン処理																*/
+/****************************************************************************/
+
+static int auto_on_going_last = AUTO_TYPE_MANUAL;
+static bool notch0_last[MOTION_ID_MAX];
+
 void CAgent::main_proc() {
 
-	//実行中の自動モードセット
-	if ((pCSInf->antisway_mode == false) && (pCSInf->auto_mode == false)) {	//自動OFF　振れ止めモードOFF
-		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
+	//# 軸毎のモードセット(PLC指令出力軸の判定）
+	{
+		if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
+			AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
+		}
+		else if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
+			AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
+		}
+		else {//FB振れ止め
+			AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
+			AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
+		}
+		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
 	}
-	//実行中コマンド有
-	else if (pCom_hot != NULL) {												//実行中コマンド有
-		if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {
-			if (pCSInf->antisway_mode == L_ON)
-				AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;		//FB AS SET
-			else
-				AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;		//FB AS CLEAR
+
+	//# PLCへのPC選択指令セット
+	{
+		if ((pPLC_IO->mode & PLC_IF_PC_DBG_MODE) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_OPERATION)) {//デバッグモード　または　リモート手動操作モード
+			AgentInf_workbuf.pc_ctrl_mode |= (BITSEL_HOIST | BITSEL_GANTRY | BITSEL_BOOM_H | BITSEL_SLEW);
+		}
+		else {
+			AgentInf_workbuf.pc_ctrl_mode = 0;
+			if (AgentInf_workbuf.auto_active[ID_HOIST])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_HOIST;
+			if (AgentInf_workbuf.auto_active[ID_GANTRY])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_GANTRY;
+			if (AgentInf_workbuf.auto_active[ID_BOOM_H])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_BOOM_H;
+			if (AgentInf_workbuf.auto_active[ID_SLEW])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_SLEW;
+		}
+	}
+		
+	//#自動目標位置設定
+	{
+		//JOBトリガ検出
+		int auto_on_trigger = ~auto_on_going_last & AgentInf_workbuf.auto_on_going;		// 自動実行モードがOFF→ON
+		int auto_off_trigger = auto_on_going_last & ~AgentInf_workbuf.auto_on_going;	// 自動実行モードがON→OFF
+		//JOB,SEMIAUTO ONトリガ検出
+		if ((auto_on_trigger & AUTO_TYPE_JOB) || (auto_on_trigger & AUTO_TYPE_SEMIAUTO)) {
+			if (pjob_active != NULL) {	//ジョブ有でレシピの目標位置をコピー
+				AgentInf_workbuf.auto_pos_target = pjob_active->recipe[pjob_active->i_hot_com].target;
+			}
+			else {	//ジョブ無し（ロジック異常）でレシピの目標位置を現在位置に
+				for (int i = 0; i < NUM_OF_AS_AXIS; i++) AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
+			}
 		}
 
-		if(pjob_active->list_id == ID_JOBTYPE_JOB)		AgentInf_workbuf.auto_on_going |= AUTO_TYPE_JOB;
-	    else										AgentInf_workbuf.auto_on_going |= AUTO_TYPE_SEMIAUTO;
-	}
-	//振れ止め未完状態
-	else if (AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) {		//振れ止め条件未完
-		if (pCSInf->antisway_mode == L_ON)
-			AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;			//FB AS SET
-		else
-			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;			//FB AS CLEAR
-	}
-	else {
-		AgentInf_workbuf.auto_on_going = AUTO_TYPE_MANUAL;
-	}
 
-	update_motion_setting();				//PLCがPC指令で動作する軸の選択,
-	update_auto_control();					//自動実行モードの設定と自動レシピのセット
+		if (pCom_hot == NULL) {//コマンド未実行時 
+			//巻は現在位置
+			AgentInf_workbuf.auto_pos_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
 
-	//PLCへの出力計算
+			//引込、旋回はノッチ入りまたは振れ止めOFFで現在位置　0ノッチトリガで現在位置＋減速距離位置
+			if ((notch0_last[ID_BOOM_H] == false) && (pCraneStat->is_notch_0[ID_BOOM_H] == true)) { //0ノッチトリガ
+				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + pEnv->cal_dist4stop(ID_BOOM_H, false);
+			}
+			else if((pCraneStat->is_notch_0[ID_BOOM_H] == false)||(pCSInf->antisway_mode!=L_ON)) {
+				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+			}
+			else;
+
+			if ((notch0_last[ID_SLEW] == false) && (pCraneStat->is_notch_0[ID_SLEW] == true)) { //0ノッチトリガ
+				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + pEnv->cal_dist4stop(ID_SLEW, false);
+			}
+			else if((pCraneStat->is_notch_0[ID_SLEW] == false)||(pCSInf->antisway_mode != L_ON)) {
+				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+			}
+			else;
+		}
+
+		//前回値保持
+		auto_on_going_last = AgentInf_workbuf.auto_on_going;
+		notch0_last[ID_HOIST] = pCraneStat->is_notch_0[ID_HOIST];
+		notch0_last[ID_BOOM_H] = pCraneStat->is_notch_0[ID_BOOM_H];
+		notch0_last[ID_SLEW] = pCraneStat->is_notch_0[ID_SLEW];
+	}
+	
+	//#PLCへの出力計算　
 	set_ref_mh();							//巻き速度指令
 	set_ref_gt();							//走行速度指令
+	/**********************************************************************/
+	/*振れ止めレシピの生成タイミング                                      */
+	/*  pCom_hot != NULL   →  ステップがCTR_TYPE_FB_SWAY_POSに入ったとき */
+	/*  pCom_hot == NULL                                                  */
+	/*   振れ止めON∩振れ止め完了条件未成立∩振れ止めレシピ完了時∩停止時　*/
+	/**********************************************************************/
 	set_ref_slew();							//旋回速度指令
 	set_ref_bh();							//引込速度指令
 	update_pb_lamp_com();					//PB LAMP出力
 
 	return;
-
 }
 
-//定周期処理手順3　信号出力処理
 /****************************************************************************/
-/*   信号出力	共有メモリ出力												*/
+/*   定周期処理手順3　信号出力処理												*/
 /****************************************************************************/
 void CAgent::output() {
 
@@ -191,106 +339,10 @@ void CAgent::output() {
 /****************************************************************************/
 
 
-//コマンド完了判定
-bool CAgent::is_command_completed(LPST_COMMAND_SET pCom) {
-
-	bool ans = true;
-	
-	if (pCom == NULL) return true;									//コマンド無ければ完了
-	
-	for (int i = 0;i < MOTION_ID_MAX;i++) {
-		if (pCom->active_motion[i] == L_ON) {
-			if (!(pCom->motion_status[i] & MOTION_COMPLETE)) {		//ステータス完了してない軸有
-				ans = false;
-				break;
-			}
-		}
-	}
-
-	return ans;
-}
-
-/****************************************************************************/
-/*　　PC制御選択セット処理													*/
-/****************************************************************************/
-int CAgent::update_motion_setting() {
-	/*
-		//FOR DEBUG
-		AgentInf_workbuf.auto_active[ID_TROLLY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_H_ASSY] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_COMMON] = AUTO_TYPE_MANUAL;
-		AgentInf_workbuf.auto_active[ID_OP_ROOM] = AUTO_TYPE_MANUAL;
-	*/
-
-	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
-	}
-	else if((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
-		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
-	}
-	else {//FB振れ止め
-		AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
-		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
-	}
-
-	AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-
-	//PLCへのPC選択指令セット
-	if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) {
-		AgentInf_workbuf.pc_ctrl_mode |= (BITSEL_HOIST | BITSEL_GANTRY | BITSEL_BOOM_H | BITSEL_SLEW);
-	}
-	else {
-		AgentInf_workbuf.pc_ctrl_mode = 0;
-		if (AgentInf_workbuf.auto_active[ID_HOIST])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_HOIST;
-		if (AgentInf_workbuf.auto_active[ID_GANTRY])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_GANTRY;
-		if (AgentInf_workbuf.auto_active[ID_BOOM_H])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_BOOM_H;
-		if (AgentInf_workbuf.auto_active[ID_SLEW])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_SLEW;
-	}
-
-	return 0;
-}
 
 /****************************************************************************/
 /*	自動関連設定					*/
 /****************************************************************************/
-//振れ止め完了判定
-int CAgent::check_as_completion() {
-
-	int check = AS_COMPLETE_0;
-
-	//振れ振幅、位置ずれともに完了レベル以内
-	if ((pEnv->cal_sway_r_amp2_m() < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_COMPLE])
-		&& (pEnv->cal_dist4target(ID_BOOM_H, true) < pCraneStat->spec.as_pos_level[ID_BOOM_H][ID_LV_COMPLE]))
-
-		check |= AS_COMPLETE_BH;
-
-
-	if ((pEnv->cal_sway_th_amp2_m() < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_COMPLE])
-		&& (pEnv->cal_dist4target(ID_SLEW, true) < pCraneStat->spec.as_pos_level[ID_SLEW][ID_LV_COMPLE]))
-
-		check |= AS_COMPLETE_SLEW;
-
-
-	//振れ振幅、位置ずれともに起動判定レベル以内　かつ　振れ止め完了フラグON
-	if (pAgentInf->antisway_comple_status | AS_COMPLETE_BH) {
-		if ((pEnv->cal_sway_r_amp2_m() < pCraneStat->spec.as_m2_level[ID_BOOM_H][ID_LV_TRIGGER])
-			&& (pEnv->cal_dist4target(ID_BOOM_H, true) < pCraneStat->spec.as_pos_level[ID_BOOM_H][ID_LV_TRIGGER]))
-
-			check |= AS_COMPLETE_BH;
-	}
-
-	if (pAgentInf->antisway_comple_status | AS_COMPLETE_SLEW) {
-		if ((pEnv->cal_sway_th_amp2_m() < pCraneStat->spec.as_m2_level[ID_SLEW][ID_LV_TRIGGER])
-			&& (pEnv->cal_dist4target(ID_SLEW, true) < pCraneStat->spec.as_pos_level[ID_SLEW][ID_LV_TRIGGER]))
-
-			check |= AS_COMPLETE_SLEW;
-	}
-
-
-	pAgentInf->antisway_comple_status = check;
-
-	return check;
-}
 
 int CAgent::set_recipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork) {
 
@@ -304,69 +356,6 @@ int CAgent::set_recipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_A
 void CAgent::set_as_workbuf() {
 	return;;
 }
-
-//振れ止めコマンドセット
-int CAgent::setup_as_command() {
-	LPST_COM_RECIPE pcomset = &pAgentInf->comrecipe_as;
-	pcomset->comset.active_motion[ID_HOIST] = L_OFF;
-	pcomset->comset.active_motion[ID_SLEW] = L_ON;
-	pcomset->comset.active_motion[ID_BOOM_H] = L_ON;
-
-	set_as_workbuf(); //振れ止めパターン作成用データ取り込み
-
-	set_recipe_as_bh(&(AgentInf_workbuf.comrecipe_as.comset.recipe[ID_BOOM_H]), true, &st_as_work);
-	set_recipe_as_slw(&(AgentInf_workbuf.comrecipe_as.comset.recipe[ID_SLEW]), true, &st_as_work);
-
-	return 0;
-}
-
-
-//自動関連各種設定・振れ止めレシピ設定
-int CAgent::update_auto_control() {
-
-	dbg_mont[0] = 0;//@@@ debug/
-
-	/*### 振れ止め完了判定　###*/
-	AgentInf_workbuf.antisway_comple_status = check_as_completion();
-					
-	/*### 目標位置設定　###*/
-
-	//自動（振れ止め）モードでない
-	if ((pCSInf->auto_mode == false) && (pCSInf->antisway_mode == false)){
-		//目標位置＝現在位置
-		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
-			AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
-			AgentInf_workbuf.auto_pos_target.is_held[i] = false;
-		}
-	}
-	//自動実行　マニュアルモード
-	else if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
-		//目標位置保持フラグ無し＝現在位置　目標位置保持フラグあり＝目標位置変更なし現在位置
-		for (int i = 0; i < NUM_OF_AS_AXIS; i++) {
-			//ノッチ入りで目標保持フラグクリア
-			if(pCraneStat->is_notch_0[i] == false)	AgentInf_workbuf.auto_pos_target.is_held[i] = false;
-
-			//目標位置保持フラグ切りで現在位置
-			if(AgentInf_workbuf.auto_pos_target.is_held[i] == false) AgentInf_workbuf.auto_pos_target.pos[i] = pPLC_IO->status.pos[i];
-
-		}
-	}
-	//自動実行　振れ止め実行、ジョブ実行時は変更なし
-	else {
-		;//コマンド起動時に目標位置と目標位置保持フラグを設定する。
-	}
-
-	/*### 振れ止めコマンド設定　###*/
-	
-	if (pCSInf->antisway_mode == L_ON){	//振れ止めモード
-		//振れ止め未完で振れ止めコマンドが実行中でなければ、振れ止めコマンド設定
-		if((AgentInf_workbuf.antisway_comple_status != AS_ALL_COMPLETE) &&  (AgentInf_workbuf.comrecipe_as.status == STAT_REQ_WAIT)){	//振れ止め用コマンドセットが要求待ち
-				setup_as_command();
-		}
-	}
-
-	return 0;
-};
 
 
 /****************************************************************************/
@@ -427,7 +416,7 @@ int CAgent::set_ref_slew(){
 			else				AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(pCom_hot, ID_SLEW);
 		}
 		else if (AgentInf_workbuf.auto_active[ID_SLEW] & AUTO_TYPE_FB_ANTI_SWAY){				//振れ止め中
-			if (pAgentInf->antisway_comple_status | AS_COMPLETE_SLEW)								//振れ止め完了
+			if (AgentInf_workbuf.antisway_on_going | ANTISWAY_SLEW_COMPLETE)					//振れ止め完了
 				AgentInf_workbuf.v_ref[ID_SLEW] = 0.0;
 			else																					//振れ止め未完
 				AgentInf_workbuf.v_ref[ID_SLEW] = cal_step(&pAgentInf->comrecipe_as.comset, ID_SLEW);	
@@ -460,7 +449,7 @@ int CAgent::set_ref_bh(){
 			else				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(pCom_hot, ID_BOOM_H);
 		}
 		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_FB_ANTI_SWAY) {			//振れ止め中
-			if(pAgentInf->antisway_comple_status | AS_COMPLETE_BH )									//振れ止め完了
+			if(AgentInf_workbuf.antisway_on_going | ANTISWAY_BH_COMPLETE)									//振れ止め完了
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 			else 																					//振れ止め未完
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(&pAgentInf->comrecipe_as.comset, ID_BOOM_H);
@@ -893,7 +882,6 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 /****************************************************************************/
 /*  PB指令更新	(非常停止,主幹PB他）										*/
 /****************************************************************************/
-
 void CAgent::update_pb_lamp_com() {
 	//操作PB(取り敢えずPLC入力値取り込み（PLC IOにてOFF DELAY組み込み済）
 	AgentInf_workbuf.PLC_PB_com[ID_PB_ESTOP] = pPLC_IO->ui.PB[ID_PB_ESTOP];

@@ -16,11 +16,6 @@
 #define AGENT_AUTO_TRIG_ACK_COUNT   10
 #define AGENT_CHECK_LARGE_SWAY_m2   1.0     //起動時に初期振れ大とみなす振れ量mの2乗
 
-#define AS_COMPLETE_0               0x0000
-#define AS_COMPLETE_BH              0x0001
-#define AS_COMPLETE_SLEW            0x0002
-#define AS_ALL_COMPLETE             0x0003
-
 
 typedef struct stAgentWork {
     double T;	                                //振れ周期
@@ -43,7 +38,7 @@ typedef struct stAgentWork {
 
 class CAgent:public CTaskObj
 {
-public:
+  public:
     CAgent();
     ~CAgent();
 
@@ -51,57 +46,47 @@ public:
 
     void init_task(void* pobj);
     void routine_work(void* param);
-    DWORD auto_type;                                //ANTI_SWAY,SEMI_AUTO,JOB
-    DWORD auto_ctrl_mode;                           //STAND_BY,SUSPEND,ACTIVE
+
       
   private:
     
-    LPST_POLICY_INFO pPolicyInf;
-    LPST_CS_INFO pCSInf;
-    LPST_AGENT_INFO pAgentInf;
-    LPST_CRANE_STATUS pCraneStat;
-    LPST_PLC_IO pPLC_IO;
-    LPST_SWAY_IO pSway_IO;
+    LPST_POLICY_INFO    pPolicyInf;
+    LPST_CS_INFO        pCSInf;
+    LPST_AGENT_INFO     pAgentInf;
+    LPST_CRANE_STATUS   pCraneStat;
+    LPST_PLC_IO         pPLC_IO;
+    LPST_SWAY_IO        pSway_IO;
 
-    ST_AGENT_INFO   AgentInf_workbuf;
-    ST_AGENT_WORK   st_as_work;                     //振れ止めパターン作成用
+    ST_AGENT_INFO       AgentInf_workbuf;
+    ST_AGENT_WORK       st_as_work;                         //振れ止めパターン作成用
 
-    LPST_JOB_SET        pjob_active;
-    LPST_COMMAND_SET    pCom_hot;
+    LPST_JOB_SET        pjob_active;                        //実行中JOB
+    LPST_COMMAND_SET    pCom_hot;                           //実行中コマンド
 
-    bool can_job_trigger();                         //ジョブの起動可否判定
-    int update_auto_control();                      //自動条件の更新
-    int startup_command(LPST_COMMAND_SET pcom);   //実行管理ステータスのクリアとコマンド実行中ステータスセット
-
-    void set_as_workbuf(); //振れ止めパターン作成用データ取り込み
-    int setup_as_command();
-    int set_recipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
-    int set_recipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
-        
-    bool is_command_completed(LPST_COMMAND_SET pCom);
-    int check_as_completion();
-   
-
-       
-    int dbg_mont[8];//デバッグ用
 
     void input();                                           //外部データ取り込み
     void main_proc();                                       //処理内容
     void output();                                          //出力データ更新
- 
-    int update_motion_setting();                               //各軸の制御モード,PLCへのPC選択指令軸設定
+
+    bool can_job_trigger();                                 //ジョブの起動可否判定
+    int startup_command(LPST_COMMAND_SET pcom);             //実行管理ステータスのクリアとコマンド実行中ステータスセット
+
+    void set_as_workbuf();                                  //振れ止めパターン作成用データ取り込み
+    int set_recipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
+    int set_recipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
+
+
+    double cal_step(LPST_COMMAND_SET pCom, int motion);   //自動指令出力値の計算
+    bool is_command_completed(LPST_COMMAND_SET pCom);
+        
     int set_ref_mh();                                       //巻速度指令値出力
     int set_ref_gt();                                       //走行速度指令値出力
     int set_ref_slew();                                     //旋回速度指令値出力
     int set_ref_bh();                                       //引込速度指令値出力
-
-      
     void update_pb_lamp_com();                              //ランプ表示出力
      
- 
-    double cal_step(LPST_COMMAND_SET pCom, int motion);   //自動指令出力値の計算
-
-                                                        
+    int dbg_mont[8];//デバッグ用
+                                                         
     //タブパネルのStaticテキストを設定
     void set_panel_tip_txt();
     //タブパネルのFunctionボタンのStaticテキストを設定
