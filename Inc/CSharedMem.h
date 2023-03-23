@@ -402,6 +402,7 @@ typedef struct StCraneStatus {
 #define N_STEP_OPTION_MAX					8
 
 typedef struct stMotionElement {	//運動要素
+	//recipe
 	int type;								//制御種別
 	double _a;								//目標加減速度
 	double _v;								//目標速度
@@ -410,8 +411,10 @@ typedef struct stMotionElement {	//運動要素
 	int time_count;							//予定継続時間のカウンタ変換値
 	double opt_d[N_STEP_OPTION_MAX];		//オプションdouble
 	int opt_i[N_STEP_OPTION_MAX];			//オプションint
+	//status
 	int act_count;
 	int status;
+	int direction;
 }ST_MOTION_STEP, * LPST_MOTION_STEP;
 
 /****************************************************************************/
@@ -419,18 +422,6 @@ typedef struct stMotionElement {	//運動要素
 /* 　単軸の目標状態に移行する動作パターンを運動要素の組み合わせで実現します */
 /****************************************************************************/
 #define M_STEP_MAX	32
-
-#define MOTION_COMPLETE	0x0080
-#define MOTION_STANDBY	0x0001
-#define MOTION_ACTIVE	0x0002
-
-#define STEP_FIN		0x0080
-#define STEP_STANDBY	0x0001
-#define STEP_ACTIVE		0x0002
-#define STEP_FAULT		0x0010
-#define STEP_TIMEOVER	0x0020
-
-#define _ACT_STANDBY	0
 
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン
@@ -473,14 +464,14 @@ typedef struct stMotionRecipe {					//移動パターン
 #define STAT_ACTIVE             0x0004      //実行中報告
 #define STAT_SUSPENDED          0x0008      //一時停止報告
 #define STAT_ABOTED             0x0010      //中断
+#define STAT_END				0x0020      //正常完了
 #define STAT_REQ_WAIT           0x0080      //要求待ち
 #define STAT_POSITIVE			0x1000		//OK
 #define STAT_SUCCEED			0x1000		//成功
 #define STAT_ACCEPTED			0x1001		//正常受付
-#define STAT_NORMAL_END         0x0020      //正常完了
 #define STAT_NEGATIVE			0x8000		//NG
-#define STAT_FAILED				0x8000		//失敗
-#define STAT_ABNORMAL_END       0x8001      //異常完了
+#define STAT_ABNORMAL			0x8000		//失敗
+#define STAT_ABNORMAL_END       0x8020      //異常完了
 #define STAT_LOGICAL_ERROR		0x8004      //整合性異常
 #define STAT_CODE_ERROR			0x8008      //適合コード無し
 
@@ -697,7 +688,7 @@ typedef struct stPolicyInfo {
 
 typedef struct stAgentInfo {
 
-	ST_COM_RECIPE comrecipe_as;						//振れ止め用コマンドセット
+	ST_COMMAND_SET st_as_comset;					//振れ止め用コマンドセット
 	ST_POS_TARGETS auto_pos_target;					//自動目標位置
 	double dist_for_target[MOTION_ID_MAX];			//目標までの距離
 	int auto_on_going;								//実行中の自動種別

@@ -29,7 +29,7 @@ typedef struct stAgentWork {
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
  
     double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
- 
+    double dist_for_target[MOTION_ID_MAX];      //目標までの距離
     int motion_dir[MOTION_ID_MAX];              //移動方向
 
     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
@@ -69,14 +69,14 @@ class CAgent:public CTaskObj
     void output();                                          //出力データ更新
 
     bool can_job_trigger();                                 //ジョブの起動可否判定
-    int startup_command(LPST_COMMAND_SET pcom);             //実行管理ステータスのクリアとコマンド実行中ステータスセット
+ 
+    int clear_comset(LPST_COMMAND_SET pcom);               //コマンド初期化
 
     void set_as_workbuf();                                  //振れ止めパターン作成用データ取り込み
-    int set_recipe_as_bh(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
-    int set_recipe_as_slw(LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_AGENT_WORK pwork);
-
-
-    double cal_step(LPST_COMMAND_SET pCom, int motion);   //自動指令出力値の計算
+    int cal_as_recipe(int motion);                          //振れ止めパターン計算セット
+  
+    double cal_step(LPST_COMMAND_SET pCom, int motion);     //自動指令出力値の計算
+    double cal_step_as(int motion);                         //振れ止め指令出力値の計算
     bool is_command_completed(LPST_COMMAND_SET pCom);
         
     int set_ref_mh();                                       //巻速度指令値出力

@@ -726,7 +726,7 @@ LPST_JOB_SET CClientService::get_next_job() {
 	case STAT_SUSPENDED:
 	case STAT_STANDBY:
 	case STAT_ABOTED:
-	case STAT_NORMAL_END:
+	case STAT_END:
 	case STAT_REQ_WAIT:
 		//実行待ち(TRIGGER）状態以外はスルー
 		break;
@@ -744,7 +744,7 @@ LPST_JOB_SET CClientService::get_next_job() {
 	case STAT_SUSPENDED:
 	case STAT_STANDBY:
 	case STAT_ABOTED:
-	case STAT_NORMAL_END:
+	case STAT_END:
 	case STAT_REQ_WAIT:
 		//実行待ち(TRIGGER）状態以外はスルー
 		break;
@@ -758,11 +758,11 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 
 	if (pjobset->list_id == ID_JOBTYPE_JOB) {
 		switch (fb_code) {
-		case STAT_NORMAL_END: {
+		case STAT_END: {
 			pCSinf->job_list[ID_JOBTYPE_JOB].n_hold_job--;
-			pCSinf->job_list[ID_JOBTYPE_JOB].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_NORMAL_END;
+			pCSinf->job_list[ID_JOBTYPE_JOB].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_END;
 
-			job_report2client(pjobset, STAT_NORMAL_END);
+			job_report2client(pjobset, STAT_END);
 
 			return STAT_ACCEPTED;
 			break;
@@ -775,12 +775,12 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 	}
 	else if (pjobset->list_id == ID_JOBTYPE_SEMI) {
 		switch (fb_code) {
-		case STAT_NORMAL_END: {
+		case STAT_END: {
 			//正常完了時JOBのホールド数を0クリア
 			pCSinf->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
-			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_NORMAL_END;
+			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_END;
 
-			job_report2client(pjobset, STAT_NORMAL_END);
+			job_report2client(pjobset, STAT_END);
 
 			return STAT_ACCEPTED;
 		}break;
@@ -826,7 +826,7 @@ int CClientService::job_report2client(LPST_JOB_SET pjobset, int fb_code) {      
 	//後日検討　CLIENT通信アンサバック,ログ記録等
 	if (pjobset->list_id == ID_JOBTYPE_JOB) {
 		switch (fb_code) {
-		case STAT_NORMAL_END: {
+		case STAT_END: {
 		}break;
 		case STAT_ABNORMAL_END:break;
 		case STAT_ACTIVE:break;
@@ -836,7 +836,7 @@ int CClientService::job_report2client(LPST_JOB_SET pjobset, int fb_code) {      
 	}
 	else if (pjobset->list_id == ID_JOBTYPE_SEMI) {
 		switch (fb_code) {
-		case STAT_NORMAL_END: {
+		case STAT_END: {
 		}break;
 		case STAT_ABNORMAL_END: {
 		}break;

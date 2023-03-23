@@ -123,8 +123,8 @@ LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 		else {														//次レシピ無　既に完了済 
 			_i_hot_com = pjob_set->i_hot_com;
 			pcom_set = NULL;										//次レシピ無し→NULLリターン
-			pjob_set->recipe[_i_hot_com].status = STAT_NORMAL_END;	//コマンドステータス更新
-			pCS->update_job_status(pjob_set, STAT_NORMAL_END);		//JOBのステータスをNORMAL　END更新
+			pjob_set->recipe[_i_hot_com].status = STAT_END;	//コマンドステータス更新
+			pCS->update_job_status(pjob_set, STAT_END);		//JOBのステータスをNORMAL　END更新
 		}
 	}
 	else {
@@ -153,9 +153,9 @@ int CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
 
 	LPST_COM_RECIPE pcom_recipe = &pjob_set->recipe[_i_recipe];
 	switch (code) {
-	case STAT_NORMAL_END: {
+	case STAT_END: {
 		pcom_recipe->status = code;		//コマンドのステータスを報告内容に更新
-		if(_i_recipe >= pjob_set->n_com -1) pCS->update_job_status(pjob_set, STAT_NORMAL_END);	//JOBのステータス更新
+		if(_i_recipe >= pjob_set->n_com -1) pCS->update_job_status(pjob_set, STAT_END);	//JOBのステータス更新
 		return STAT_ACCEPTED;
 	}break;
 	case STAT_ABNORMAL_END: {
@@ -183,7 +183,6 @@ int CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
 	return STAT_CODE_ERROR;
 }
 
-
 LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe, int type) {							//実行する半自動コマンドをセットする
 
 	LPST_COMMAND_SET pcom_set = &pcom_recipe->comset;
@@ -210,8 +209,6 @@ LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe, int typ
 	return pcom_set;
 
 };
-
-
 
 /****************************************************************************/
 /*　　移動パターンレシピ生成												*/
@@ -889,9 +886,8 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS target) {
 		st_com_work.T = pCraneStat->T;															//振れ周期
 		st_com_work.w = pCraneStat->w;															//振れ角周波数
 		st_com_work.w2 = pCraneStat->w2;
-
-		return &st_com_work;
 	}
+	return &st_com_work;
 }
 
 #if 0
