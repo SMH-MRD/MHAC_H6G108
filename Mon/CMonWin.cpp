@@ -363,7 +363,7 @@ VOID CMonWin::draw_inf_main() {
 	else  wos.str(L"REQ");
 	TextOutW(stGraphic.hdc_mem_inf, 790, 140, wos.str().c_str(), (int)wos.str().length());
 
-	ws = L"Rcnt";TextOutW(stGraphic.hdc_mem_bg, 670, 190, ws.c_str(), (int)ws.length());
+	ws = L"Rcnt";TextOutW(stGraphic.hdc_mem_bg, 670, 190, ws.c_str(), (int)ws.length());;
 	_stprintf_s(tbuf, L"%06d", pAgentInf->recipe_counter[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 725, 160, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%06d", pAgentInf->recipe_counter[ID_SLEW]); ws = tbuf;
