@@ -196,23 +196,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         InitCommonControls();//コモンコントロール初期化
 
-       
-                             
+
+
         //メインウィンドウにステータスバー付加
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
         SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"NORMAL");
 
         //製品モードセット
-        pProcObj->set_debug_mode(L_OFF);
+      //  pProcObj->set_debug_mode(L_OFF);
         //メインウィンドウにコントロール追加
-        stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
+        if (pProcObj->is_debug_mode()) {
+            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"DEBUG MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
+                100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
+            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"NORMAL->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+                5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+
+        }
+        else {
+            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
+                100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
+            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+                5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+
+        }
 
         stMainWnd.h_pb_exit = CreateWindow(L"BUTTON", L"EXIT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
-        stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
+
 
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             20, 85, 80, 25, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);

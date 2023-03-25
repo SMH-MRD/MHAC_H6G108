@@ -248,7 +248,6 @@ typedef struct StOTE_IO {
 #define SWAY_FAULT_ITEM_MAX			 4//異常検出項目数
 #define SID_COMMON_FLT               0
 
-#define SWAY_IF_SIM_DBG_MODE  0x00000010	//振れデータをSIM出力から生成
 
 
 typedef struct StSwayIO {
@@ -475,14 +474,6 @@ typedef struct stMotionRecipe {					//移動パターン
 #define STAT_LOGICAL_ERROR		0x8004      //整合性異常
 #define STAT_CODE_ERROR			0x8008      //適合コード無し
 
-/*** ジョブ,コマンド完了コード ***/
-#define FIN_CODE_MASK			0x00FF     //終了コード
-#define FIN_NORMAL				0x0001     //正常完了
-#define FIN_ABORT				0x0002     //中断完了
-#define FIN_FAULT				0x0004     //Fault完了
-#define FIN_FAULT_MASK			0xFF00     //異常種別コード
-#define FIN_COM_ERROR			0x0100     //コマンド異常
-#define FIN_TIME_OVER			0x0200     //タイムオーバー
 
 typedef struct StCommandCode {
 	int i_list;
@@ -579,6 +570,7 @@ typedef struct _stJobList {
 #define N_JOB_LIST						2				//JOB LIST登録数
 #define ID_JOBTYPE_JOB					0				//JOB Type index番号
 #define ID_JOBTYPE_SEMI					1				//SEMIAUTO Type index番号
+#define ID_JOBTYPE_ANTISWAY				2				//FB ANTISWAY Type index番号
 #define JOB_HOLD_MAX					10				//保持可能JOB最大数
 
 #define CS_SEMIAUTO_TG_SEL_DEFAULT      0
@@ -699,6 +691,11 @@ typedef struct stAgentInfo {
 
 	double v_ref[MOTION_ID_MAX];					//速度指令出力値
 	int PLC_PB_com[N_PLC_PB];						//PLCへのDO指令（PB入力相当指令）
+	int recipe_counter[MOTION_ID_MAX];
+
+	LPST_JOB_SET        pjob_active;                //実行中JOB
+	LPST_COMMAND_SET    pCom_hot;                   //実行中コマンド
+	LPST_COMMAND_SET    pCom_axis[MOTION_ID_MAX];	//制御用
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

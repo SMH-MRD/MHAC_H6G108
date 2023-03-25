@@ -60,8 +60,7 @@ class CAgent:public CTaskObj
     ST_AGENT_INFO       AgentInf_workbuf;
     ST_AGENT_WORK       st_as_work;                         //振れ止めパターン作成用
 
-    LPST_JOB_SET        pjob_active;                        //実行中JOB
-    LPST_COMMAND_SET    pCom_hot;                           //実行中コマンド
+ 
 
 
     void input();                                           //外部データ取り込み
@@ -76,7 +75,7 @@ class CAgent:public CTaskObj
     int cal_as_recipe(int motion);                          //振れ止めパターン計算セット
   
     double cal_step(LPST_COMMAND_SET pCom, int motion);     //自動指令出力値の計算
-    double cal_step_as(int motion);                         //振れ止め指令出力値の計算
+
     bool is_command_completed(LPST_COMMAND_SET pCom);
         
     int set_ref_mh();                                       //巻速度指令値出力

@@ -14,6 +14,8 @@
 #define SWAY_IF_SWAY_IO_MEM_NG              0x8000
 #define SWAY_IF_CRANE_MEM_NG                0x4000
 #define SWAY_IF_SIM_MEM_NG                  0x2000
+#define SWAY_IF_SIM_DBG_MODE                0x00000010	//振れデータをSIM出力から生成
+
 
 #define ID_STATIC_SWAY_IF_LABEL_RCV         10502
 #define ID_STATIC_SWAY_IF_LABEL_SND         10503

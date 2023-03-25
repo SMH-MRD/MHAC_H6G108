@@ -350,8 +350,13 @@ bool CEnvironment::is_sway_larger_than_accsway(int motion){
 	else return false;
 }
 
-double CEnvironment::cal_sway_r_amp2_m() { return pCraneStat->mh_l * pCraneStat->mh_l * sqrt(pSway_IO->rad_amp2[ID_BOOM_H]); }			//U‚êU•2æ”¼Œa•ûŒü m
-double CEnvironment::cal_sway_th_amp2_m() { return pCraneStat->mh_l * pCraneStat->mh_l * sqrt(pSway_IO->rad_amp2[ID_SLEW]); }			//U‚êU•2æ‰~Žü•ûŒü m
+double CEnvironment::cal_sway_r_amp2_m() { //U‚êU•2æ”¼Œa•ûŒü m
+	double ans = pCraneStat->mh_l* pCraneStat->mh_l* pSway_IO->rad_amp2[ID_BOOM_H];
+	return ans;
+}			
+double CEnvironment::cal_sway_th_amp2_m() { 
+	return pCraneStat->mh_l * pCraneStat->mh_l * pSway_IO->rad_amp2[ID_SLEW]; 
+}																																		//U‚êU•2æ‰~Žü•ûŒü m
 double CEnvironment::cal_sway_x_amp2_m() { return 0.0; }																				//U‚êU•2æx•ûŒü m
 double CEnvironment::cal_sway_y_amp2_m() { return 0.0; }																				//U‚êU•2æy•ûŒü m
 
@@ -383,18 +388,21 @@ double CEnvironment::cal_dist4stop(int motion, bool is_abs_answer) {
 		dec *= (0.0008 * r * r - 0.0626 * r + 1.9599);
 	}
 
-	double dist = 0.5 * v * v / dec;
+	//Œ¸‘¬‹——£{ŽžŠÔ’x‚ê•ª
+	//Œ¸‘¬“x‚Íis•ûŒü‚Æ‹t•„†‚Æ‚È‚é‚æ‚¤‚ÉƒZƒbƒg‚µ‚Ä‚ ‚é‚Ì‚Å•‰†‚ª•K—v
+	double dist = -0.5 * v * v / dec + v * spec.delay_time[motion][0];
 
 	if (is_abs_answer) {
-		return dist;
-	}
-	else {
 		if (dir == REV) return (-1.0 * dist);
 		else return dist;
+	}
+	else {
+		return dist;
 	}
 }
 
 //–Ú•WˆÊ’u‚Ü‚Å‚Ì‹——£
+/* #Agent‚ÌŽ©“®–Ú•WˆÊ’u‚Ü‚Å‚Ì‹——£‚ðŒvŽZ*/
 double CEnvironment::cal_dist4target(int motion, bool is_abs_answer) {
 	double dist=pPLC_IO->status.pos[motion] - pAgentInf->auto_pos_target.pos[motion];
 
