@@ -524,6 +524,7 @@ void CClientService::main_proc() {
 //ジョブのレシピセット
 LPST_JOB_SET CClientService::set_job_recipe(LPST_JOB_SET pjob_set) {
 	LPST_JOB_SET pjob = NULL;
+	pjob_set->type = ID_JOBTYPE_JOB;
 	return pjob;
 }
 
@@ -531,6 +532,7 @@ LPST_JOB_SET CClientService::set_job_recipe(LPST_JOB_SET pjob_set) {
 LPST_JOB_SET CClientService::set_semi_recipe(LPST_JOB_SET pjob_set) {
 	//JOBのコマンド数　半自動は１
 	pjob_set->n_com = 1;
+	pjob_set->type = ID_JOBTYPE_SEMI;
 	//目標位置セット
 	pjob_set->recipe[0].target.pos[ID_HOIST] = CS_workbuf.semi_auto_selected_target.pos[ID_HOIST];
 	pjob_set->recipe[0].target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H];

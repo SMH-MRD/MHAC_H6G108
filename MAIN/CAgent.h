@@ -60,7 +60,8 @@ class CAgent:public CTaskObj
     ST_AGENT_INFO       AgentInf_workbuf;
     ST_AGENT_WORK       st_as_work;                         //振れ止めパターン作成用
 
- 
+    LPST_JOB_SET        pjob_active;                //実行中JOB
+    LPST_COMMAND_SET    pCom_hot;                   //実行中コマンド
 
 
     void input();                                           //外部データ取り込み

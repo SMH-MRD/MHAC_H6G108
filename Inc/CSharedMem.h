@@ -248,8 +248,6 @@ typedef struct StOTE_IO {
 #define SWAY_FAULT_ITEM_MAX			 4//異常検出項目数
 #define SID_COMMON_FLT               0
 
-
-
 typedef struct StSwayIO {
 	DWORD proc_mode;
 	DWORD helthy_cnt;
@@ -490,6 +488,7 @@ typedef struct stCommandSet {
 
 	//AGENT SET
 	int motion_status[MOTION_ID_MAX];
+	int recipe_counter[MOTION_ID_MAX];
 
 }ST_COMMAND_SET, * LPST_COMMAND_SET;
 
@@ -536,6 +535,7 @@ typedef struct stComRecipe {
 	SYSTEMTIME time_start;
 	SYSTEMTIME time_end;
 }ST_COM_RECIPE, * LPST_COM_RECIPE;
+
 
 typedef struct stJobSet {
 	int list_id;								//登録されているJOB listのid
@@ -691,11 +691,12 @@ typedef struct stAgentInfo {
 
 	double v_ref[MOTION_ID_MAX];					//速度指令出力値
 	int PLC_PB_com[N_PLC_PB];						//PLCへのDO指令（PB入力相当指令）
-	int recipe_counter[MOTION_ID_MAX];
 
-	LPST_JOB_SET        pjob_active;                //実行中JOB
-	LPST_COMMAND_SET    pCom_hot;                   //実行中コマンド
-	LPST_COMMAND_SET    pCom_axis[MOTION_ID_MAX];	//制御用
+	ST_COMMAND_SET st_active_com_inf;				//実行中コマンドセット情報
+
+	int as_count[MOTION_ID_MAX];					//振れ止めレシピ作成呼び出し回数
+	int command_count;								//コマンドレシピ作成呼び出し回数
+
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 

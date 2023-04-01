@@ -102,6 +102,7 @@ void CPolicy::output() {
 // AGENTからのコマンド要求処理
 LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 
+
 	int _i_hot_com = pjob_set->i_hot_com;
 	LPST_COMMAND_SET pcom_set;
 
@@ -112,6 +113,9 @@ LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 		pcom_set=setup_job_command(&(pjob_set->recipe[_i_hot_com]), pjob_set->list_id);
 		pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;			//コマンドステータス更新
 		pCS->update_job_status(pjob_set, STAT_ACTIVE);				//JOBのステータスをACTIVEに更新
+
+		pjob_set->recipe[_i_hot_com].comset.active_motion[0] = L_ON;
+
 	}
 	else if (pjob_set->status & STAT_ACTIVE) {						//JOB実行中からの呼び出し＝ 次のレシピ実行待ち
 		if (pjob_set->i_hot_com < (pjob_set->n_com - 1)) {			//次のレシピ有
@@ -189,9 +193,16 @@ LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe, int typ
 
 	//半自動は、巻、旋回、引込が対象
 	for (int i = 0;i < MOTION_ID_MAX;i++) pcom_set->active_motion[i] = L_OFF;
-	pcom_set->active_motion[ID_HOIST] = true;
-	pcom_set->active_motion[ID_SLEW] = true;
-	pcom_set->active_motion[ID_BOOM_H] = true;
+	if (type == ID_JOBTYPE_SEMI) {
+		pcom_set->active_motion[ID_HOIST] = L_ON;
+		pcom_set->active_motion[ID_SLEW] = L_ON;
+		pcom_set->active_motion[ID_BOOM_H] = L_ON;
+	}
+	else if (type == ID_JOBTYPE_JOB) {
+		pcom_set->active_motion[ID_HOIST] = L_ON;
+		pcom_set->active_motion[ID_SLEW] = L_ON;
+		pcom_set->active_motion[ID_BOOM_H] = L_ON;
+	}
 
 	set_com_workbuf(pcom_recipe->target);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
 

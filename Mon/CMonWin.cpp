@@ -280,102 +280,152 @@ VOID CMonWin::draw_inf_main() {
 
 	ws = L"MAIN";TextOutW(stGraphic.hdc_mem_bg, 960, 10, ws.c_str(), (int)ws.length());
 
-	ws = L"BH ";TextOutW(stGraphic.hdc_mem_bg, 745, 40, ws.c_str(), (int)ws.length());
-	ws = L"SLW";TextOutW(stGraphic.hdc_mem_bg, 805, 40, ws.c_str(), (int)ws.length());
-	ws = L"HST";TextOutW(stGraphic.hdc_mem_bg, 865, 40, ws.c_str(), (int)ws.length());
-	ws = L"GNT";TextOutW(stGraphic.hdc_mem_bg, 925, 40, ws.c_str(), (int)ws.length());
+	ws = L"BH ";TextOutW(stGraphic.hdc_mem_bg, 745, 35, ws.c_str(), (int)ws.length());
+	ws = L"SLW";TextOutW(stGraphic.hdc_mem_bg, 805, 35, ws.c_str(), (int)ws.length());
+	ws = L"HST";TextOutW(stGraphic.hdc_mem_bg, 865, 35, ws.c_str(), (int)ws.length());
 
-	ws = L"Spd Ref"	;TextOutW(stGraphic.hdc_mem_bg, 670, 60, ws.c_str(), (int)ws.length());
-	ws = L"Spd FB"	;TextOutW(stGraphic.hdc_mem_bg, 670, 75, ws.c_str(), (int)ws.length());
-	ws = L"Pos"		;TextOutW(stGraphic.hdc_mem_bg, 670, 90, ws.c_str(), (int)ws.length());
+	ws = L"Spd Ref"	;TextOutW(stGraphic.hdc_mem_bg, 670, 55, ws.c_str(), (int)ws.length());
+	ws = L"Spd FB"	;TextOutW(stGraphic.hdc_mem_bg, 670, 70, ws.c_str(), (int)ws.length());
+	ws = L"Pos"		;TextOutW(stGraphic.hdc_mem_bg, 670, 85, ws.c_str(), (int)ws.length());
 
 	//íçà” wsprintfÇÕè¨êîì_ÇÃèëéÆÇ™ñ≥Ç¢ÇÃÇ≈_stprintf_sÇégÇ§ÅIÅI
 //ÉNÉåÅ[Éìë¨ìxéwóﬂ
 	_stprintf_s(tbuf, L":%.4f", pAgentInf->v_ref[ID_BOOM_H]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 30, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 720, 25, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pAgentInf->v_ref[ID_SLEW]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 30, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 790, 25, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pAgentInf->v_ref[ID_HOIST]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 850, 30, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 850, 25, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pAgentInf->v_ref[ID_GANTRY]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 910, 30, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 910, 25, ws.c_str(), (int)ws.length());
 
 	//ÉNÉåÅ[Éìë¨ìxFB
 	_stprintf_s(tbuf, L":%.4f", pPLC_IO->status.v_fb[ID_BOOM_H]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 45, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 720, 40, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.v_fb[ID_SLEW]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 45, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 790, 40, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.v_fb[ID_HOIST]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 850, 45, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 850,40, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.v_fb[ID_GANTRY]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 910, 45, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 910, 40, ws.c_str(), (int)ws.length());
 	
 	//ÉNÉåÅ[Éìà íuFB
 	_stprintf_s(tbuf, L":%.4f", pPLC_IO->status.pos[ID_BOOM_H]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 720, 60, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 720, 55, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_SLEW]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 60, ws.c_str(), (int)ws.length());//ê˘âÒrad
+	TextOutW(stGraphic.hdc_mem_inf, 790, 55, ws.c_str(), (int)ws.length());//ê˘âÒrad
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_HOIST]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 850, 60, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 850, 55, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pPLC_IO->status.pos[ID_GANTRY]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 910, 60, ws.c_str(), (int)ws.length());
+	TextOutW(stGraphic.hdc_mem_inf, 910, 55, ws.c_str(), (int)ws.length());
 
-	ws = L"COMMAND";TextOutW(stGraphic.hdc_mem_bg, 670, 120, ws.c_str(), (int)ws.length());
+	ws = L"COMMAND:";TextOutW(stGraphic.hdc_mem_bg, 660, 110, ws.c_str(), (int)ws.length());
 
-	ws = L"RECIPE";TextOutW(stGraphic.hdc_mem_bg, 670, 150, ws.c_str(), (int)ws.length());
-	if (pAgentInf->pCom_axis[ID_BOOM_H] == NULL) wos.str(L"NULL");
-	else if (pAgentInf->pCom_axis[ID_BOOM_H]->com_code.i_list == ID_JOBTYPE_JOB) wos.str(L"JOB");
-	else if(pAgentInf->pCom_axis[ID_BOOM_H]->com_code.i_list == ID_JOBTYPE_SEMI) wos.str(L"SEMI");
-	else if (pAgentInf->pCom_axis[ID_BOOM_H]->com_code.i_list == ID_JOBTYPE_ANTISWAY) wos.str(L"FBAS");
+	if (!(pAgentInf->auto_on_going & AUTO_TYPE_JOB_MASK)) wos.str(L"NULL");
+	else if (pAgentInf->st_active_com_inf.com_code.i_list == ID_JOBTYPE_JOB) wos.str(L"JOB");
+	else if(pAgentInf->st_active_com_inf.com_code.i_list == ID_JOBTYPE_SEMI) wos.str(L"SEMI");
+	else if (pAgentInf-> st_active_com_inf.com_code.i_list == ID_JOBTYPE_ANTISWAY) wos.str(L"FBAS");
 	else  wos.str(L"ERR");
-	TextOutW(stGraphic.hdc_mem_inf, 725, 120, wos.str().c_str(), (int)wos.str().length());
+	TextOutW(stGraphic.hdc_mem_inf, 740, 80, wos.str().c_str(), (int)wos.str().length());
 
-	if (pAgentInf->pCom_axis[ID_SLEW] == NULL) wos.str(L"NULL");
-	else if (pAgentInf->pCom_axis[ID_SLEW]->com_code.i_list == ID_JOBTYPE_JOB) wos.str(L"JOB");
-	else if (pAgentInf->pCom_axis[ID_SLEW]->com_code.i_list == ID_JOBTYPE_SEMI) wos.str(L"SEMI");
-	else if (pAgentInf->pCom_axis[ID_SLEW]->com_code.i_list == ID_JOBTYPE_ANTISWAY) wos.str(L"FBAS");
-	else  wos.str(L"ERR");
-	TextOutW(stGraphic.hdc_mem_inf, 790, 120, wos.str().c_str(), (int)wos.str().length());
+	ws = L"CNT:";TextOutW(stGraphic.hdc_mem_bg, 800, 110, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04d", pAgentInf->command_count); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 830, 80, ws.c_str(), (int)ws.length());
 
-	if (pAgentInf->pjob_active == NULL) {//JOBÇ»Çµ
-		if (pAgentInf->st_as_comset.motion_status[ID_HOIST] == STAT_END) wos.str(L"NA");	//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
-		else wos.str(L"ERR");
-	}
-	else {
-		if (pAgentInf->pCom_hot == NULL) wos.str(L"ERR");
-		else {
-			if (pAgentInf->pCom_hot->motion_status[ID_HOIST] == STAT_END) wos.str(L"NON JOB RCP");
-			else wos.str(L"JOB");//êUÇÍé~ÇﬂÉåÉVÉsé¿çsíÜÇ≈Ç»Ç¢
-		}
-	}
-	TextOutW(stGraphic.hdc_mem_inf, 850, 120, wos.str().c_str(), (int)wos.str().length());
 
-	ws = L"êUé~";TextOutW(stGraphic.hdc_mem_bg, 670, 170, ws.c_str(), (int)ws.length());
-	if (pAgentInf->antisway_on_going == ANTISWAY_ALL_MANUAL) wos.str(L"NA");	//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
-	else if (pAgentInf->antisway_on_going & ANTISWAY_BH_COMPLETE) wos.str(L"COMP");	//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
+	ws = L"Rcnt";TextOutW(stGraphic.hdc_mem_bg, 670, 130, ws.c_str(), (int)ws.length());;
+	_stprintf_s(tbuf, L"%06d", pAgentInf->st_active_com_inf.recipe_counter[ID_BOOM_H]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 100, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->st_active_com_inf.recipe_counter[ID_SLEW]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 100, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->st_active_com_inf.recipe_counter[ID_HOIST]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 850, 100, ws.c_str(), (int)ws.length());
+
+	ws = L"mStat";TextOutW(stGraphic.hdc_mem_bg, 670, 150, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.motion_status[ID_BOOM_H]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 120, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.motion_status[ID_SLEW]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 120, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.motion_status[ID_HOIST]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 850, 120, ws.c_str(), (int)ws.length());
+
+	ws = L"sStat";TextOutW(stGraphic.hdc_mem_bg, 670, 170, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].steps[pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].i_hot_step].status);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 140, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.recipe[ID_SLEW].steps[pAgentInf->st_active_com_inf.recipe[ID_SLEW].i_hot_step].status);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 140, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.recipe[ID_HOIST].steps[pAgentInf->st_active_com_inf.recipe[ID_HOIST].i_hot_step].status);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 850, 140, ws.c_str(), (int)ws.length());
+
+	ws = L"iStep";TextOutW(stGraphic.hdc_mem_bg, 670, 190, ws.c_str(), (int)ws.length());
+	wos.str(L"NA");wos << pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].i_hot_step << L"/" << pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].n_step;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 160, wos.str().c_str(), (int)wos.str().length());
+	wos.str(L"NA");wos << pAgentInf->st_active_com_inf.recipe[ID_SLEW].i_hot_step << L"/" << pAgentInf->st_active_com_inf.recipe[ID_SLEW].n_step;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 160, wos.str().c_str(), (int)wos.str().length());
+	wos.str(L"NA");wos << pAgentInf->st_active_com_inf.recipe[ID_HOIST].i_hot_step << L"/" << pAgentInf->st_active_com_inf.recipe[ID_HOIST].n_step;
+	TextOutW(stGraphic.hdc_mem_inf, 850, 160, wos.str().c_str(), (int)wos.str().length());
+
+	ws = L"sType";TextOutW(stGraphic.hdc_mem_bg, 670, 210, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].steps[pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].i_hot_step].type);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 180, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.recipe[ID_SLEW].steps[pAgentInf->st_active_com_inf.recipe[ID_SLEW].i_hot_step].type);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 180, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_active_com_inf.recipe[ID_HOIST].steps[pAgentInf->st_active_com_inf.recipe[ID_HOIST].i_hot_step].type);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 850, 180, ws.c_str(), (int)ws.length());
+
+	ws = L"sAcnt";TextOutW(stGraphic.hdc_mem_bg, 670, 230, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].steps[pAgentInf->st_active_com_inf.recipe[ID_BOOM_H].i_hot_step].act_count);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 200, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->st_active_com_inf.recipe[ID_SLEW].steps[pAgentInf->st_active_com_inf.recipe[ID_SLEW].i_hot_step].act_count);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 200, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->st_active_com_inf.recipe[ID_HOIST].steps[pAgentInf->st_active_com_inf.recipe[ID_HOIST].i_hot_step].act_count);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 850, 200, ws.c_str(), (int)ws.length());
+
+
+	ws = L"êUé~";TextOutW(stGraphic.hdc_mem_bg, 660, 270, ws.c_str(), (int)ws.length());
+	if (pAgentInf->antisway_on_going == ANTISWAY_ALL_MANUAL) wos.str(L"NA");			//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
+	else if (pAgentInf->antisway_on_going & ANTISWAY_BH_COMPLETE) wos.str(L"FIN");		//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
 	else if (pAgentInf->antisway_on_going & ANTISWAY_BH_ACTIVE) wos.str(L"ACT");
 	else  wos.str(L"REQ");
-	TextOutW(stGraphic.hdc_mem_inf, 725, 140, wos.str().c_str(), (int)wos.str().length());
+	TextOutW(stGraphic.hdc_mem_inf, 725, 240, wos.str().c_str(), (int)wos.str().length());
 
-	if (pAgentInf->antisway_on_going == ANTISWAY_ALL_MANUAL) wos.str(L"NA");	//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
-	else if (pAgentInf->antisway_on_going & ANTISWAY_SLEW_COMPLETE) wos.str(L"COMP");	//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
+	if (pAgentInf->antisway_on_going == ANTISWAY_ALL_MANUAL) wos.str(L"NA");			//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
+	else if (pAgentInf->antisway_on_going & ANTISWAY_SLEW_COMPLETE) wos.str(L"FIN");		//êUÇÍé~ÇﬂÉRÉ}ÉìÉhÇÃÉåÉVÉsí‚é~íÜ
 	else if (pAgentInf->antisway_on_going & ANTISWAY_SLEW_ACTIVE) wos.str(L"ACT");
 	else  wos.str(L"REQ");
-	TextOutW(stGraphic.hdc_mem_inf, 790, 140, wos.str().c_str(), (int)wos.str().length());
+	TextOutW(stGraphic.hdc_mem_inf, 790, 240, wos.str().c_str(), (int)wos.str().length());
 
-	ws = L"Rcnt";TextOutW(stGraphic.hdc_mem_bg, 670, 190, ws.c_str(), (int)ws.length());;
-	_stprintf_s(tbuf, L"%06d", pAgentInf->recipe_counter[ID_BOOM_H]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 725, 160, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%06d", pAgentInf->recipe_counter[ID_SLEW]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 790, 160, ws.c_str(), (int)ws.length());
-	_stprintf_s(tbuf, L"%06d", pAgentInf->recipe_counter[ID_HOIST]); ws = tbuf;
-	TextOutW(stGraphic.hdc_mem_inf, 850, 160, ws.c_str(), (int)ws.length());
+	
+	ws = L"Cnt";TextOutW(stGraphic.hdc_mem_bg, 670, 290, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->as_count[ID_BOOM_H]);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 260, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->as_count[ID_SLEW]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 260, ws.c_str(), (int)ws.length());
 
-	ws = L"mStat";TextOutW(stGraphic.hdc_mem_bg, 670, 210, ws.c_str(), (int)ws.length());
-	ws = L"sStat";TextOutW(stGraphic.hdc_mem_bg, 670, 240, ws.c_str(), (int)ws.length());
-	ws = L"nStep";TextOutW(stGraphic.hdc_mem_bg, 670, 260, ws.c_str(), (int)ws.length());
-	ws = L"iStep";TextOutW(stGraphic.hdc_mem_bg, 670, 280, ws.c_str(), (int)ws.length());
-	ws = L"Acnt";TextOutW(stGraphic.hdc_mem_bg, 670, 300, ws.c_str(), (int)ws.length());
+	ws = L"mStat";TextOutW(stGraphic.hdc_mem_bg, 670, 310, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_as_comset.motion_status[ID_BOOM_H]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 280, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_as_comset.motion_status[ID_SLEW]); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 280, ws.c_str(), (int)ws.length());
+
+	ws = L"sType";TextOutW(stGraphic.hdc_mem_bg, 670, 330, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_as_comset.recipe[ID_BOOM_H].steps[pAgentInf->st_as_comset.recipe[ID_BOOM_H].i_hot_step].type);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 300, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%04x", pAgentInf->st_as_comset.recipe[ID_SLEW].steps[pAgentInf->st_as_comset.recipe[ID_SLEW].i_hot_step].type);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 300, ws.c_str(), (int)ws.length());
+
+	ws = L"iStep";TextOutW(stGraphic.hdc_mem_bg, 670, 350, ws.c_str(), (int)ws.length());
+
+	wos.str(L"NA");wos << pAgentInf->st_as_comset.recipe[ID_BOOM_H].i_hot_step << L"/" << pAgentInf->st_as_comset.recipe[ID_BOOM_H].n_step;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 320, wos.str().c_str(), (int)wos.str().length());
+	wos.str(L"NA");wos << pAgentInf->st_as_comset.recipe[ID_SLEW].i_hot_step << L"/" << pAgentInf->st_as_comset.recipe[ID_SLEW].n_step;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 320, wos.str().c_str(), (int)wos.str().length());
+
+	ws = L"sAcnt";TextOutW(stGraphic.hdc_mem_bg, 670, 370, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf->st_as_comset.recipe[ID_BOOM_H].steps[pAgentInf->st_as_comset.recipe[ID_BOOM_H].i_hot_step].act_count);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 725, 340, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L"%06d", pAgentInf-> st_as_comset.recipe[ID_SLEW].steps[pAgentInf->st_as_comset.recipe[ID_SLEW].i_hot_step].act_count);ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 790, 340, ws.c_str(), (int)ws.length());
 
 	//êUÇÍ
 	ws = L"TH_RAD";
@@ -412,7 +462,7 @@ VOID CMonWin::draw_inf_main() {
 	wos.str(L"                                                  ");
 	TextOutW(stGraphic.hdc_mem_bg, 10, 35, wos.str().c_str(), (int)wos.str().length());
 	wos.str(L"");
-	wos << L"Auto Target MH:" << pCSinf->semi_auto_selected_target.pos[ID_HOIST];
+	wos << L"SEMI Target MH:" << pCSinf->semi_auto_selected_target.pos[ID_HOIST];
 	wos << L"  SL:" << pCSinf->semi_auto_selected_target.pos[ID_SLEW];
 	wos << L"  BH:" << pCSinf->semi_auto_selected_target.pos[ID_BOOM_H];
 	TextOutW(stGraphic.hdc_mem_bg, 10, 35, wos.str().c_str(), (int)wos.str().length());
