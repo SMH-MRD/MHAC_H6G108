@@ -32,7 +32,8 @@ typedef struct stAgentWork {
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
     int motion_dir[MOTION_ID_MAX];              //移動方向
 
-    unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
+    unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム int ms
+    double agent_scan;                          //AGENTタスクのスキャンタイム double s
 }ST_AGENT_WORK, * LPST_AGENT_WORK;
 
 
@@ -56,6 +57,7 @@ class CAgent:public CTaskObj
     LPST_CRANE_STATUS   pCraneStat;
     LPST_PLC_IO         pPLC_IO;
     LPST_SWAY_IO        pSway_IO;
+    LPST_JOB_IO        pJob_IO;
 
     ST_AGENT_INFO       AgentInf_workbuf;
     ST_AGENT_WORK       st_as_work;                         //振れ止めパターン作成用

@@ -20,6 +20,7 @@
 #define SMEM_AGENT_INFO_NAME			L"AGENT_INFO"
 #define SMEM_OTE_IO_NAME				L"OTE_IO"
 #define SMEM_CLIENT_IO_NAME				L"CLIENT_IO"
+#define SMEM_JOB_IO_NAME				L"JOB_IO"
 
 #define MUTEX_CRANE_STATUS_NAME			L"MU_CRANE_STATUS"
 #define MUTEX_SWAY_STATUS_NAME			L"MU_SWAY_STATUS"
@@ -33,6 +34,7 @@
 #define MUTEX_POLICY_INFO_NAME			L"MU_POLICY_INFO"
 #define MUTEX_AGENT_INFO_NAME			L"MU_AGENT_INFO"
 #define MUTEX_CLIENT_IO_NAME			L"MU_CLIENT_IO"
+#define MUTEX_JOB_IO_NAME				L"MU_JOB_IO"
 
 #define SMEM_OBJ_ID_CRANE_STATUS		0
 #define SMEM_OBJ_ID_SWAY_STATUS			1
@@ -46,6 +48,7 @@
 #define SMEM_OBJ_ID_POLICY_INFO			9
 #define SMEM_OBJ_ID_AGENT_INFO			10
 #define SMEM_OBJ_ID_CLIENT_IO			11
+#define SMEM_OBJ_ID_JOB_IO				12
 
 //  共有メモリステータス
 #define	OK_SHMEM						0	// 共有メモリ 生成/破棄正常
@@ -371,27 +374,31 @@ typedef struct StCraneStatus {
 /****************************************************************************/
 
 //レシピ　Type
-#define CTR_TYPE_WAIT_TIME					0	//待機（時間経過待ち）
-#define CTR_TYPE_WAIT_POS_OTHERS			1	//他軸到達待ち
-#define CTR_TYPE_WAIT_POS_AND_PH			2	//他軸到達+位相待ち
-#define CTR_TYPE_WAIT_LAND					4	//着床待ち
-#define CTR_TYPE_WAIT_PH					8	//振れ位相待ち
+#define CTR_TYPE_WAIT_TIME					0x0000	//待機（時間経過待ち）
+#define CTR_TYPE_WAIT_POS_HST				0x0101	//巻到達待ち
+#define CTR_TYPE_WAIT_POS_GNT				0x0102	//走行到達待ち
+#define CTR_TYPE_WAIT_POS_TRY				0x0104	//横行到達待ち
+#define CTR_TYPE_WAIT_POS_BH				0x0108	//引込到達待ち
+#define CTR_TYPE_WAIT_POS_SLW				0x0110	//旋回到達待ち
+#define CTR_TYPE_WAIT_LAND					0x0120	//着床待ち
+#define CTR_TYPE_WAIT_PH_SINGLE				0x0201	//位相待ち 1点
+#define CTR_TYPE_WAIT_PH_DOUBLE				0x0202	//位相待ち 2点
 
-#define CTR_TYPE_VOUT_TIME					100  //ステップ速度　時間完了
-#define CTR_TYPE_VOUT_V						101  //ステップ速度　速度到達完了
-#define CTR_TYPE_VOUT_POS					102  //ステップ速度　位置到達完了
-#define CTR_TYPE_VOUT_PHASE     			104  //ステップ速度　位相到達完了
-#define CTR_TYPE_VOUT_LAND					105  //ステップ速度　着床完了
+#define CTR_TYPE_VOUT_TIME					0x1000  //ステップ速度　時間完了
+#define CTR_TYPE_VOUT_V						0x1001  //ステップ速度　速度到達完了
+#define CTR_TYPE_VOUT_POS					0x1002  //ステップ速度　位置到達完了
+#define CTR_TYPE_VOUT_PHASE     			0x1004  //ステップ速度　位相到達完了
+#define CTR_TYPE_VOUT_LAND					0x1008  //ステップ速度　着床完了
 
-#define CTR_TYPE_AOUT_TIME					110  //加速速度　時間完了
-#define CTR_TYPE_AOUT_V						111  //加速速度　速度到達完了
-#define CTR_TYPE_AOUT_POS					112  //加速速度　位置到達完了
-#define CTR_TYPE_AOUT_PHASE     			114  //加速速度　位相到達完了
-#define CTR_TYPE_AOUT_LAND					115  //加速速度　着床完了
+#define CTR_TYPE_AOUT_TIME					0x2000  //加速速度　時間完了
+#define CTR_TYPE_AOUT_V						0x2001  //加速速度　速度到達完了
+#define CTR_TYPE_AOUT_POS					0x2002  //加速速度　位置到達完了
+#define CTR_TYPE_AOUT_PHASE     			0x2004  //加速速度　位相到達完了
+#define CTR_TYPE_AOUT_LAND					0x2008  //加速速度　着床完了
 
-#define CTR_TYPE_FINE_POS					200	//微小位置合わせ
-#define CTR_TYPE_FB_SWAY					300	//FB振れ止め
-#define CTR_TYPE_FB_SWAY_POS				301	//FB振れ止め位置決め
+#define CTR_TYPE_FINE_POS					0x8001	//微小位置合わせ
+#define CTR_TYPE_FB_SWAY					0x8002	//FB振れ止め
+#define CTR_TYPE_FB_SWAY_POS				0x8004	//FB振れ止め位置決め
 
 #define TIME_LIMIT_CONFIRMATION				0.1		//パターン出力調整時間 秒
 #define TIME_LIMIT_FINE_POS					10.0	//微小位置合わせ制限時間 秒
@@ -411,7 +418,6 @@ typedef struct stMotionElement {	//運動要素
 	//status
 	int act_count;
 	int status;
-	int direction;
 }ST_MOTION_STEP, * LPST_MOTION_STEP;
 
 /****************************************************************************/
@@ -562,25 +568,27 @@ typedef struct _stJobList {
 }ST_JOB_LIST, * LPST_JOB_LIST;
 
 
-/****************************************************************************/
-/*   Client Service	情報定義構造体                                   　   　*/
-/* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
-/****************************************************************************/
-
 #define N_JOB_LIST						2				//JOB LIST登録数
 #define ID_JOBTYPE_JOB					0				//JOB Type index番号
 #define ID_JOBTYPE_SEMI					1				//SEMIAUTO Type index番号
 #define ID_JOBTYPE_ANTISWAY				2				//FB ANTISWAY Type index番号
 #define JOB_HOLD_MAX					10				//保持可能JOB最大数
 
+typedef struct stJobIO {
+	ST_JOB_LIST	job_list[N_JOB_LIST];
+}ST_JOB_IO, * LPST_JOB_IO;
+
+
+/****************************************************************************/
+/*   Client Service	情報定義構造体                                   　   　*/
+/* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
+/****************************************************************************/
+
 #define CS_SEMIAUTO_TG_SEL_DEFAULT      0
 #define CS_SEMIAUTO_TG_SEL_ACTIVE       1
 #define CS_SEMIAUTO_TG_SEL_FIXED        2
 
 typedef struct stCSInfo {
-
-	ST_JOB_LIST	job_list[N_JOB_LIST];
-
 	//UI関連
 	int plc_lamp[N_PLC_LAMP];											//PLCランプ表示出力用（自動開始）
 	int plc_pb[N_PLC_PB];												//PLC操作PB入力確認用（自動開始）
@@ -600,11 +608,6 @@ typedef struct stCSInfo {
 	int antisway_mode;													//振れ止めモード
 
 }ST_CS_INFO, * LPST_CS_INFO;
-
-/****************************************************************************/
-/*   Policy	情報定義構造体                                   　			  　*/
-/* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
-/****************************************************************************/
 
 #define N_JOB_TARGET_MAX	10
 #define N_JOB_OPTION_MAX	10
@@ -638,6 +641,12 @@ typedef struct stClientIO {
 	ST_CLIENT_RCV_MSG rmsg[N_CLIENT_MSG_HOLD_MAX];
 	ST_CLIENT_SND_MSG smsg[N_CLIENT_MSG_HOLD_MAX];
 }ST_CLIENT_IO, * LPST_CLIENT_IO;
+
+
+/****************************************************************************/
+/*   Policy	情報定義構造体                                   　			  　*/
+/* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
+/****************************************************************************/
 
 
 #define FAULT_MAP_W_SIZE	64	//フォルトマップサイズ

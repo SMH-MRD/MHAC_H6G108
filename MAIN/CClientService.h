@@ -72,11 +72,12 @@ private:
     LPST_JOB_SET set_semi_recipe(LPST_JOB_SET pjob_set);
  
    
-    LPST_CRANE_STATUS pCraneStat;
-    LPST_PLC_IO pPLC_IO;
-    LPST_CS_INFO pCSinf;
-    LPST_AGENT_INFO pAgent_Inf;
-    LPST_OTE_IO pOTE_IO;
+    LPST_CRANE_STATUS   pCraneStat;
+    LPST_PLC_IO         pPLC_IO;
+    LPST_CS_INFO        pCSinf;
+    LPST_AGENT_INFO     pAgent_Inf;
+    LPST_OTE_IO         pOTE_IO;
+    LPST_JOB_IO         pJob_IO;
 
     CPolicy* pPolicy;
     CEnvironment* pEnvironment;

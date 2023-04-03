@@ -7,9 +7,10 @@ extern CSharedMem* pSwayStatusObj;
 extern CSharedMem* pPLCioObj;
 extern CSharedMem* pSwayIO_Obj;
 extern CSharedMem* pOTEioObj;
-extern CSharedMem*  pCSInfObj;
+extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfsObj;
 extern CSharedMem* pAgentInfObj;
+extern CSharedMem* pJobIO_Obj;
 
 extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
 extern ST_iTask g_itask;
@@ -41,6 +42,7 @@ void CClientService::init_task(void* pobj) {
 	pCSinf = (LPST_CS_INFO)(pCSInfObj->get_pMap());
 	pAgent_Inf = (LPST_AGENT_INFO)(pAgentInfObj->get_pMap());
 	pOTE_IO = (LPST_OTE_IO)(pOTEioObj->get_pMap());
+	pJob_IO = (LPST_JOB_IO)(pJobIO_Obj->get_pMap());
 
 	for (int i = 0;i < N_PLC_PB;i++) PLC_PBs_last[i] = false;
 
@@ -55,8 +57,8 @@ void CClientService::init_task(void* pobj) {
 	CS_workbuf.command_type = COM_TYPE_NON;							//PICK, GRND, PARK
 
 	for (int i = 0;i < N_JOB_LIST;i++) {
-		CS_workbuf.job_list[i].i_job_hot = 0;
-		CS_workbuf.job_list[i].n_hold_job = 0;
+		pJob_IO->job_list[i].i_job_hot = 0;
+		pJob_IO->job_list[i].n_hold_job = 0;
 	}
 
 	inf.is_init_complete = true;
@@ -332,12 +334,12 @@ int CClientService::parce_onboard_input(int mode) {
 			
 		if (CS_workbuf.plc_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
 			//半自動がスタンバイ状態
-			if (CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot].status == STAT_STANDBY) {
-				CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_TRIGED;
+			if (pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status == STAT_STANDBY) {
+				pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_TRIGED;
 			}
 			//JOBがスタンバイ状態
-			else if (CS_workbuf.job_list[ID_JOBTYPE_JOB].job[CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot].status == STAT_STANDBY) {
-				CS_workbuf.job_list[ID_JOBTYPE_JOB].job[CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot].status = STAT_TRIGED;
+			else if (pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status == STAT_STANDBY) {
+				pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status = STAT_TRIGED;
 			}
 			else;
 		}
@@ -409,18 +411,18 @@ void CClientService::main_proc() {
 
 	if (CS_workbuf.auto_mode == L_OFF) {
 		//自動モードOFFでジョブホールド数クリア
-		CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job = CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job = 0;
+		pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job = 0;
 	}
 
 	//イベント処理
 	switch (CS_workbuf.job_set_event) {
 	case CS_JOBSET_EVENT_SEMI_SEL_CLEAR: {
-		int i_job = CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot;
-		LPST_JOB_SET p_job = &CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[i_job];
+		int i_job = pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot;
+		LPST_JOB_SET p_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[i_job];
 		//		if (p_job->status == STAT_STANDBY) p_job->status = STAT_REQ_WAIT;
 		p_job->status = STAT_REQ_WAIT;
-		CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job--;
-		if (CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job < 0) CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
+		pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job--;
+		if (pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job < 0) pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
 
 		//イベントクリア
 		CS_workbuf.job_set_event = CS_JOBSET_EVENT_CLEAR;
@@ -428,16 +430,16 @@ void CClientService::main_proc() {
 	case CS_JOBSET_EVENT_SEMI_STANDBY: {										//半自動STANBY状態入り
 		//*　半自動は、複数JOBの事前登録なし
 				//現在のJOBバッファ
-		int i_job = CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot;
-		LPST_JOB_SET p_job = &CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[i_job];
+		int i_job = pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot;
+		LPST_JOB_SET p_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[i_job];
 
 		if (p_job->status != STAT_STANDBY) {//現在のJOB 起動待ちでない
 			//次のバッファへ
-			i_job = ++CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot;
-			p_job = &CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[i_job];
+			i_job = ++pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot;
+			p_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[i_job];
 			
 			if (i_job >= JOB_HOLD_MAX) {
-				CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot = i_job = 0;
+				pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot = i_job = 0;
 				p_job->status = STAT_ABOTED;
 			}
 			else {
@@ -445,7 +447,7 @@ void CClientService::main_proc() {
 			}
 
 			//JOB LIST更新
-			CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job++;	//減算は、POLICY呼び出しのupdate_job_status()の完了報告で実行
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job++;	//減算は、POLICY呼び出しのupdate_job_status()の完了報告で実行
 		}
 		else {//現在のJOB既に起動待ち→ステータスホールド
 			//現バッファを更新
@@ -464,15 +466,15 @@ void CClientService::main_proc() {
 	}break;
 	case CS_JOBSET_EVENT_JOB_STANDBY: {							//JOB　STANDBY状態入り JOBはCLIENTからのJOB受信時にSTANDBY
 		//*　JOBは、複数JOBの事前登録可能 
-		if (CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job < JOB_REGIST_MAX - 1) {
+		if (pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job < JOB_REGIST_MAX - 1) {
 			//バッファへの追加場所を評価
-			int i_job = CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot + CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job;
+			int i_job = pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot + pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job;
 			if (i_job > JOB_REGIST_MAX) i_job = i_job % JOB_REGIST_MAX;
-			LPST_JOB_SET p_job = &CS_workbuf.job_list[ID_JOBTYPE_JOB].job[i_job];
+			LPST_JOB_SET p_job = &pJob_IO->job_list[ID_JOBTYPE_JOB].job[i_job];
 
 
 			//JOB LIST更新
-			CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job++;	//減算は、POLICY呼び出しのupdate_job_status()の完了報告で実行
+			pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job++;	//減算は、POLICY呼び出しのupdate_job_status()の完了報告で実行
 
 			//JOB SET内容セット
 			p_job->status = STAT_STANDBY;
@@ -487,16 +489,16 @@ void CClientService::main_proc() {
 		}
 	}break;
 	case CS_JOBSET_EVENT_SEMI_TRIG: {							//半自動起動PBトリガあり
-		int i_job = CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot;
-		LPST_JOB_SET p_job = &CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[i_job];
+		int i_job = pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot;
+		LPST_JOB_SET p_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[i_job];
 
 		if (p_job->status == STAT_STANDBY) {//JOB起動待ち状態
 			p_job->status = STAT_TRIGED;	//JOBトリガ状態にステータス更新(STANDBYでレシピ設定済　AGENT実行待ち
 		}
 	}break;
 	case CS_JOBSET_EVENT_JOB_TRIG: {
-		int i_job = CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot;
-		LPST_JOB_SET p_job = &CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[i_job];
+		int i_job = pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot;
+		LPST_JOB_SET p_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[i_job];
 
 		if (p_job->status == STAT_STANDBY) {//JOB起動待ち状態
 			p_job->status = STAT_TRIGED;	//JOBトリガ状態にステータス更新(STANDBYでレシピ設定済　AGENT実行待ち
@@ -506,13 +508,13 @@ void CClientService::main_proc() {
 	}
 
 	//現在アクティブなJOB
-	if ((CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job > 0) &&
-		(CS_workbuf.job_list[ID_JOBTYPE_JOB].job[CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot].status != STAT_ACTIVE)){
-		CS_workbuf.p_active_job = &CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot];
+	if ((pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job > 0) &&
+		(pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status != STAT_ACTIVE)){
+		CS_workbuf.p_active_job = &pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot];
 	}
-	else if ((CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job > 0) &&
-			 (CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot].status != STAT_ACTIVE)) {
-		CS_workbuf.p_active_job = &CS_workbuf.job_list[ID_JOBTYPE_JOB].job[CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot];
+	else if ((pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job > 0) &&
+			 (pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status != STAT_ACTIVE)) {
+		CS_workbuf.p_active_job = &pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot];
 	}
 	else
 		CS_workbuf.p_active_job = NULL;
@@ -571,19 +573,19 @@ void CClientService::output() {
 
 	//起動ランプ
 
-	if ((CS_workbuf.job_list[ID_JOBTYPE_JOB].job[CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_ACTIVE)||
-		(CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_ACTIVE)){
+	if ((pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_ACTIVE)||
+		(pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_ACTIVE)){
 		CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
 	}
-	else if((CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_STANDBY)||
-		(CS_workbuf.job_list[ID_JOBTYPE_JOB].job[CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_STANDBY)) {
+	else if((pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_STANDBY)||
+		(pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_STANDBY)) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
 			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
 		else
 			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_OFF;
 	}
-	else if ((CS_workbuf.job_list[ID_JOBTYPE_JOB].job[CS_workbuf.job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_SUSPENDED) ||
-		(CS_workbuf.job_list[ID_JOBTYPE_SEMI].job[CS_workbuf.job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_SUSPENDED)) {
+	else if ((pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_SUSPENDED) ||
+		(pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_SUSPENDED)) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
 			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
 		else
@@ -673,13 +675,13 @@ void CClientService::output() {
 	}
 	else status = STAT_NA;
 
-	if ((CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job <=0) && (CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job <= 0)){
+	if ((pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job <=0) && (pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job <= 0)){
 		wostrs << L" >JOB: 0 hold";
 	}
 	else if ((CS_workbuf.p_active_job != NULL) &&
 			 (CS_workbuf.p_active_job->list_id == ID_JOBTYPE_JOB) &&
-			 (CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job > 0)) {
-		wostrs << L" >JOB: " << CS_workbuf.job_list[ID_JOBTYPE_JOB].n_hold_job << L" iHOT-> ";
+			 (pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job > 0)) {
+		wostrs << L" >JOB: " << pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job << L" iHOT-> ";
 		if (status & STAT_STANDBY)		wostrs << L"STANDBY";
 		else if (status & STAT_ACTIVE)	wostrs << L"ACTIVE";
 		else if (status & STAT_TRIGED)	wostrs << L"TRIGED";
@@ -690,8 +692,8 @@ void CClientService::output() {
 	}
 	else if ((CS_workbuf.p_active_job != NULL) &&
              (CS_workbuf.p_active_job->list_id == ID_JOBTYPE_SEMI) &&
-			 (CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job > 0)){
-		wostrs << L" >SEMIAUTO: " << CS_workbuf.job_list[ID_JOBTYPE_SEMI].n_hold_job << L" iHOT-> ";
+			 (pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job > 0)){
+		wostrs << L" >SEMIAUTO: " << pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job << L" iHOT-> ";
 		if (status & STAT_STANDBY)		wostrs << L"STANDBY";
 		else if (status & STAT_ACTIVE)	wostrs << L"ACTIVE";
 		else if (status & STAT_TRIGED)	wostrs << L"TRIGED";
@@ -717,12 +719,12 @@ LPST_JOB_SET CClientService::get_next_job() {
 	//HOT　JOBのステータスがトリガ状態のものを返信
 	
 	//半自動チェック
-	int job_status = pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status;
+	int job_status = pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status;
 
 	switch(job_status){
 	case STAT_TRIGED:
 		//レシピをセットしてポインタを返す
-		 return &(pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot]);
+		 return &(pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot]);
 	
 	case STAT_ACTIVE:
 	case STAT_SUSPENDED:
@@ -735,12 +737,12 @@ LPST_JOB_SET CClientService::get_next_job() {
 	}
 
 	//JOBチェック
-	job_status = pCSinf->job_list[ID_JOBTYPE_JOB].job[pCSinf->job_list[ID_JOBTYPE_JOB].i_job_hot].status;
+	job_status = pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status;
 
 	switch (job_status) {
 	case STAT_TRIGED:
 		//レシピをセットしてポインタを返す
-		return &(pCSinf->job_list[ID_JOBTYPE_JOB].job[pCSinf->job_list[ID_JOBTYPE_JOB].i_job_hot]);
+		return &(pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot]);
 
 	case STAT_ACTIVE:
 	case STAT_SUSPENDED:
@@ -761,8 +763,8 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 	if (pjobset->list_id == ID_JOBTYPE_JOB) {
 		switch (fb_code) {
 		case STAT_END: {
-			pCSinf->job_list[ID_JOBTYPE_JOB].n_hold_job--;
-			pCSinf->job_list[ID_JOBTYPE_JOB].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_END;
+			pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job--;
+			pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_END;
 
 			job_report2client(pjobset, STAT_END);
 
@@ -779,8 +781,8 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 		switch (fb_code) {
 		case STAT_END: {
 			//正常完了時JOBのホールド数を0クリア
-			pCSinf->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
-			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_END;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_END;
 
 			job_report2client(pjobset, STAT_END);
 
@@ -788,8 +790,8 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 		}break;
 		case STAT_ABNORMAL_END: {
 			//異常完了時JOBのホールド数を0クリア
-			pCSinf->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
-			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_ABNORMAL_END;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_ABNORMAL_END;
 
 			job_report2client(pjobset, STAT_ABNORMAL_END);
 
@@ -797,7 +799,7 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 		}break;
 		case STAT_ACTIVE: {
 			//ジョブ実行報告は、ステータスの更新のみ
-			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_ACTIVE;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_ACTIVE;
 
 			job_report2client(pjobset, STAT_ACTIVE);
 
@@ -805,14 +807,14 @@ int CClientService::update_job_status(LPST_JOB_SET pjobset, int fb_code) {
 		}break;
 		case STAT_ABOTED: {
 			//ジョブキャンセル時（自動OFF等）JOBのホールド数を0クリア
-			pCSinf->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
-			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_ABOTED;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job = 0;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_ABOTED;
 
 			return STAT_ACCEPTED;
 		}break;
 		case STAT_SUSPENDED: {
 			//中断時（手動介入）の場合は、ステータスをスタンバイ状態に戻す
-			pCSinf->job_list[ID_JOBTYPE_SEMI].job[pCSinf->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_STANDBY;
+			pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_STANDBY;
 
 			return STAT_ACCEPTED;
 		}break;

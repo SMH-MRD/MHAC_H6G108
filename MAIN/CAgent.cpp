@@ -12,6 +12,7 @@ extern CSharedMem* pRemoteIO_Obj;
 extern CSharedMem* pCSInfObj;
 extern CSharedMem* pPolicyInfObj;
 extern CSharedMem* pAgentInfObj;
+extern CSharedMem* pJobIO_Obj;
 
 extern vector<void*>	VectpCTaskObj;	//タスクオブジェクトのポインタ
 extern ST_iTask g_itask;
@@ -47,10 +48,12 @@ void CAgent::init_task(void* pobj) {
 	pPLC_IO = (LPST_PLC_IO)(pPLCioObj->get_pMap());
 	pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
 	pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
+	pJob_IO = (LPST_JOB_IO)(pJobIO_Obj->get_pMap());
 
 	pPolicy = (CPolicy*)VectpCTaskObj[g_itask.policy];
 	pEnv = (CEnvironment*)VectpCTaskObj[g_itask.environment];
 	pCS = (CClientService*)VectpCTaskObj[g_itask.client];
+
 	
 	for (int i = 0;i < N_PLC_PB;i++) AgentInf_workbuf.PLC_PB_com[i] =0;
 
@@ -106,12 +109,12 @@ void CAgent::input() {
 		AgentInf_workbuf.axis_status[ID_SLEW]	|= AG_AXIS_STAT_ANTISWAY_ENABLE;
 
 		//速度0状態設定
-		if (pEnv->is_speed_0(ID_HOIST))	AgentInf_workbuf.axis_status[ID_HOIST] |= AG_AXIS_STAT_FB0;
-		else							AgentInf_workbuf.axis_status[ID_HOIST] &= ~AG_AXIS_STAT_FB0;
-		if(pEnv->is_speed_0(ID_BOOM_H))	AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_HOIST))	AgentInf_workbuf.axis_status[ID_HOIST]	|= AG_AXIS_STAT_FB0;
+		else							AgentInf_workbuf.axis_status[ID_HOIST]	&= ~AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_BOOM_H))AgentInf_workbuf.axis_status[ID_BOOM_H] |= AG_AXIS_STAT_FB0;
 		else							AgentInf_workbuf.axis_status[ID_BOOM_H] &= ~AG_AXIS_STAT_FB0;
-		if (pEnv->is_speed_0(ID_SLEW))	AgentInf_workbuf.axis_status[ID_SLEW] |= AG_AXIS_STAT_FB0;
-		else							AgentInf_workbuf.axis_status[ID_SLEW] &= ~AG_AXIS_STAT_FB0;
+		if (pEnv->is_speed_0(ID_SLEW))	AgentInf_workbuf.axis_status[ID_SLEW]	|= AG_AXIS_STAT_FB0;
+		else							AgentInf_workbuf.axis_status[ID_SLEW]	&= ~AG_AXIS_STAT_FB0;
 	}
 	
 	//# 振れ止め完了判定
@@ -575,10 +578,9 @@ int CAgent::cal_as_recipe(int motion) {
 		pelement->type = CTR_TYPE_VOUT_TIME;										// 時間待ち
 		pelement->_t = 5.0;																			// タイムオーバーリミット値
 		pelement->time_count = (int)(pelement->_t * 1000.0 / (double)(st_as_work.agent_scan_ms));	// タイムオーバーリミット値
-		pelement->_v = 0.1;																		// 速度0
+		pelement->_v = -0.1;																		// 速度0
 		pelement->_p = st_as_work.pos[motion];													// 目標位置
 		pelement->status = STAT_STANDBY;														// ステータスセット
-		pelement->direction = -1;
 		D = D;																					// 残り距離変更なし
 
 	}break;
@@ -642,7 +644,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 
 		//#	時間待機
 	case CTR_TYPE_WAIT_TIME: {
-		pStep->direction = AGENT_STOP;
+		pStep->status = STAT_ACTIVE;
 		if (pStep->act_count >= pStep->time_count) {
 			pStep->status = STAT_END;
 		}
@@ -650,69 +652,130 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	}break;
 
 	case CTR_TYPE_VOUT_TIME: {
+		pStep->status = STAT_ACTIVE;
 		if (pStep->act_count >= pStep->time_count) {
 			pStep->status = STAT_END;
 		}
-		v_out = (double)pStep->direction * pStep->_v;
+		v_out = pStep->_v;
 	}break;
 
 		//#	振れ止め位置合わせ
 	case CTR_TYPE_FB_SWAY_POS: {
-		pStep->act_count++;
+		pStep->status = STAT_ACTIVE;
 		if (pStep->act_count > pStep->time_count) {
 			pStep->status = STAT_END;
 		}
 		v_out = cal_step(&AgentInf_workbuf.st_as_comset,motion);
 		if(pCom->motion_status[motion]== STAT_END) pStep->status = STAT_END;
 	}break;
-	case CTR_TYPE_WAIT_POS_OTHERS: {
+	case CTR_TYPE_WAIT_POS_HST: {
+		pStep->status = STAT_ACTIVE;
+		v_out = 0.0;
+	
+	}break;
+	case CTR_TYPE_WAIT_POS_BH: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
-	case CTR_TYPE_WAIT_POS_AND_PH: {
+	case CTR_TYPE_WAIT_POS_SLW: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_WAIT_LAND: {
-		v_out = 0.0;
-	}break;
-	case CTR_TYPE_WAIT_PH: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 
 	case CTR_TYPE_VOUT_V: {
-		v_out = 0.0;
+		pStep->status = STAT_ACTIVE;
+		v_out = pStep->_v;
+
+		double dv = v_out - pPLC_IO->status.v_fb[motion];
+		if ((v_out > 0.0) && (v_out - pPLC_IO->status.v_fb[motion] < 0.0)) {
+			pStep->status = STAT_END;
+		}
+		else if ((v_out < 0.0) && (v_out - pPLC_IO->status.v_fb[motion] > 0.0)) {
+			if (pPLC_IO->status.pos[ID_HOIST] < pStep->_p)
+				pStep->status = STAT_END;
+		}
+		else;
+
+		if (pStep->act_count >= pStep->time_count) {
+			pStep->status = STAT_END;
+		}
 	}break;
 	case CTR_TYPE_VOUT_POS: {
-		v_out = 0.0;
+		pStep->status = STAT_ACTIVE;
+		v_out = pStep->_v;
+		if (precipe->direction >= 0) {
+			if(pPLC_IO->status.pos[motion] >= pStep->_p)
+				pStep->status = STAT_END;
+		}
+		else {
+			if (pPLC_IO->status.pos[ID_HOIST] < pStep->_p)
+				pStep->status = STAT_END;
+		}
+		if (pStep->act_count >= pStep->time_count) {
+			pStep->status = STAT_END;
+		}
 	}break;
 	case CTR_TYPE_VOUT_PHASE: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_VOUT_LAND: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_AOUT_TIME: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_AOUT_V: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_AOUT_POS: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_AOUT_PHASE: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_AOUT_LAND: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 	case CTR_TYPE_FINE_POS: {
-		v_out = 0.0;
+		pStep->status = STAT_ACTIVE;
+		double dx = pStep->_p - pPLC_IO->status.pos[motion];
+
+		if ((dx < pCraneStat->spec.as_pos_level[motion][ID_LV_COMPLE]) && (dx > -pCraneStat->spec.as_pos_level[motion][ID_LV_COMPLE])) {
+			pStep->status = STAT_END;
+			v_out = 0.0;
+		}
+		else if (pStep->act_count >= pStep->time_count) {
+			pStep->status = STAT_END;
+			v_out = 0.0;
+		}
+		else if (dx > 0.0) {
+			v_out = pStep->_v;
+		}
+		else if (dx < 0.0) {
+			v_out = -pStep->_v;
+		}
+		else {
+			v_out = 0.0;
+		}
 	}break;
 	case CTR_TYPE_FB_SWAY: {
+		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
 	}break;
 
 	default:
+		pStep->status = STAT_LOGICAL_ERROR;
 		v_out = 0.0;
 		break;
 	}

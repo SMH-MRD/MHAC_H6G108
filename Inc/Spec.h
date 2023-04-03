@@ -138,19 +138,27 @@ typedef struct StSpec {
 	{ 0.01, 0.04, 4.0 },										//[ID_BOOM_H]
 	{ 0.01, 0.04, 4.0 },										//[ID_SLEW]
 	};
-	double as_pos_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# 位置決め判定　位置ずれレベル(m) 
+	double as_pos_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# 位置決め判定　位置ずれレベル(m,rad) 
 	{ 0.03, 0.06, 0.020 },										//m[ID_HOIST]
 	{ 0.03, 0.06, 0.020 },										//m[ID_GANTRY]
 	{ 0.03, 0.06, 0.020 },										//m[ID_TROLLY]
 	{ 0.03, 0.06, 0.020 },										//m[ID_BOOM_H]
 	{ 0.005, 0.01, 0.1 }										//rad[ID_SLEW]
 	};
-	double as_pos2_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# 位置決め判定　位置ずれレベル(m) 
-	{ 0.009, 0.036, 0.020 },										//m[ID_HOIST]
-	{ 0.009, 0.036, 0.020 },										//m[ID_GANTRY]
-	{ 0.009, 0.036, 0.020 },										//m[ID_TROLLY]
-	{ 0.009, 0.036, 0.020 },										//m[ID_BOOM_H]
-	{ 0.000025, 0.0001, 0.01 }										//rad[ID_SLEW]
+
+#define ID_LV_DIR_CHECK_MARGIN	0								//移動方向判定マージン
+#define ID_LV_COMP_POS_PASSED	1								//通過
+#define ID_LV_COMP_POS_RANGE	2								//範囲
+
+	double pos_check_limit[MOTION_ID_MAX][NUM_OF_POSITION_LEVEL] = {	//# 位置到達判定範囲(m,rad) 
+	{ 0.1, 0.2, 0.5 },											//m[ID_HOIST]
+	{ 0.1, 0.2, 0.5 },											//m[ID_GANTRY]
+	{ 0.1, 0.2, 0.5 },											//m[ID_TROLLY]
+	{ 0.1, 0.2, 0.5 },											//m[ID_BOOM_H]
+	{ 0.005, 0.17, 0.017},										//rad[ID_SLEW]
+	{ 0.0, 0.0, 0.0 },											//
+	{ 0.0, 0.0, 0.0 },											//
+	{ 0.0, 0.0, 0.0 },											//
 	};
 
 #define NUM_OF_DELAY_PTN		5	//加減速時FB時間遅れ評価パターン数

@@ -4,9 +4,10 @@
 #include "Spec.h"
 #include "CSharedMem.h"
 
-#define PTN_NON_FBSWAY_FULL          0x00000001
+#define PTN_ORDINARY                0x00000000
+#define PTN_NON_FBSWAY_FULL         0x00000001
 #define PTN_FBSWAY_FULL             0x00000002
-#define PTN_NON_FBSWAY_2INCH         0x00000004
+#define PTN_NON_FBSWAY_2INCH        0x00000004
 #define PTN_FBSWAY_AS               0x00000008
 
 #define PTN_FBSWAY_AS               0x00000008
@@ -35,6 +36,7 @@ typedef struct stPolicyWork {
     ST_POS_TARGETS target;                      //目標位置
     int motion_dir[MOTION_ID_MAX];              //移動方向
      unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
+     double agent_scan;                         //AGENTタスクのスキャンタイム 秒
 }ST_POLICY_WORK, * LPST_POLICY_WORK;
 
 
@@ -55,13 +57,14 @@ public:
  
 private:
 
-    LPST_POLICY_INFO pPolicyInf;
-    LPST_PLC_IO pPLC_IO;
-    LPST_CRANE_STATUS pCraneStat;
-    LPST_OTE_IO pOTE_IO;
-    LPST_AGENT_INFO pAgentInf;
-    LPST_SWAY_IO pSway_IO;
-    LPST_CS_INFO pCSInf;
+    LPST_POLICY_INFO    pPolicyInf;
+    LPST_PLC_IO         pPLC_IO;
+    LPST_CRANE_STATUS   pCraneStat;
+    LPST_OTE_IO         pOTE_IO;
+    LPST_AGENT_INFO     pAgentInf;
+    LPST_SWAY_IO        pSway_IO;
+    LPST_CS_INFO        pCSInf;
+    LPST_JOB_IO         pJob_IO;
 
     void input();               //外部データ取り込み
     void main_proc();           //処理内容
