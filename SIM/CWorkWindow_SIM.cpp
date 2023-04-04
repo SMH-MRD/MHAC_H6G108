@@ -104,7 +104,7 @@ int CWorkWindow::init_sock(HWND hwnd) {
 	addrin.sin_port = htons(port);
 	addrin.sin_family = AF_INET;
 //	inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &addrin.sin_addr.s_addr);CTRL_PC_IP_ADDR
-	inet_pton(AF_INET, CTRL_PC_IP_ADDR, &addrin.sin_addr.s_addr);
+	inet_pton(AF_INET, CTRL_PC_IP_ADDR_SWAY, &addrin.sin_addr.s_addr);
 
 	nRtn = bind(s, (LPSOCKADDR)&addrin, (int)sizeof(addrin)); //ソケットに名前を付ける
 	if (nRtn == SOCKET_ERROR) {
@@ -127,7 +127,7 @@ int CWorkWindow::init_sock(HWND hwnd) {
 	memset(&client, 0, sizeof(client));
 	client.sin_port = htons(SWAY_IF_IP_SWAY_PORT_C);
 	client.sin_family = AF_INET;
-	inet_pton(AF_INET, CTRL_PC_IP_ADDR, &client.sin_addr.s_addr);
+	inet_pton(AF_INET, CTRL_PC_IP_ADDR_SWAY, &client.sin_addr.s_addr);
 
 	return 0;
 }

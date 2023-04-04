@@ -404,7 +404,7 @@ int CSwayIF::init_sock(HWND hwnd) {
     memset(&addrin, 0, sizeof(addrin));
     addrin.sin_port = htons(port);
     addrin.sin_family = AF_INET;
-    inet_pton(AF_INET, CTRL_PC_IP_ADDR, &addrin.sin_addr.s_addr);
+    inet_pton(AF_INET, CTRL_PC_IP_ADDR_SWAY, &addrin.sin_addr.s_addr);
     
     nRtn = bind(s, (LPSOCKADDR)&addrin, (int)sizeof(addrin)); //ソケットに名前を付ける
     if (nRtn == SOCKET_ERROR) {
