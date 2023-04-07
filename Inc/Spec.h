@@ -215,14 +215,17 @@ typedef struct StSpec {
 #define CTRL_PC_IP_ADDR_SWAY	"192.168.1.31"
 #define SWAY_SENSOR_IP_ADDR		"192.168.1.102"
 #define CTRL_PC_IP_ADDR_OTE		"192.168.1.31"
+//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.200"
+#define OTE_DEFAULT_IP_ADDR		"192.168.1.200"
 #define OTE_MULTI_IP_ADDR		"224.0.0.100"
 
 
 #define SWAY_IF_IP_SWAY_PORT_C			10080
 #define SWAY_IF_IP_SWAY_PORT_S			10081
-#define OTE_IF_IP_UNICAST_PORT_C		10050
-#define OTE_IF_IP_UNICAST_PORT_S		10051
-#define OTE_IF_IP_MULTICAST_PORT		20080
+#define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
+#define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_TE		20080	//マルチキャスト端末受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_CR		20081	//マルチキャストクレーン受信ポート
 
 
 

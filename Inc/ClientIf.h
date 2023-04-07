@@ -44,7 +44,7 @@ typedef struct ClientComSndMsg {      //振れセンサ受信メッセージ
     ST_CLIENT_COM_HEAD         head;
   }ST_CLIENT_COM_SND_MSG, * LPST_CLIENT_COM_SND_MSG;
 
-
+#if 0
 
 /*#########################################################################*/
 /*      　　         操作端末との通信メッセージフォーマット　　　　　　　　*/
@@ -108,3 +108,4 @@ typedef struct OteComUniSndMsg {        //振れセンサ受信メッセージ
     ST_OTE_UNI_SND_BODY   body;
 }ST_OTE_UNI_SND_MSG, * LPST_OTE_UNI_SND_MSG;
 
+#endif

@@ -148,6 +148,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="COTE_IF.h" />
+    <ClInclude Include="CSimOTE.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="OTE_IF.h" />
     <ClInclude Include="Resource.h" />
@@ -156,6 +157,7 @@
   <ItemGroup>
     <ClCompile Include="..\Source\CSharedMem.cpp" />
     <ClCompile Include="COTE_IF.cpp" />
+    <ClCompile Include="CSimOTE.cpp" />
     <ClCompile Include="OTE_IF.cpp" />
   </ItemGroup>
   <ItemGroup>

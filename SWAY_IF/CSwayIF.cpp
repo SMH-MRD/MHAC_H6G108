@@ -73,7 +73,7 @@ int CSwayIF::init_proc() {
      // 共有メモリ取得
 
      // 出力用共有メモリ取得
-    out_size = sizeof(ST_PLC_IO);
+    out_size = sizeof(ST_SWAY_IO);
     if (OK_SHMEM != pSwayIOObj->create_smem(SMEM_SWAY_IO_NAME, out_size, MUTEX_SWAY_IO_NAME)) {
         mode |= SWAY_IF_SWAY_IO_MEM_NG;
     }
@@ -655,8 +655,6 @@ LRESULT CALLBACK CSwayIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     case WM_TIMER: {
        if(be_skiped_once_const_msg == false) 
             send_msg(SID_SENSOR1,SW_SND_COM_CONST_DATA);
-
-
         be_skiped_once_const_msg = false;
 
     }break;

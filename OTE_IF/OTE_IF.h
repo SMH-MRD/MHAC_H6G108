@@ -16,7 +16,7 @@
 #define MAIN_WND_INIT_SIZE_W		380		//-Main Windowの初期サイズ　W
 #define MAIN_WND_INIT_SIZE_H		195		//-Main Windowの初期サイズ　H
 #define MAIN_WND_INIT_POS_X			670		//-Main Windowの初期位置設定　X
-#define MAIN_WND_INIT_POS_Y			0		//-Main Windowの初期位置設定　Y
+#define MAIN_WND_INIT_POS_Y			20		//-Main Windowの初期位置設定　Y
 
 //-ID定義 Mainスレッド用　2000 + 300 +α
 #define ID_STATUS					2400
@@ -24,6 +24,7 @@
 #define IDC_PB_EXIT					2402
 #define IDC_PB_DEBUG				2403
 #define IDC_PB_COMWIN				2404
+#define IDC_PB_SIM_OTE				2405
 
 #define IDC_STATIC_1				2415
 #define IDC_PB_SENSOR_1				2416

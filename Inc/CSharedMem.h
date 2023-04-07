@@ -5,7 +5,7 @@
 #include "spec.h"
 #include "CVector3.h"
 #include "Swaysensor.h"
-
+#include "Opeterminal.h"
 
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
 #define SMEM_SWAY_STATUS_NAME			L"SWAY_STATUS"
@@ -162,7 +162,7 @@ typedef struct StPLCIO {
 #define N_CPC_MAX				32 //制御PC台数最大値
 #define N_OTE_MAX				32 //制御PC台数最大値
 
-#define PLC_IO_OFF_DELAY_COUNT		 4	//PB操作オフディレイカウント値
+#define PLC_IO_OFF_DELAY_COUNT	4	//PB操作オフディレイカウント値
 // IO割付内容は、OTE_IO_DEF.hに定義
 typedef struct StOTE_ComFrom {
 	INT32 id;
