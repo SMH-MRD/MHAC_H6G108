@@ -147,7 +147,7 @@ int CEnvironment::parse_notch_com() {
 	//ノッチ位置配列のポインタセット
 	INT16* p_notch;
 	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) 
-		p_notch = pOTE_IO->st_from_ote.notch_pos;
+		p_notch = pOTE_IO->rcv_msg_u.body.notch_pos;
 	else 
 		p_notch = pPLC_IO->ui.notch_pos;
 

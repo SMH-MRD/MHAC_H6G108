@@ -68,6 +68,10 @@ private:
 
     HINSTANCE hInst;
 
+    //# 出力用共有メモリオブジェクトポインタ:
+    static CSharedMem* pOteIOObj;
+    static ST_OTE_IO ote_io_workbuf;
+
     void init_rcv_msg();
 
     static void tweet2rcvMSG(const std::wstring& srcw, int code);
@@ -79,9 +83,11 @@ private:
     static WSADATA wsaData;
     static SOCKET s_u;                              //ユニキャスト受信ソケット
     static SOCKET s_m_te, s_m_cr;                   //マルチキャスト受信ソケット
+    static SOCKET s_m_snd, s_m_snd_dbg;             //マルチキャスト送信ソケット
     static SOCKADDR_IN addrin_u;                    //ユニキャスト受信アドレス
     static SOCKADDR_IN addrin_ote_u;                //ユニキャスト送信アドレス
     static SOCKADDR_IN addrin_m_te, addrin_m_cr;    //マルチキャスト受信アドレス
+    static SOCKADDR_IN addrin_m_snd;//マルチキャスト送信アドレス
     static u_short port_u;                          //ユニキャスト受信ポート
     static u_short port_m_te, port_m_cr;           //マルチキャスト受信ポート
 
@@ -94,13 +100,6 @@ public:
 
     static HWND hWorkWnd;
     WORD helthy_cnt = 0;
-
-    static ST_UOTE_SND_MSG snd_msg_u;
-    static ST_UOTE_RCV_MSG rcv_msg_u;
-
-    static ST_MOTE_SND_MSG rcv_msg_m;
-    static ST_MOTE_RCV_MSG rcv_msg_m_te;
-    static ST_MOTE_SND_MSG rcv_msg_m_cr;
 
     static int send_msg_u();                //ユニキャスト送信
     static int send_msg_m_te();             //マルチキャスト送信

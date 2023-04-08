@@ -152,80 +152,14 @@ typedef struct StPLCIO {
 /*   操作端末卓信号定義構造体                                  　         　*/
 /* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
 /****************************************************************************/
-#define N_OTE_PB				64 //運転操作PB数
-#define N_OTE_LAMP				64 //BIT STATUS数
-#define N_OTE_CTRL_WORDS        16 //制御信号WORD数
-#define N_OTE_ANALOG_SETTING	24  //運転操作PB数
-#define N_OTE_FAULTS			400	//PLCフォルトの割り当てサイズ
-#define N_CPC					4 //制御PC台数
-#define N_OTE					4 //操作端末数
-#define N_CPC_MAX				32 //制御PC台数最大値
-#define N_OTE_MAX				32 //制御PC台数最大値
-
-#define PLC_IO_OFF_DELAY_COUNT	4	//PB操作オフディレイカウント値
-// IO割付内容は、OTE_IO_DEF.hに定義
-typedef struct StOTE_ComFrom {
-	INT32 id;
-	INT32 type;
-	SOCKADDR_IN ip;
-	INT32 command;
-	INT32 connected_PC;
-	CHAR  textAO[4];
-	double touch_pos[MOTION_ID_MAX];
-	double touch_dist[MOTION_ID_MAX];
-	CHAR  textPB[4];
-	INT16 PB[N_PLC_PB];
-	INT16 notch_pos[MOTION_ID_MAX];
-}ST_OTE_COM_FROM, * LPST_OTE_COM_FROM;
-
-typedef struct StOTE_ComTo {
-	INT32 id;
-	INT32 type;
-	SOCKADDR_IN ip;
-	INT32 status;
-	INT32 connected_OTE;
-	CHAR  textAO[4];
-	double pos_fb[MOTION_ID_MAX];
-	double v_fb[MOTION_ID_MAX];
-	double v_ref[MOTION_ID_MAX];
-	double ld_pos_fb[MOTION_ID_MAX];
-	double ld_v_fb[MOTION_ID_MAX];
-	double auto_tg_pos[MOTION_ID_MAX];
-	double auto_tg_dist[MOTION_ID_MAX];
-	double auto_setting[N_OTE_ANALOG_SETTING];
-	CHAR  textLAMP[4];
-	INT16 lamp[N_PLC_LAMP];
-	INT16 notch_pos[MOTION_ID_MAX];
-	CHAR  textPLC[4];
-	INT16 PLCw[99];
-}ST_OTE_COM_TO, * LPST_OTE_COM_TO;
-
-typedef struct StNOTE_ComFrom {
-	INT32 id;
-	INT32 type;
-	SOCKADDR_IN ip;
-	INT32 status;
-	INT32 connect_PC;
-	UCHAR is_connectable_PC[N_CPC_MAX];
-	INT32 n_standbyOTE;
-	INT32 seq_no_site_connect;
-	INT32 seq_no_remote_connect;
-	INT32 seq_no_my_connect;
-}ST_NOTE_COM_FROM, * LPST_NOTE_COM_FROM;
-
-typedef struct StNOTE_ComTo {
-	INT32 id;
-	INT32 type;
-	SOCKADDR_IN ip;
-	INT32 status;
-	INT32 connected_OTE;
-}ST_NOTE_COM_TO, * LPST_NOTE_COM_TO;
 
 typedef struct StOTE_IO {
-	ST_OTE_COM_FROM st_from_ote;
-	ST_OTE_COM_TO st_to_ote;
-	ST_NOTE_COM_FROM st_from_note[N_OTE_MAX];
-	ST_NOTE_COM_TO st_to_note;
+	ST_UOTE_SND_MSG snd_msg_u;
+	ST_UOTE_RCV_MSG rcv_msg_u;
+	ST_MOTE_SND_MSG snd_msg_m;
+	ST_MOTE_SND_MSG rcv_msg_m_cr;
+	ST_MOTE_RCV_MSG rcv_msg_m_te;
+	INT32 OTEsim_status;
 }ST_OTE_IO, * LPST_OTE_IO;
 
 /****************************************************************************/

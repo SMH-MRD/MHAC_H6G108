@@ -318,6 +318,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             else {
                 pSimOTE->close_WorkWnd();
                 delete pSimOTE;
+                pSimOTE = NULL;
             }
             break;
 #if 0
