@@ -126,3 +126,11 @@ public:
     virtual int parse() = 0;                     //メイン処理
     virtual int output() = 0;                   //出力処理
 };
+
+typedef struct DeviceCode {
+    char    order[2];       //製番
+    char    system[2];  //機械、システムコード    :クレーン番号等
+    char    type[2];    //デバイス種別　          :制御PC,端末等
+    INT16   no;         //シリアル番号
+}ST_DEVICE_CODE, * LPST_DEVICE_CODE;
+

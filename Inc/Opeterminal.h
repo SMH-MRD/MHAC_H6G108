@@ -4,14 +4,13 @@
 #include <time.h>
 
 #define ID_OTE_EVENT_CODE_CONST             0
-#define ID_OTE_EVENT_CODE_REQ_CONNECT       1
-#define ID_OTE_EVENT_CODE_STAT_CONNECT      2
+#define ID_OTE_EVENT_CODE_STAT_REPORT       1
+#define ID_OTE_EVENT_CODE_CONNECTED         1
 
-#define ID_OTE_CONNECT_CODE_NO_OPERATION    0
-#define ID_OTE_CONNECT_CODE_AUTO_STANDBY    1
-#define ID_OTE_CONNECT_CODE_MANU_STANDBY    2
-#define ID_OTE_CONNECT_CODE_RESERVED        3
-#define ID_OTE_CONNECT_CODE_CONNECTED       4
+#define ID_TE_CONNECT_STATUS_OFF_LINE       0
+#define ID_TE_CONNECT_STATUS_STANDBY        1
+#define ID_TE_CONNECT_STATUS_ACTIVE         2
+#define ID_TE_CONNECT_STATUS_WAITING        3
 
 #define ID_PC_CONNECT_CODE_ENABLE           1
 #define ID_PC_CONNECT_CODE_DISABLE          0
@@ -22,7 +21,7 @@ typedef struct OteComHead {
     INT32       code;
     SOCKADDR_IN addr;
     INT32       status;
-    INT32       nodeid;
+    INT32       tgid;
 }ST_OTE_HEAD, * LPST_OTE_HEAD;
 
 typedef struct MOteSndMsg {
@@ -44,24 +43,24 @@ typedef struct MOteRcvMsg {
     ST_MOTE_RCV_BODY    body;
 }ST_MOTE_RCV_MSG, * LPST_MOTE_RCV_MSG;
 
-
+#define PLC_IO_MONT_WORD_NUM		99
 /******* 操作端末IF ユニチキャスト通信送信メッセージ構造体 ***********/
 
 typedef struct UOteSndBody {
-    char        pad_ao[4];           //パディング
-    double      pos[7];             //位置FB
-    double      v_fb[6];            //速度FB
-    double      v_ref[4];           //速度指令
-    double      tg_pos1[3];         //目標位置座標1
-    double      tg_dist1[3];        //目標までの距離1
-    double      tg_pos2[3];         //目標位置座標2
-    double      tg_dist2[3];        //目標までの距離2
-    double      tg_pos_semi[6][3];  //半自動目標位置座標S1-L3
-    char        pad_lamp[4];            //パディング
-    UCHAR       lamp[64];           //ランプ表示
-    INT16       notch_pos[4];       //ノッチランプ表示
-    char        pad_plc[4];         //パディング
-    INT16	    plc_data[99];       //PLCモニタリングデータ
+    char        pad_ao[4];                      //パディング
+    double      pos[7];                         //位置FB
+    double      v_fb[6];                        //速度FB
+    double      v_ref[4];                       //速度指令
+    double      tg_pos1[3];                     //目標位置座標1
+    double      tg_dist1[3];                    //目標までの距離1
+    double      tg_pos2[3];                     //目標位置座標2
+    double      tg_dist2[3];                    //目標までの距離2
+    double      tg_pos_semi[6][3];              //半自動目標位置座標S1-L3
+    char        pad_lamp[4];                    //パディング
+    UCHAR       lamp[64];                       //ランプ表示
+    INT16       notch_pos[4];                   //ノッチランプ表示
+    char        pad_plc[4];                     //パディング
+    INT16	    plc_data[PLC_IO_MONT_WORD_NUM]; //PLCモニタリングデータ
 }ST_UOTE_SND_BODY, * LPST_OTE_SND_BODY;
 
 typedef struct UOteSndMsg {

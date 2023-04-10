@@ -25,8 +25,11 @@ HWND COteIF::hwndRCVMSG_M_CR;
 HWND COteIF::hwndSNDMSG_M_CR;
 HWND COteIF::hwndINFMSG_M_CR;
 
+LPST_OTE_IO COteIF::pOTEio;
+LPST_CRANE_STATUS COteIF::pCraneStat;
+LPST_PLC_IO COteIF::pPLCio;
 
-ST_OTE_IO COteIF::ote_io_workbuf;
+ST_OTE_IO_WORK COteIF::ote_io_workbuf;
 
 //IF用ソケット
 WSADATA COteIF::wsaData;
@@ -51,12 +54,14 @@ COteIF::COteIF() {
     pOteIOObj = new CSharedMem;
     pCraneStatusObj = new CSharedMem;
     pSimulationStatusObj = new CSharedMem;
+    pPLCioObj = new CSharedMem;
   };
 COteIF::~COteIF() {
     // 共有メモリオブジェクトの解放
     delete pOteIOObj;
     delete pCraneStatusObj;
     delete pSimulationStatusObj;
+    delete pPLCioObj;
 };
 
 int COteIF::set_outbuf(LPVOID pbuf) { 
@@ -87,8 +92,17 @@ int COteIF::init_proc() {
         mode |= OTE_IF_CRANE_MEM_NG;
     }
 
-    LPST_OTE_IO pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
+    if (OK_SHMEM != pPLCioObj->create_smem(SMEM_PLC_IO_NAME, sizeof(ST_PLC_IO), MUTEX_PLC_IO_NAME)) {
+        mode |= OTE_IF_PLC_MEM_NG;
+    }
+
+    pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
+    pPLCio = (LPST_PLC_IO)(pPLCioObj->get_pMap());
+    pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
     pOTEio->OTEsim_status = L_OFF;          //端末シミュレーションモードOFF
+
+    ote_io_workbuf.te_connect_time_limit = TE_CONNECT_TIMEOVER_MS / ID_WORK_WND_TIMER;
+    ote_io_workbuf.te_multi_snd_cycle = MULTI_SND_SCAN_TIME_MS / ID_WORK_WND_TIMER;
 
     //デバッグモード　ON　製番ではOFFで初期化
 #ifdef _DVELOPMENT_MODE
@@ -100,26 +114,24 @@ int COteIF::init_proc() {
     return 0; 
 }
 int COteIF::input() {                            //入力処理
-    ote_io_workbuf.OTEsim_status = ((LPST_OTE_IO)poutput)->OTEsim_status;//OTE Simuratorの稼働状態
+    ote_io_workbuf.ote_io.OTEsim_status = ((LPST_OTE_IO)poutput)->OTEsim_status;//OTE Simuratorの稼働状態
     return 0; 
 } 
 int COteIF::parse() { return 0; }               //メイン処理
 int COteIF::output() {                          //出力処理
 
-    ((LPST_OTE_IO)poutput)->rcv_msg_m_cr = ote_io_workbuf.rcv_msg_m_cr;
-    ((LPST_OTE_IO)poutput)->rcv_msg_m_te = ote_io_workbuf.rcv_msg_m_te;
-    ((LPST_OTE_IO)poutput)->rcv_msg_u = ote_io_workbuf.rcv_msg_u;
-    ((LPST_OTE_IO)poutput)->snd_msg_m = ote_io_workbuf.snd_msg_m;
-    ((LPST_OTE_IO)poutput)->snd_msg_u = ote_io_workbuf.snd_msg_u;
+   if (out_size) { //出力処理
+       memcpy_s(poutput, out_size, &ote_io_workbuf.ote_io, out_size);
+   }
 
     return 0; 
 }
 
-
-
 static struct ip_mreq mreq_te, mreq_cr;                     //マルチキャスト受信設定用構造体
 static int serverlen, nEvent;
 static int nRtn = 0, nRcv_u = 0, nRcv_te = 0, nRcv_cr = 0, nSnd_u = 0, nSnd_m = 0;
+static int lRcv_u = 0, lRcv_te = 0, lRcv_cr = 0, lSnd_u = 0, lSnd_m = 0;
+
 
 static char szBuf[512];
 
@@ -174,6 +186,7 @@ int COteIF::close_WorkWnd() {
 /*********************************************************************************************/
 /*   ソケット,送信アドレスの初期化　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　*/
 /*********************************************************************************************/
+/************ クレーンユニキャスト受信ソケット初期化　*************/
 int COteIF::init_sock_u(HWND hwnd) {    //ユニキャスト
     if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {    //WinSockの初期化
         perror("WSAStartup Error\n");
@@ -214,9 +227,15 @@ int COteIF::init_sock_u(HWND hwnd) {    //ユニキャスト
     addrin_ote_u.sin_port = htons(OTE_IF_IP_UNICAST_PORT_C);
     addrin_ote_u.sin_family = AF_INET;
     inet_pton(AF_INET, CTRL_PC_IP_ADDR_OTE, &addrin_ote_u.sin_addr.s_addr);
-      
+  
+
+    //送信メッセージ初期化
+    set_msg_u(ID_MSG_SET_MODE_INIT,ID_OTE_EVENT_CODE_CONNECTED);
+ 
     return 0;
  }
+
+/************ 端末マルチキャスト送信ソケット初期化　***************/
 int COteIF::init_sock_m_te(HWND hwnd) {
  
     //マルチキャスト用受信ソケット（操作端末グループ）
@@ -258,6 +277,8 @@ int COteIF::init_sock_m_te(HWND hwnd) {
     }
     return 0;
 }
+
+/************ クレーンマルチキャスト受信ソケット初期化　***********/
 int COteIF::init_sock_m_cr(HWND hwnd) {
  
     //マルチキャス受信用ソケット（クレーングループ）
@@ -291,7 +312,7 @@ int COteIF::init_sock_m_cr(HWND hwnd) {
 
     //マルチキャストグループ参加登録
     memset(&mreq_cr, 0, sizeof(mreq_cr));
-    mreq_cr.imr_interface.S_un.S_addr = inet_addr(CTRL_PC_IP_ADDR_OTE);     //パケット出力元IPアドレス
+    mreq_cr.imr_interface.S_un.S_addr = inet_addr(CTRL_PC_IP_ADDR_OTE);     //利用ネットワーク
     mreq_cr.imr_multiaddr.S_un.S_addr = inet_addr(OTE_MULTI_IP_ADDR);       //マルチキャストIPアドレス
     if (setsockopt(s_m_cr, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq_cr, sizeof(mreq_cr)) != 0) {
         perror("setopt受信設定失敗\n");
@@ -334,56 +355,112 @@ int COteIF::init_sock_m_cr(HWND hwnd) {
         return -13;
     }
 
+    //送信メッセージ初期化
+    set_msg_m_cr(ID_MSG_SET_MODE_INIT, ID_OTE_EVENT_CODE_CONST);
 
     return 0;
 }
 
-//*********************************************************************************************
+/************ ユニキャスト送信　***********************************/
+/*### 送信関数 　　　　　　　　###*/
 int COteIF::send_msg_u() {
  
     int n = sizeof(ST_UOTE_SND_MSG);
 
-    nRtn = sendto(s_u, reinterpret_cast<const char*> (&ote_io_workbuf.snd_msg_u), n, 0, (LPSOCKADDR)&addrin_ote_u, sizeof(addrin_ote_u));
+    nRtn = sendto(s_u, reinterpret_cast<const char*> (&ote_io_workbuf.ote_io.snd_msg_u), n, 0, (LPSOCKADDR)&addrin_ote_u, sizeof(addrin_ote_u));
 
     if (nRtn == n) {
         nSnd_u++;
-        woMSG << L" SND len: " << nRtn << L"  Count :" << nSnd_m << L"    OTE:" << ote_io_workbuf.snd_msg_u.head.myid;
+        lSnd_u = nRtn;
+        woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
+        tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
     }
     else if (nRtn == SOCKET_ERROR) {
         woMSG << L" SOCKET ERROR: CODE ->   " << WSAGetLastError();
+        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
     }
     else {
         woMSG << L" sendto size ERROR ";
+        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
     }
-    tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-
+ 
     return nRtn;
 }
 
-int COteIF::send_msg_m() {
-    int n = sizeof(ST_MOTE_SND_MSG);
+/*### 送信メッセージセット関数 ###*/
+int COteIF::set_msg_u(int mode, INT32 code) {                                //ユニキャスト送信メッセージセット(初期化用）
+   
+   //Header部
+    if (mode) {
+        ote_io_workbuf.ote_io.snd_msg_u.head.addr = addrin_u;
+        ote_io_workbuf.ote_io.snd_msg_u.head.myid = pCraneStat->spec.device_code.no;
+    }
+    ote_io_workbuf.ote_io.snd_msg_u.head.tgid = ote_io_workbuf.id_connected_te;;
+    ote_io_workbuf.ote_io.snd_msg_u.head.code = code;
+    ote_io_workbuf.ote_io.snd_msg_u.head.status = ote_io_workbuf.status_connected_te;
+    
+    //Body部
+    if (mode) {
+        ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[0] = 'A', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[1] = 'O', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[2] = '0', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[3] = '1';
+        ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[0] = 'L', ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[1] = 'A', ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[2] = 'M', ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[3] = 'P';
+        ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[0] = 'P', ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[1] = 'L', ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[2] = 'C', ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[3] = ' '; 
+    }
+ 
+    ote_io_workbuf.ote_io.snd_msg_u.body.pos[0] = pPLCio->status.pos[ID_HOIST];     //巻き位置
 
-    nRtn = sendto(s_m_snd, reinterpret_cast<const char*> (&ote_io_workbuf.snd_msg_m), n, 0, (LPSOCKADDR)&addrin_m_snd, sizeof(addrin_m_snd));
-    nRtn = sendto(s_m_snd_dbg, reinterpret_cast<const char*> (&ote_io_workbuf.snd_msg_m), n, 0, (LPSOCKADDR)&addrin_m_snd, sizeof(addrin_m_snd));
+    ote_io_workbuf.ote_io.snd_msg_u.body.pos[4] = pCraneStat->rl.x;                 //吊荷座標X
+
+    ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[0] = pPLCio->status.v_fb[ID_HOIST];   //巻き速度FB
+
+    int copysize = PLC_IO_MONT_WORD_NUM * sizeof(INT16);
+    memcpy_s(ote_io_workbuf.ote_io.snd_msg_u.body.plc_data, copysize, pPLCio->plc_data , copysize);
+    
+    return 0; 
+}                 
+
+/*********** マルチキャスト送信　***********************************/
+/*### 送信関数 　　　　　　　　###*/
+int COteIF::send_msg_m() {
+    //送信メッセージセット
+    int n = sizeof(ST_MOTE_SND_MSG);
+    nRtn = sendto(s_m_snd, reinterpret_cast<const char*> (&ote_io_workbuf.ote_io.snd_msg_m), n, 0, (LPSOCKADDR)&addrin_m_snd, sizeof(addrin_m_snd));
+    nRtn = sendto(s_m_snd_dbg, reinterpret_cast<const char*> (&ote_io_workbuf.ote_io.snd_msg_m), n, 0, (LPSOCKADDR)&addrin_m_snd, sizeof(addrin_m_snd));
     woMSG.str(L"");
     if (nRtn == n) {
         nSnd_m++;
-        woMSG << L"SNDlen: " << nRtn;
+        lSnd_m = nRtn;
+        woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
+        tweet2infMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
     }
     else if (nRtn == SOCKET_ERROR) {
         woMSG << L"ERR CODE ->" << WSAGetLastError();
+        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
     }
     else {
         woMSG << L" sendto size ERROR ";
+        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
     }
-    tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
-
-    woMSG.str(L"");
-    woMSG << L"SND" << nSnd_m;
-    tweet2infMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
 
     return nRtn;
 }
+
+/*### 送信メッセージセット関数 ###*/
+int COteIF::set_msg_m_cr(int mode, INT32 code) {                         //マルチキャスト送信メッセージセット(初期化用）
+    if (mode) {
+        ote_io_workbuf.ote_io.snd_msg_m.head.addr = addrin_m_cr;
+        ote_io_workbuf.ote_io.snd_msg_m.head.myid = pCraneStat->spec.device_code.no;
+    }
+    ote_io_workbuf.ote_io.snd_msg_m.head.tgid = ote_io_workbuf.id_connected_te;
+
+    ote_io_workbuf.ote_io.snd_msg_m.head.code = code;
+    ote_io_workbuf.ote_io.snd_msg_m.head.status = ote_io_workbuf.status_connected_te;
+
+
+
+    return 0;
+}   
+
+static int ote_req_last;
 
 //*********************************************************************************************
 LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
@@ -397,7 +474,6 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
         closesocket(s_m_cr);
         closesocket(s_m_snd);
         closesocket(s_m_snd_dbg);
-
     }return 0;
     case WM_CREATE: {
 
@@ -522,11 +598,33 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
 
 
         //振れセンサ送信タイマ起動
-        SetTimer(hwnd, ID_WORK_WND_TIMER, MULTI_SND_SCAN_TIME, NULL);
+        SetTimer(hwnd, ID_WORK_WND_TIMER, OTE_IO_TIME_CYCLE_MS, NULL);
 
     }break;
     case WM_TIMER: {
-        send_msg_m();
+
+        if (ote_io_workbuf.te_connect_chk_counter > 0) {
+            ote_io_workbuf.te_connect_chk_counter--;
+        }
+        else {
+            ote_io_workbuf.id_connected_te = 0;     //接続中OTEクリア
+        }
+       
+        if (ote_io_workbuf.te_connect_chk_counter > 0) {
+            ote_io_workbuf.te_connect_chk_counter--;
+            if (ote_req_last != pCraneStat->OTE_req_status) {
+                set_msg_m_cr(ID_MSG_SET_MODE_CONST, ID_OTE_EVENT_CODE_STAT_REPORT);
+                send_msg_m();
+            }
+        }
+        else {
+            set_msg_m_cr(ID_MSG_SET_MODE_CONST, ID_OTE_EVENT_CODE_CONST);
+            send_msg_m();
+            ote_io_workbuf.te_connect_chk_counter = ote_io_workbuf.te_multi_snd_cycle;
+        }
+
+        ote_req_last = pCraneStat->OTE_req_status;
+
     }break;
 
     case ID_UDP_EVENT_U: {
@@ -538,7 +636,7 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
             SOCKADDR from_addr;                             //送信元アドレス取り込みバッファ
             int from_addr_size = (int)sizeof(from_addr);    //送信元アドレスサイズバッファ
 
-            nRtn = recvfrom(s_u, (char*)&ote_io_workbuf.rcv_msg_u, sizeof(ST_UOTE_RCV_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
+            nRtn = recvfrom(s_u, (char*)&ote_io_workbuf.ote_io.rcv_msg_u, sizeof(ST_UOTE_RCV_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
 
             sockaddr_in* psockaddr = (sockaddr_in*)&from_addr;
 
@@ -547,16 +645,26 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
                 tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
             }
             else {
-                woMSG << L"RCVlen: " << nRtn;
-                tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-                woMSG << L"RCVcnt :" << nRcv_u;
-                tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-
-                //woMSG << L"\n IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
-                //woMSG << L" PORT: " << psockaddr->sin_port;
-
                 addrin_ote_u.sin_addr = ((sockaddr_in*)&from_addr)->sin_addr;
                 send_msg_u();
+
+                woMSG << L"SOCK OK";
+                woMSG << L"  From IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+ 
+                tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L""); woMSG.clear();
+
+                woMSG << L"ID:" << ote_io_workbuf.ote_io.rcv_msg_u.head.myid << L" CD:" << ote_io_workbuf.ote_io.rcv_msg_u.head.code;
+                psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.rcv_msg_u.head.addr;
+                woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+                woMSG << L" PORT: " << htons(psockaddr->sin_port);
+                woMSG << L" ST:" << ote_io_workbuf.ote_io.rcv_msg_u.head.status << L" ID:" << ote_io_workbuf.ote_io.rcv_msg_u.head.tgid;
+                tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
+
+                lRcv_u = nRtn;
+                woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
+                tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
+
+ 
             }
         }break;
         case FD_WRITE: {
@@ -575,19 +683,34 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
                 SOCKADDR from_addr;                             //送信元アドレス取り込みバッファ
                 int from_addr_size = (int)sizeof(from_addr);    //送信元アドレスサイズバッファ
 
-                nRtn = recvfrom(s_m_te, (char*)&ote_io_workbuf.rcv_msg_m_te, sizeof(ST_MOTE_RCV_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
+                nRtn = recvfrom(s_m_te, (char*)&ote_io_workbuf.ote_io.rcv_msg_m_te, sizeof(ST_MOTE_RCV_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
 
                 sockaddr_in* psockaddr = (sockaddr_in*)&from_addr;
 
+                woMSG << L"SOCK OK";
+                woMSG << L"  From IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+
+                tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L""); woMSG.clear();
+                
+                
                 if (nRtn == SOCKET_ERROR) {
                     woMSG << L"recvfrom ERROR";
                     tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
                 }
                 else {
-                    woMSG << L"RCVlen: " << nRtn;
-                    tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
-                    woMSG << L"RCVcnt :" << nRcv_te;
+
+                    lRcv_te = nRtn;
+                    woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_te ;
                     tweet2infMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
+
+                    woMSG << L"ID:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.myid << L" CD:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.code;
+                    psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.rcv_msg_m_te.head.addr;
+                    woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+                    woMSG << L" PORT: " << htons(psockaddr->sin_port);
+                    woMSG << L" ST:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.status << L" ID:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.tgid;
+                    tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
+
+
                 }
 
             }break;
@@ -607,18 +730,30 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
             SOCKADDR from_addr;                             //送信元アドレス取り込みバッファ
             int from_addr_size = (int)sizeof(from_addr);    //送信元アドレスサイズバッファ
 
-            nRtn = recvfrom(s_m_cr, (char*)&ote_io_workbuf.snd_msg_m, sizeof(ST_MOTE_SND_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
+            nRtn = recvfrom(s_m_cr, (char*)&ote_io_workbuf.ote_io.rcv_msg_m_cr, sizeof(ST_MOTE_SND_MSG), 0, (SOCKADDR*)&from_addr, &from_addr_size);
 
             sockaddr_in* psockaddr = (sockaddr_in*)&from_addr;
 
+            woMSG << L"SOCK OK";
+            woMSG << L"  From IP: " << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+           // woMSG << L" PORT: " << htons(psockaddr->sin_port);
+            tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
+  
             if (nRtn == SOCKET_ERROR) {
                 woMSG << L"recvfrom ERROR";
                 tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
             }
             else {
-                woMSG << L"RCVlen: " << nRtn;
+ 
+                woMSG << L"ID:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.myid << L" CD:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.code;
+                psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.rcv_msg_m_cr.head.addr;
+                woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+                woMSG << L" PORT: " << htons(psockaddr->sin_port);
+                woMSG << L" ST:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.status << L" ID:" << ote_io_workbuf.ote_io.rcv_msg_m_cr.head.tgid;
                 tweet2rcvMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
-                woMSG << L"RCVcnt :" << nRcv_cr;
+
+                lRcv_cr = nRtn;
+                woMSG << L"Rcv n:" << nRcv_cr << L" l:" << lRcv_cr << L"  Snd n:" << nSnd_m << L"  l:" << lSnd_m;
                 tweet2infMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
             }
         }break;

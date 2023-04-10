@@ -16,6 +16,7 @@
 #define OTE_IF_OTE_IO_MEM_NG              0x8000
 #define OTE_IF_CRANE_MEM_NG                0x4000
 #define OTE_IF_SIM_MEM_NG                  0x2000
+#define OTE_IF_PLC_MEM_NG                  0x1000
 #define OTE_IF_DBG_MODE                0x00000010
 
 #define ID_SOCK_CODE_U  			        0
@@ -46,7 +47,9 @@
 
 //起動タイマーID
 #define ID_WORK_WND_TIMER					100
-#define MULTI_SND_SCAN_TIME				    1000		// マルチキャスト IF送信周期msec
+#define OTE_IO_TIME_CYCLE_MS    		    100		    // 定周期処理タイマ値msec
+#define MULTI_SND_SCAN_TIME_MS				5000	    // マルチキャスト IF送信周期
+#define TE_CONNECT_TIMEOVER_MS				500		    // 操作端末接続断判定値msec
 
 
 #define WORK_WND_X							1050		//メンテパネル表示位置X
@@ -54,6 +57,21 @@
 #define WORK_WND_W							540		    //メンテパネルWINDOW幅
 #define WORK_WND_H							370			//メンテパネルWINDOW高さ
 
+
+#define ID_MSG_SET_MODE_INIT                1
+#define ID_MSG_SET_MODE_CONST               0
+
+
+typedef struct stOteIOWork {
+    ST_OTE_IO   ote_io;
+    SOCKADDR_IN addr_connected_te;
+    INT32       id_connected_te;
+    INT32       status_connected_te;
+    INT32       te_connect_chk_counter;
+    INT32       te_connect_time_limit;
+    INT32       te_multi_snd_cycle;
+    INT32       te_multi_snd_chk_counter;
+}ST_OTE_IO_WORK, * LPST_OTE_IO_WORK;
 
 class COteIF :  public CBasicControl
 {
@@ -64,7 +82,11 @@ private:
     //# 入力用共有メモリオブジェクトポインタ:
   CSharedMem* pCraneStatusObj;
   CSharedMem* pSimulationStatusObj;
+  CSharedMem* pPLCioObj;
 
+    static LPST_OTE_IO pOTEio;
+    static LPST_CRANE_STATUS pCraneStat;
+    static LPST_PLC_IO pPLCio;
 
     HINSTANCE hInst;
 
@@ -87,7 +109,13 @@ private:
     static u_short port_u;                          //ユニキャスト受信ポート
     static u_short port_m_te, port_m_cr ;           //マルチキャスト受信ポート
 
-    static ST_OTE_IO ote_io_workbuf;
+    static ST_OTE_IO_WORK ote_io_workbuf;
+
+    static int send_msg_u();   //ユニキャスト送信
+    static int send_msg_m();   //マルチキャスト送信
+
+    static int set_msg_u(int mode, INT32 code);                                  //ユニキャスト送信メッセージセット(初期化用）
+    static int set_msg_m_cr(int mode, INT32 code);                               //マルチキャスト送信メッセージセット(初期化用）
 
 public:
     COteIF();
@@ -127,8 +155,7 @@ public:
     int parse();                //メイン処理
     int output();               //出力処理
 
-    static int send_msg_u();   //ユニキャスト送信
-    static int send_msg_m();   //マルチキャスト送信
+ 
 
     virtual HWND open_WorkWnd(HWND hwnd_parent);
     static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);

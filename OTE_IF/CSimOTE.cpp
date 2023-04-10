@@ -153,8 +153,9 @@ int CSimOTE::close_WorkWnd() {
     return 0;
 }
 /*********************************************************************************************/
-/*   ソケット,送信アドレスの初期化　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　*/
+/*   ソケット,送信アドレスの初期化　　　　　　　　　　　　　　　　　　　　　　　　　　　　　*/
 /*********************************************************************************************/
+/************ クレーンユニチキャスト受信ソケット初期化　***********/
 int CSimOTE::init_sock_u(HWND hwnd) {    //ユニキャスト
     if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {    //WinSockの初期化
         perror("WSAStartup Error\n");
@@ -198,6 +199,7 @@ int CSimOTE::init_sock_u(HWND hwnd) {    //ユニキャスト
     }
     return 0;
 }
+/************ 端末マルチキャスト受信ソケット初期化　***********/
 int CSimOTE::init_sock_m_te(HWND hwnd) {
 
     //マルチキャスト用ソケット
@@ -230,7 +232,7 @@ int CSimOTE::init_sock_m_te(HWND hwnd) {
 
     //マルチキャストグループ参加登録
     memset(&mreq_te, 0, sizeof(mreq_te));
-    mreq_te.imr_interface.S_un.S_addr = INADDR_ANY;     //パケット出力元IPアドレス
+    mreq_te.imr_interface.S_un.S_addr = inet_addr(OTE_DEFAULT_IP_ADDR);     //パケット出力元IPアドレス
     mreq_te.imr_multiaddr.S_un.S_addr = inet_addr(OTE_MULTI_IP_ADDR);       //マルチキャストIPアドレス
     if (setsockopt(s_m_te, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq_te, sizeof(mreq_te)) != 0) {
         perror("setopt受信設定失敗\n");
@@ -270,6 +272,7 @@ int CSimOTE::init_sock_m_te(HWND hwnd) {
 
      return 0;
 }
+/************ クレーンマルチキャスト受信ソケット初期化　***********/
 int CSimOTE::init_sock_m_cr(HWND hwnd) {
 
     //マルチキャスト用ソケット
@@ -303,7 +306,8 @@ int CSimOTE::init_sock_m_cr(HWND hwnd) {
 
     //マルチキャストグループ参加登録
     memset(&mreq_cr, 0, sizeof(mreq_cr));
-    mreq_cr.imr_interface.S_un.S_addr = INADDR_ANY;     //利用ネットワーク
+ //   mreq_cr.imr_interface.S_un.S_addr = INADDR_ANY;                         //利用ネットワーク
+    mreq_cr.imr_interface.S_un.S_addr = inet_addr(OTE_DEFAULT_IP_ADDR);    //利用ネットワーク
     mreq_cr.imr_multiaddr.S_un.S_addr = inet_addr(OTE_MULTI_IP_ADDR);      //マルチキャストIPアドレス
     if (setsockopt(s_m_cr, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq_cr, sizeof(mreq_cr)) != 0) {
         perror("setopt受信設定失敗\n");
@@ -313,6 +317,7 @@ int CSimOTE::init_sock_m_cr(HWND hwnd) {
 
     return 0;
 }
+
 //*********************************************************************************************
 int CSimOTE::send_msg_u() {
 
@@ -371,19 +376,12 @@ int CSimOTE::send_msg_m_te() {
 }
 
 int CSimOTE::set_msg_m_te(int mode, INT32 code, INT32 status) {
-    if (mode == ID_MULTI_MSG_SET_MODE_INIT) {
-        ote_io_workbuf.rcv_msg_m_te.head.myid = 1;
-        ote_io_workbuf.rcv_msg_m_te.head.code = ID_OTE_EVENT_CODE_CONST;
-        ote_io_workbuf.rcv_msg_m_te.head.addr = addrin_u;
-        ote_io_workbuf.rcv_msg_m_te.head.status = ID_OTE_CONNECT_CODE_NO_OPERATION;
-        ote_io_workbuf.rcv_msg_m_te.head.nodeid = 0;
-
-        for (int i = 0;i < N_CRANE_PC_MAX;i++) ote_io_workbuf.rcv_msg_m_te.body.pc_enable[i] = ID_PC_CONNECT_CODE_ENABLE;
-    }
-    else {
-        ote_io_workbuf.rcv_msg_m_te.head.code = code;
-        ote_io_workbuf.rcv_msg_m_te.head.status = status;
-    }
+    ote_io_workbuf.rcv_msg_m_te.head.myid = 1;
+    ote_io_workbuf.rcv_msg_m_te.head.code = ID_OTE_EVENT_CODE_CONST;
+    ote_io_workbuf.rcv_msg_m_te.head.addr = addrin_m_te;
+    ote_io_workbuf.rcv_msg_m_te.head.status = ID_TE_CONNECT_STATUS_OFF_LINE;
+    ote_io_workbuf.rcv_msg_m_te.head.tgid = 0;
+    for (int i = 0;i < N_CRANE_PC_MAX;i++) ote_io_workbuf.rcv_msg_m_te.body.pc_enable[i] = ID_PC_CONNECT_CODE_ENABLE;
     ote_io_workbuf.rcv_msg_m_te.body.n_remote_wait = n_active_ote;
     ote_io_workbuf.rcv_msg_m_te.body.onbord_seqno = n_active_ote;
     ote_io_workbuf.rcv_msg_m_te.body.remote_seqno = n_active_ote;
@@ -392,21 +390,12 @@ int CSimOTE::set_msg_m_te(int mode, INT32 code, INT32 status) {
     return 0;
 }
 
-int CSimOTE::set_msg_m_te(int mode) {
-    if (mode == ID_MULTI_MSG_SET_MODE_INIT) {
-        ote_io_workbuf.rcv_msg_m_te.head.myid = 1;
-        ote_io_workbuf.rcv_msg_m_te.head.code = ID_OTE_EVENT_CODE_CONST;
-        ote_io_workbuf.rcv_msg_m_te.head.addr = addrin_u;
-        ote_io_workbuf.rcv_msg_m_te.head.status = ID_OTE_CONNECT_CODE_NO_OPERATION;
-        ote_io_workbuf.rcv_msg_m_te.head.nodeid = 0;
-
-        for (int i = 0;i < N_CRANE_PC_MAX;i++) ote_io_workbuf.rcv_msg_m_te.body.pc_enable[i] = ID_PC_CONNECT_CODE_ENABLE;
-    }
-    ote_io_workbuf.rcv_msg_m_te.body.n_remote_wait = n_active_ote;
-    ote_io_workbuf.rcv_msg_m_te.body.onbord_seqno = n_active_ote;
-    ote_io_workbuf.rcv_msg_m_te.body.remote_seqno = n_active_ote;
-    ote_io_workbuf.rcv_msg_m_te.body.my_seqno = n_active_ote;
-
+int CSimOTE::set_msg_u(int mode, INT32 code, INT32 status) {
+        ote_io_workbuf.rcv_msg_u.head.myid = 1;
+        ote_io_workbuf.rcv_msg_u.head.code = ID_OTE_EVENT_CODE_CONST;
+        ote_io_workbuf.rcv_msg_u.head.addr = addrin_u;
+        ote_io_workbuf.rcv_msg_u.head.status = ID_TE_CONNECT_STATUS_OFF_LINE;
+        ote_io_workbuf.rcv_msg_u.head.tgid = 2;
     return 0;
 }
 //*********************************************************************************************
@@ -538,7 +527,8 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             close_WorkWnd();
         }
     //マルチキャスト送信電文初期値セット
-        set_msg_m_te(ID_MULTI_MSG_SET_MODE_INIT);
+        set_msg_m_te(0,0,0);
+        set_msg_u(0, 0, 0);
 
         //マルチキャスト送信タイマ起動
         SetTimer(hwnd, ID_OTE_SIM_TIMER, OTE_SIM_SCAN_TIME, NULL);

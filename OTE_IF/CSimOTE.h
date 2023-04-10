@@ -103,8 +103,8 @@ public:
 
     static int send_msg_u();                //ユニキャスト送信
     static int send_msg_m_te();             //マルチキャスト送信
-    static int set_msg_m_te(int mode, INT32 code, INT32 status);      //マルチキャスト送信メッセージセット
-    static int set_msg_m_te(int mode);      //マルチキャスト送信メッセージセット
+    static int set_msg_m_te(int mode, INT32 code, INT32 status);        //マルチキャスト送信メッセージセット
+    static int set_msg_u(int mode, INT32 code, INT32 status);          //ユニキャスト送信メッセージセット
 
     //Work Window表示用
     static HWND hwndSTAT_U;

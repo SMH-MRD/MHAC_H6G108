@@ -8,6 +8,8 @@
 
 #endif//
 
+
+
 /*** 仕様定義構造体 ***/
 
 #define DIRECTION_MAX 2
@@ -25,8 +27,14 @@
 #define NUM_OF_POSITION_LEVEL	3	//完了,トリガ,制限
 
 typedef struct StSpec {
-	//[ID_HOIST],[ID_GANTRY],[ID_TROLLY],[ID_BOOM_H],[ID_SLEW],[ID_OP_ROOM],[ID_H_ASSY],[ID_MOTION1]
 
+	/*** デバイスコード構造体 ***/
+	ST_DEVICE_CODE device_code = {
+		'P','1',//製番識別コード
+		'L','C',//機械コード
+		'C','R',//タイプ
+		1		//ID番号
+	};
 
 #define NOTCH_MAX 6
 #define NOTCH_0	  0
@@ -214,9 +222,13 @@ typedef struct StSpec {
 
 #define CTRL_PC_IP_ADDR_SWAY	"192.168.1.31"
 #define SWAY_SENSOR_IP_ADDR		"192.168.1.102"
-#define CTRL_PC_IP_ADDR_OTE		"192.168.1.31"
+//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.31"
 #define OTE_DEFAULT_IP_ADDR		"127.0.0.1"
 #define OTE_MULTI_IP_ADDR		"239.1.0.1"
+#define CTRL_PC_IP_ADDR_OTE		"192.168.1.201"
+//#define OTE_DEFAULT_IP_ADDR		"192.168.1.200"
+
+
 
 
 #define SWAY_IF_IP_SWAY_PORT_C			10080
@@ -225,9 +237,6 @@ typedef struct StSpec {
 #define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
 #define OTE_IF_IP_MULTICAST_PORT_TE		20080	//マルチキャスト端末受信ポート
 #define OTE_IF_IP_MULTICAST_PORT_CR		20081	//マルチキャストクレーン受信ポート
-
-
-
 
 
 	double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ

@@ -119,6 +119,7 @@ using namespace std;
 
 #define PLC_IO_OFF_DELAY_COUNT		 4	//PB操作オフディレイカウント値
 
+
 // PLC_User IF信号構造体（機上運転室IO)
 // IO割付内容は、PLC_IO_DEF.hに定義
 typedef struct StPLCUI {
@@ -146,6 +147,7 @@ typedef struct StPLCIO {
 	ST_PLC_UI ui;
 	ST_PLC_STATUS status;
 	CHAR faultPLC[N_PLC_FAULTS];
+	INT16 plc_data[PLC_IO_MONT_WORD_NUM];
 }ST_PLC_IO, * LPST_PLC_IO;
 
 /****************************************************************************/
@@ -160,6 +162,8 @@ typedef struct StOTE_IO {
 	ST_MOTE_SND_MSG rcv_msg_m_cr;
 	ST_MOTE_RCV_MSG rcv_msg_m_te;
 	INT32 OTEsim_status;
+	INT32 OTEactive;				//接続中の端末ID　接続断の時0
+	INT32 OTE_healty;				//OTEのヘルシー信号
 }ST_OTE_IO, * LPST_OTE_IO;
 
 /****************************************************************************/
@@ -271,8 +275,14 @@ typedef struct stEnvSubproc {
 
 #define SPD0_CHECK_RETIO	0.1
 
-#define STAT_ACC			0;
-#define STAT_DEC			1;
+#define STAT_ACC			0
+#define STAT_DEC			1
+
+#define OTE_REQ_CODE_NA			0
+#define OTE_REQ_CODE_ONBOAD		1
+#define OTE_REQ_CODE_REMOTE		2
+#define OTE_REQ_CODE_CONNECTED	4
+
 
 typedef struct StCraneStatus {
 //Event Update				:イベント条件で更新
@@ -299,6 +309,8 @@ typedef struct StCraneStatus {
 
 	bool is_fwd_endstop[MOTION_ID_MAX];										//正転極限判定
 	bool is_rev_endstop[MOTION_ID_MAX];										//逆転極限判定
+
+	INT32 OTE_req_status;													//操作端末要求状態
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
