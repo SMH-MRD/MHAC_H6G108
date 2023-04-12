@@ -124,7 +124,7 @@ int COteIF::output() {                          //o—Íˆ—
        memcpy_s(poutput, out_size, &ote_io_workbuf.ote_io, out_size);
    }
 
-    return 0; 
+   return 0; 
 }
 
 static struct ip_mreq mreq_te, mreq_cr;                     //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒgóMİ’è—p\‘¢‘Ì
@@ -374,6 +374,13 @@ int COteIF::send_msg_u() {
         lSnd_u = nRtn;
         woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
         tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
+
+        woMSG << L"ID:" << ote_io_workbuf.ote_io.snd_msg_u.head.myid << L" CD:" << ote_io_workbuf.ote_io.snd_msg_u.head.code;
+        sockaddr_in* psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.snd_msg_u.head.addr;
+        woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+        woMSG << L" PORT: " << htons(psockaddr->sin_port);
+        woMSG << L" ST:" << ote_io_workbuf.ote_io.snd_msg_u.head.status << L" ID:" << ote_io_workbuf.ote_io.snd_msg_u.head.tgid;
+        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
     }
     else if (nRtn == SOCKET_ERROR) {
         woMSG << L" SOCKET ERROR: CODE ->   " << WSAGetLastError();
@@ -398,7 +405,7 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
     ote_io_workbuf.ote_io.snd_msg_u.head.tgid = ote_io_workbuf.id_connected_te;;
     ote_io_workbuf.ote_io.snd_msg_u.head.code = code;
     ote_io_workbuf.ote_io.snd_msg_u.head.status = ote_io_workbuf.status_connected_te;
-    
+#if 0  
     //Body•”
     if (mode) {
         ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[0] = 'A', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[1] = 'O', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[2] = '0', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[3] = '1';
@@ -412,9 +419,11 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
 
     ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[0] = pPLCio->status.v_fb[ID_HOIST];   //Šª‚«‘¬“xFB
 
+    ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[0] = 123;
+
     int copysize = PLC_IO_MONT_WORD_NUM * sizeof(INT16);
     memcpy_s(ote_io_workbuf.ote_io.snd_msg_u.body.plc_data, copysize, pPLCio->plc_data , copysize);
-    
+#endif
     return 0; 
 }                 
 
@@ -431,6 +440,14 @@ int COteIF::send_msg_m() {
         lSnd_m = nRtn;
         woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
         tweet2infMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
+
+        woMSG << L"ID:" << ote_io_workbuf.ote_io.snd_msg_m.head.myid << L" CD:" << ote_io_workbuf.ote_io.snd_msg_m.head.code;
+        sockaddr_in* psockaddr = (sockaddr_in*)&ote_io_workbuf.ote_io.snd_msg_m.head.addr;
+        woMSG << L" IP:" << psockaddr->sin_addr.S_un.S_un_b.s_b1 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b2 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b3 << L"." << psockaddr->sin_addr.S_un.S_un_b.s_b4;
+        woMSG << L" PORT: " << htons(psockaddr->sin_port);
+        woMSG << L" ST:" << ote_io_workbuf.ote_io.snd_msg_m.head.status << L" ID:" << ote_io_workbuf.ote_io.snd_msg_m.head.tgid;
+        tweet2sndMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L"");woMSG.clear();
+
     }
     else if (nRtn == SOCKET_ERROR) {
         woMSG << L"ERR CODE ->" << WSAGetLastError();
@@ -446,16 +463,12 @@ int COteIF::send_msg_m() {
 
 /*### ‘—MƒƒbƒZ[ƒWƒZƒbƒgŠÖ” ###*/
 int COteIF::set_msg_m_cr(int mode, INT32 code) {                         //ƒ}ƒ‹ƒ`ƒLƒƒƒXƒg‘—MƒƒbƒZ[ƒWƒZƒbƒg(‰Šú‰»—pj
-    if (mode) {
-        ote_io_workbuf.ote_io.snd_msg_m.head.addr = addrin_m_cr;
-        ote_io_workbuf.ote_io.snd_msg_m.head.myid = pCraneStat->spec.device_code.no;
-    }
+    ote_io_workbuf.ote_io.snd_msg_m.head.addr = addrin_u;
+    ote_io_workbuf.ote_io.snd_msg_m.head.myid = pCraneStat->spec.device_code.no;
     ote_io_workbuf.ote_io.snd_msg_m.head.tgid = ote_io_workbuf.id_connected_te;
-
+   
     ote_io_workbuf.ote_io.snd_msg_m.head.code = code;
     ote_io_workbuf.ote_io.snd_msg_m.head.status = ote_io_workbuf.status_connected_te;
-
-
 
     return 0;
 }   
@@ -646,6 +659,10 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
             }
             else {
                 addrin_ote_u.sin_addr = ((sockaddr_in*)&from_addr)->sin_addr;
+                addrin_ote_u.sin_port = ote_io_workbuf.ote_io.rcv_msg_u.head.addr.sin_port;
+
+                int p = htons(addrin_ote_u.sin_port);
+                set_msg_u(0,0);
                 send_msg_u();
 
                 woMSG << L"SOCK OK";

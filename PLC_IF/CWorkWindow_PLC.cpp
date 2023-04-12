@@ -237,6 +237,19 @@ LRESULT CALLBACK CWorkWindow_PLC::WorkWndProc(HWND hDlg, UINT msg, WPARAM wp, LP
 				stOpePaneStat.check_estop = SET_OFF;
 			}
 		}break;
+
+
+		case IDC_CHECK_REMOTE:
+		{
+			if (BST_CHECKED == SendMessage(GetDlgItem(hDlg, IDC_CHECK_REMOTE), BM_GETCHECK, 0, 0)) {
+				stOpePaneStat.check_remote_mode = SET_ON;
+			}
+			else {
+				stOpePaneStat.check_remote_mode = SET_OFF;
+			}
+		}break;
+
+
 		case IDC_BUTTON_ANTISWAY:
 		{
 			stOpePaneStat.button_antisway = SET_ON;

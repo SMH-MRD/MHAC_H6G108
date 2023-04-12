@@ -87,6 +87,12 @@ using namespace std;
 #define ID_PB_CTRL_SOURCE2_OFF	17
 #define ID_PB_AUTO_RESET		18
 #define ID_PB_FAULT_RESET		19
+#define ID_PB_SEMI_AUTO_S1		20
+#define ID_PB_SEMI_AUTO_S2		21
+#define ID_PB_SEMI_AUTO_S3		22
+#define ID_PB_SEMI_AUTO_L1		23
+#define ID_PB_SEMI_AUTO_L2		24
+#define ID_PB_SEMI_AUTO_L3		25
 
 #define ID_PB_MH_P1             30
 #define ID_PB_MH_P2             31
@@ -104,20 +110,20 @@ using namespace std;
 #define ID_PB_GRND              43
 #define ID_PB_PICK              44
 
-#define SEMI_AUTO_REGIST_MAX		8
+#define SEMI_AUTO_REGIST_MAX	8
 
-#define SEMI_AUTO_TG_CLR			6
-#define SEMI_AUTO_S1				0
-#define SEMI_AUTO_S2				1
-#define SEMI_AUTO_S3				2
+#define SEMI_AUTO_TG_CLR		6
+#define SEMI_AUTO_S1			0
+#define SEMI_AUTO_S2			1
+#define SEMI_AUTO_S3			2
 
-#define SEMI_AUTO_L1				3
-#define SEMI_AUTO_L2				4
-#define SEMI_AUTO_L3				5
+#define SEMI_AUTO_L1			3
+#define SEMI_AUTO_L2			4
+#define SEMI_AUTO_L3			5
 
-#define SEMI_AUTO_TOUCH_SEL			7
+#define SEMI_AUTO_TOUCH_SEL		7
 
-#define PLC_IO_OFF_DELAY_COUNT		 4	//PB操作オフディレイカウント値
+#define PLC_IO_OFF_DELAY_COUNT	 4	//PB操作オフディレイカウント値
 
 
 // PLC_User IF信号構造体（機上運転室IO)
@@ -242,7 +248,9 @@ typedef struct StSimulationStatus {
 #define N_PC_FAULT_WORDS		16			//制御PC検出フォルトbitセットWORD数
 #define N_PLC_FAULT_WORDS		32			//PLC検出フォルトbitセットWORD数
 
-#define OPERATION_MODE_REMOTE		0x0000001
+#define OPERATION_MODE_OTE_ACTIVE	0x0000001
+#define OPERATION_MODE_OTE_ONBOARD	0x0000002
+#define OPERATION_MODE_REMOTE		0x0000004
 #define OPERATION_MODE_SIMULATOR	0x0100000
 #define OPERATION_MODE_PLC_DBGIO	0x0001000
 

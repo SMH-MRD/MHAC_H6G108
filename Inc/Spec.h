@@ -235,8 +235,8 @@ typedef struct StSpec {
 #define SWAY_IF_IP_SWAY_PORT_S			10081
 #define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
 #define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
-#define OTE_IF_IP_MULTICAST_PORT_TE		20080	//マルチキャスト端末受信ポート
-#define OTE_IF_IP_MULTICAST_PORT_CR		20081	//マルチキャストクレーン受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_TE		20081	//マルチキャスト端末受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_CR		20080	//マルチキャストクレーン受信ポート
 
 
 	double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ

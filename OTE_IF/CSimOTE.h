@@ -20,6 +20,7 @@
 #define ID_SOCK_CODE_TE			            1
 #define ID_SOCK_CODE_CR			            2
 
+
 #define ID_MULTI_MSG_SET_MODE_INIT          1
 #define ID_MULTI_MSG_SET_MODE_CONST         0
 
@@ -31,25 +32,28 @@
 
 
 #define ID_STATIC_OTE_SIM_LABEL_COM          10707
-#define ID_STATIC_OTE_SIM_VIEW_STAT_U        10709
-#define ID_STATIC_OTE_SIM_VIEW_RCV_U         10709
-#define ID_STATIC_OTE_SIM_VIEW_SND_U         10710
-#define ID_STATIC_OTE_SIM_VIEW_INF_U         10711
+#define ID_STATIC_OTE_SIM_VIEW_STAT_U        10708
+#define ID_STATIC_OTE_SIM_VIEW_INF_U         10709
 
-#define ID_STATIC_OTE_SIM_VIEW_STAT_TE       10711
-#define ID_STATIC_OTE_SIM_VIEW_RCV_TE        10712
-#define ID_STATIC_OTE_SIM_VIEW_SND_TE        10713
-#define ID_STATIC_OTE_SIM_VIEW_INF_TE        10714
+#define ID_STATIC_OTE_SIM_VIEW_STAT_TE       10710
+#define ID_STATIC_OTE_SIM_VIEW_INF_TE        10711
 
-#define ID_STATIC_OTE_SIM_VIEW_STAT_CR       10715
-#define ID_STATIC_OTE_SIM_VIEW_RCV_CR        10716
-#define ID_STATIC_OTE_SIM_VIEW_SND_CR        10717
-#define ID_STATIC_OTE_SIM_VIEW_INF_CR        10718
+#define ID_STATIC_OTE_SIM_VIEW_STAT_CR       10712
+#define ID_STATIC_OTE_SIM_VIEW_INF_CR        10713
 
-#define ID_STATIC_OTE_SIM_VIEW_U_CNT         10719
-#define ID_STATIC_OTE_SIM_VIEW_TE_CNT        10720
-#define ID_STATIC_OTE_SIM_VIEW_CR_CNT        10721
+#define ID_CHK_OTE_SIM_MSG_SND               10714
+#define IDC_RADIO_DISP_MON_OTE               10715
+#define IDC_RADIO_DISP_MON_SIM               10716
 
+#define ID_STATIC_MON_OTE_U                  10717
+#define ID_STATIC_MON_CR_U                   10718
+#define ID_STATIC_MON_OTE_M                  10719
+#define ID_STATIC_MON_CR_M                   10720
+
+#define ID_STATIC_MON_OTE_U_LABEL            10721
+#define ID_STATIC_MON_CR_U_LABEL             10722
+#define ID_STATIC_MON_OTE_M_LABEL            10723
+#define ID_STATIC_MON_CR_M_LABEL             10724
 
 //起動タイマーID
 #define ID_OTE_SIM_TIMER					106
@@ -58,8 +62,12 @@
 
 #define SIM_WORK_WND_X						1050		//メンテパネル表示位置X
 #define SIM_WORK_WND_Y						400			//メンテパネル表示位置Y
-#define SIM_WORK_WND_W						540		    //メンテパネルWINDOW幅
-#define SIM_WORK_WND_H						370			//メンテパネルWINDOW高さ
+#define SIM_WORK_WND_W						800		    //メンテパネルWINDOW幅
+#define SIM_WORK_WND_H						600			//メンテパネルWINDOW高さ
+
+#define OTE_SIM_CODE_MON_OTE                0
+#define OTE_SIM_CODE_MON_SIM                1
+
 
 
 class CSimOTE : public CBasicControl
@@ -70,14 +78,36 @@ private:
 
     //# 出力用共有メモリオブジェクトポインタ:
     static CSharedMem* pOteIOObj;
+    static LPST_OTE_IO pOTEio;
     static ST_OTE_IO ote_io_workbuf;
 
-    void init_rcv_msg();
+    //Work Window表示用
+    static HWND hwndSTAT_U;
+    static HWND hwndINFMSG_U;
 
-    static void tweet2rcvMSG(const std::wstring& srcw, int code);
-    static void tweet2sndMSG(const std::wstring& srcw, int code);
+    static HWND hwndSTAT_M_TE;
+    static HWND hwndINFMSG_M_TE;
+
+    static HWND hwndSTAT_M_CR;
+    static HWND hwndINFMSG_M_CR;
+
+    static HWND h_chkMsgSnd;
+    static HWND h_radio_disp_monOTE;
+    static HWND h_radio_disp_monSIM;
+
+    static HWND hwndMON_U_OTE;
+    static HWND hwndMON_U_CR;
+    static HWND hwndMON_M_OTE;
+    static HWND hwndMON_M_CR;
+    static HWND hwndMON_U_OTE_LABEL;
+    static HWND hwndMON_U_CR_LABEL;
+    static HWND hwndMON_M_OTE_LABEL;
+    static HWND hwndMON_M_CR_LABEL;
+
+   
     static void tweet2infMSG(const std::wstring& srcw, int code);
     static void tweet2statusMSG(const std::wstring& srcw, int code);
+    static void tweet2static(const std::wstring& srcw, HWND hwnd);
 
     //IF用ソケット
     static WSADATA wsaData;
@@ -106,31 +136,13 @@ public:
     static int set_msg_m_te(int mode, INT32 code, INT32 status);        //マルチキャスト送信メッセージセット
     static int set_msg_u(int mode, INT32 code, INT32 status);          //ユニキャスト送信メッセージセット
 
-    //Work Window表示用
-    static HWND hwndSTAT_U;
-    static HWND hwndRCVMSG_U;
-    static HWND hwndSNDMSG_U;
-    static HWND hwndINFMSG_U;
-
-    static HWND hwndSTAT_M_TE;
-    static HWND hwndRCVMSG_M_TE;
-    static HWND hwndSNDMSG_M_TE;
-    static HWND hwndINFMSG_M_TE;
-
-    static HWND hwndSTAT_M_CR;
-    static HWND hwndRCVMSG_M_CR;
-    static HWND hwndSNDMSG_M_CR;
-    static HWND hwndINFMSG_M_CR;
-
-    static HWND hwndCNT_U;
-    static HWND hwndCNT_M_TE;
-    static HWND hwndCNT_M_CR;
-
     static int n_active_ote;
     static int connect_no_onboad;
     static int connect_no_remorte;
     static int my_connect_no;
 
+    static int is_ote_msg_snd;
+    static int panel_disp_mode;
 
     void set_debug_mode(int id) {
         if (id) mode |= OTE_IF_DBG_MODE;

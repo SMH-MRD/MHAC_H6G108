@@ -251,7 +251,7 @@ int CPLC_IF::set_debug_status() {
     plc_io_workbuf.ui.PB[ID_PB_ESTOP] = pWorkWindow->stOpePaneStat.check_estop;
 
     plc_io_workbuf.ui.PB[ID_PB_ANTISWAY_ON]     = pWorkWindow->stOpePaneStat.button_antisway;
-    plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE]     = pWorkWindow->stOpePaneStat.button_remote;
+    plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE]     = pWorkWindow->stOpePaneStat.check_remote_mode;
     plc_io_workbuf.ui.PB[ID_PB_AUTO_START]      = pWorkWindow->stOpePaneStat.check_auto_start;
     plc_io_workbuf.ui.PB[ID_PB_AUTO_RESET]      = pWorkWindow->stOpePaneStat.button_auto_reset;
     plc_io_workbuf.ui.PB[ID_PB_AUTO_MODE]       = pWorkWindow->stOpePaneStat.button_auto_mode;

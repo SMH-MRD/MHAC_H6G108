@@ -140,6 +140,7 @@ typedef struct stPLCDbugPanelTag {
 													// #define IDC_PARK_LAMP                   1073
 													// #define IDC_GRND_LAMP                   1074
 													// #define IDC_PICK_LAMP                   1075
+	int check_remote_mode = 0;						// #define IDC_CHECK_REMOTE                 1077
 }ST_PLC_DEBUG_PANEL, * LPST_PLC_DEBUG_PANEL;
 
 //コモンコントロールID

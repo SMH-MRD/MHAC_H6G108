@@ -102,9 +102,6 @@ void CEnvironment::main_proc() {
 		stWorkCraneStat.is_tasks_standby_ok = check_tasks_init();
 	}
 
-	//メインウィンドウのTweetメッセージ更新
-	tweet_update();
-
 	//ヘルシーカウンタセット
 	stWorkCraneStat.env_act_count = inf.total_act;
 
@@ -123,6 +120,9 @@ void CEnvironment::main_proc() {
 	//自動用情報セット
 	parse_for_auto_ctrl();
 
+	//遠隔モードセット
+
+
 	return;
 }
 
@@ -133,10 +133,58 @@ void CEnvironment::output() {
 	//共有メモリ出力
 	memcpy_s(pCraneStat, sizeof(ST_CRANE_STATUS), &stWorkCraneStat, sizeof(ST_CRANE_STATUS));
 	
+	//メインウィンドウのTweetメッセージ更新
+	tweet_update();
+	
 	return;
 
 }; 
 
+/****************************************************************************/
+/*　　メインウィンドウのTweetメッセージ更新          			            */
+/****************************************************************************/
+void CEnvironment::tweet_update() {
+
+#if 0
+	//PLC
+	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {
+		if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) wostrs << L" #PLC:DBG";
+		else wostrs << L" #PLC:PLC";
+		/*
+				if (pPLC_IO->status.ctrl[ID_WORD_CTRL_SOURCE_ON] == L_ON) wostrs << L" ,! PW:ON";
+				else wostrs << L",! PW:OFF";
+
+				if (pPLC_IO->status.ctrl[ID_WORD_CTRL_REMOTE] == L_ON) wostrs << L",@ RMT";
+				else wostrs << L",@CRANE";
+		*/
+	}
+	else wostrs << L" # PLC:NG";
+
+	//SWAY
+	if (stWorkCraneStat.subproc_stat.is_sway_join == true) {
+		if (pSway_IO->proc_mode & SWAY_IF_SIM_DBG_MODE) wostrs << L" #SWY:SIM";
+		else wostrs << L" #SWY:CAM";
+	}
+	else wostrs << L" #SWY:NG";
+
+	//SIM
+	if (stWorkCraneStat.subproc_stat.is_sim_join == true) {
+		if (pSimStat->mode & SIM_ACTIVE_MODE) wostrs << L" #SIM:ACT";
+		else wostrs << L" #SIM:STP";
+	}
+	else wostrs << L" #SIM:OUT";
+#endif
+	TCHAR tbuf[32];
+	_stprintf_s(tbuf, L"%08x", stWorkCraneStat.operation_mode);
+
+	wostrs << L" OPmode " << tbuf;
+	wostrs << L" --Scan " << inf.period;
+
+	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
+
+	return;
+
+};
 
 
 /****************************************************************************/
@@ -209,8 +257,12 @@ double CEnvironment::get_vmax(int motion) {//最大速度
 /****************************************************************************/
 int CEnvironment::sys_mode_set() {
 	//リモートモードセット
-	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE])stWorkCraneStat.operation_mode |= OPERATION_MODE_REMOTE;
-	else stWorkCraneStat.operation_mode &= ~OPERATION_MODE_REMOTE;
+	if (pPLC_IO->ui.PB[ID_PB_REMOTE_MODE]) {
+		stWorkCraneStat.operation_mode |= OPERATION_MODE_OTE_ACTIVE | OPERATION_MODE_REMOTE | OPERATION_MODE_OTE_ONBOARD ;
+	}
+	else {
+		stWorkCraneStat.operation_mode &= ~(OPERATION_MODE_OTE_ACTIVE | OPERATION_MODE_REMOTE | OPERATION_MODE_OTE_ONBOARD);
+	}
 
 	//シミュレータモードセット
 	if (pSimStat->mode & SIM_ACTIVE_MODE)stWorkCraneStat.operation_mode |= OPERATION_MODE_SIMULATOR;
@@ -515,47 +567,6 @@ void CEnvironment::chk_subproc() {
 
 };
 
-/****************************************************************************/
-/*　　メインウィンドウのTweetメッセージ更新          			            */
-/****************************************************************************/
-void CEnvironment::tweet_update() {
-
-#if 0
-	//PLC
-	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {
-		if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) wostrs << L" #PLC:DBG";
-		else wostrs << L" #PLC:PLC";
-/*
-		if (pPLC_IO->status.ctrl[ID_WORD_CTRL_SOURCE_ON] == L_ON) wostrs << L" ,! PW:ON";
-		else wostrs << L",! PW:OFF";
-
-		if (pPLC_IO->status.ctrl[ID_WORD_CTRL_REMOTE] == L_ON) wostrs << L",@ RMT";
-		else wostrs << L",@CRANE";
-*/
-	}
-	else wostrs << L" # PLC:NG";
-
-	//SWAY
-	if (stWorkCraneStat.subproc_stat.is_sway_join == true) {
-		if (pSway_IO->proc_mode & SWAY_IF_SIM_DBG_MODE) wostrs << L" #SWY:SIM";
-		else wostrs << L" #SWY:CAM";
-	}
-	else wostrs << L" #SWY:NG";
-
-	//SIM
-	if (stWorkCraneStat.subproc_stat.is_sim_join == true) {
-		if (pSimStat->mode & SIM_ACTIVE_MODE) wostrs << L" #SIM:ACT";
-		else wostrs << L" #SIM:STP";
-	}
-	else wostrs << L" #SIM:OUT";
-#endif
-	wostrs << L" --Scan " << inf.period;
-
-	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
-
-	return;
-
-};
 
 /****************************************************************************/
 /*   タスク設定タブパネルウィンドウのコールバック関数                       */
