@@ -65,8 +65,11 @@ using namespace std;
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 /****************************************************************************/
-#define N_PLC_PB				64 //運転操作PB数
-#define N_PLC_LAMP				64 //BIT STATUS数
+#define N_UI_PB					64 //運転操作PB数
+#define N_UI_LAMP				64 //BIT STATUS数
+
+#define N_PLC_PB				N_UI_PB		//運転操作PB数
+#define N_PLC_LAMP				N_UI_LAMP	//BIT STATUS数
 #define N_PLC_CTRL_WORDS        16 //制御センサ信号WORD数
 #define N_PLC_FAULTS			400	//PLCフォルトの割り当てサイズ
 
@@ -268,7 +271,7 @@ typedef struct stEnvSubproc {
 #define ANTI_SWAY_MODE			1
 #define SEMI_AUTO_ACTIVE		2
 #define AUTO_ACTIVE				3
-
+/*
 #define BITSEL_HOIST        0x0001		//巻 　       ビット
 #define BITSEL_GANTRY       0x0002		//走行        ビット
 #define BITSEL_TROLLY       0x0004		//横行        ビット
@@ -277,7 +280,7 @@ typedef struct stEnvSubproc {
 #define BITSEL_OP_ROOM      0x0020		//運転室移動　ビット
 #define BITSEL_H_ASSY       0x0040		//吊具        ビット
 #define BITSEL_COMMON       0x0080		//共通        ビット
-
+*/
 #define BITSEL_SEMIAUTO     0x0001
 #define BITSEL_AUTO			0x0002
 
@@ -291,34 +294,42 @@ typedef struct stEnvSubproc {
 #define OTE_REQ_CODE_REMOTE		2
 #define OTE_REQ_CODE_CONNECTED	4
 
+#define PB_TRIG_COUNT			1
+
 
 typedef struct StCraneStatus {
 //Event Update				:イベント条件で更新
-	bool is_tasks_standby_ok;												//タスクの立ち上がり確認
-	ST_SPEC spec;															//クレーン仕様
+	bool is_tasks_standby_ok;							//タスクの立ち上がり確認
+	ST_SPEC spec;										//クレーン仕様
 
 //Periodical Update			：定周期更新
-	DWORD env_act_count=0;													//ヘルシー信号
-	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
-	WORD operation_mode;													//運転モード　機上,リモート
-	bool is_notch_0[MOTION_ID_MAX];											//0ノッチ判定
-	Vector3 rc;																//クレーン吊点のクレーン基準点とのx,y,z相対座標
-	Vector3 rl;																//吊荷のクレーン吊点とのx,y,z相対座標
-	Vector3 rcam_m;															//振れセンサ検出x,y,z座標 m
-	double notch_spd_ref[MOTION_ID_MAX];									//ノッチ速度指令
-	double mh_l;															//ロープ長
-	double T;																//振周期		s
-	double w;																//振角周波数	/s
-	double w2;																//振角周波数の2乗
-	double R;																//旋回半径
+	DWORD env_act_count=0;								//ヘルシー信号
+	ST_ENV_SUBPROC subproc_stat;						//サブプロセスの状態
+	WORD operation_mode;								//運転モード　機上,リモート
 
-	WORD faultPC[N_PC_FAULT_WORDS];											//PLC検出異常
-	WORD faultPLC[N_PLC_FAULT_WORDS];										//制御PC検出異常
+	Vector3 rc;											//クレーン吊点のクレーン基準点とのx,y,z相対座標
+	Vector3 rl;											//吊荷のクレーン吊点とのx,y,z相対座標
+	Vector3 rcam_m;										//振れセンサ検出x,y,z座標 m
+	double notch_spd_ref[MOTION_ID_MAX];				//ノッチ速度指令
+	double mh_l;										//ロープ長
+	double T;											//振周期		s
+	double w;											//振角周波数	/s
+	double w2;											//振角周波数の2乗
+	double R;											//旋回半径
 
-	bool is_fwd_endstop[MOTION_ID_MAX];										//正転極限判定
-	bool is_rev_endstop[MOTION_ID_MAX];										//逆転極限判定
+	WORD faultPC[N_PC_FAULT_WORDS];						//PLC検出異常
+	WORD faultPLC[N_PLC_FAULT_WORDS];					//制御PC検出異常
 
-	INT32 OTE_req_status;													//操作端末要求状態
+	bool is_fwd_endstop[MOTION_ID_MAX];					//正転極限判定
+	bool is_rev_endstop[MOTION_ID_MAX];					//逆転極限判定
+
+	INT32 OTE_req_status;								//操作端末要求状態
+
+	INT16 pb[N_UI_PB];
+	INT16 lamp[N_UI_LAMP];
+//	bool is_notch_0[MOTION_ID_MAX];						//0ノッチ判定
+	INT32 notch0;										//0ノッチ判定総合
+	INT32 notch0_crane;									//0ノッチ判定PLC
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
 
@@ -479,7 +490,6 @@ typedef struct StPosTargets {
 #define COM_RECIPE_OPTION_N			8
 
 typedef struct stComRecipe {
-
 	//CS SET
 	int id;
 	int type;									//JOB種別（PICK,GRND,PARK...）
@@ -496,7 +506,6 @@ typedef struct stComRecipe {
 	SYSTEMTIME time_end;
 }ST_COM_RECIPE, * LPST_COM_RECIPE;
 
-
 typedef struct stJobSet {
 	int list_id;								//登録されているJOB listのid
 	int id;										//登録されているJOB list内でのid
@@ -512,7 +521,6 @@ typedef struct stJobSet {
 
 
 //JOB LIST
-
 typedef struct _stJobList {
 	int id;
 	int type;									//JOB種別（JOB,半自動）
@@ -544,8 +552,8 @@ typedef struct stJobIO {
 
 typedef struct stCSInfo {
 	//UI関連
-	int plc_lamp[N_PLC_LAMP];											//PLCランプ表示出力用（自動開始）
-	int plc_pb[N_PLC_PB];												//PLC操作PB入力確認用（自動開始）
+	int ui_lamp[N_UI_LAMP];											//PLCランプ表示出力用（自動開始）
+	int ui_pb[N_UI_PB];												//PLC操作PB入力確認用（自動開始）
 	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];							//半自動ランプ表示出力用
 	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
 	ST_POS_TARGETS semi_auto_setting_target[SEMI_AUTO_TARGET_MAX];		//半自動設定目標位置
@@ -579,13 +587,6 @@ typedef struct stClientSndMSG {
 	int option[N_JOB_OPTION_MAX];
 }ST_CLIENT_SND_MSG, * LPST_CLIENT_SND_MSG;
 
-typedef struct stOteUi {
-
-	int JOB_CODE;
-	double target[N_JOB_TARGET_MAX][MOTION_ID_MAX];
-	int option[N_JOB_OPTION_MAX];
-
-}ST_OTE_UI, * LPST_OTE_UI;
 
 #define N_CLIENT_MSG_HOLD_MAX	10
 

@@ -29,10 +29,10 @@
 #define IDC_STATIC_MH_LABEL             1014
 #define IDC_SPIN_MH                     1015
 #define IDC_BUTTON_MH_0                 1016
-#define IDC_CHECK_SOURCE1_ON           1017
-#define IDC_CHECK_SOURCE1_OFF          1018
-#define IDC_CHECK_SOURCE2_ON           1019
-#define IDC_CHECK_SOURCE2_OFF          1020
+#define IDC_CHECK_SOURCE1_ON            1017
+#define IDC_CHECK_SOURCE1_OFF           1018
+#define IDC_CHECK_SOURCE2_ON            1019
+#define IDC_CHECK_SOURCE2_OFF           1020
 #define IDC_STATIC_SOURCE1_LABEL        1021
 #define IDC_BUTTON_ANTISWAY             1022
 #define IDC_STATIC_SOURCE2_LABEL        1023
@@ -88,6 +88,7 @@
 #define IDC_PARK_LAMP                   1073
 #define IDC_GRND_LAMP                   1074
 #define IDC_PICK_LAMP                   1075
+#define IDC_CHECK_REMOTE                1077
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -97,7 +98,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1077
+#define _APS_NEXT_CONTROL_VALUE         1078
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

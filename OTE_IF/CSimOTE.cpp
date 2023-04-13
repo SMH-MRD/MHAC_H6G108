@@ -89,8 +89,6 @@ int CSimOTE::init_proc() {
     if (OK_SHMEM != pOteIOObj->create_smem(SMEM_OTE_IO_NAME, out_size, MUTEX_OTE_IO_NAME)) {
         mode |= OTE_IF_OTE_IO_MEM_NG;
     }
-    set_outbuf(pOteIOObj->get_pMap());
-
     pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
 
     return 0;

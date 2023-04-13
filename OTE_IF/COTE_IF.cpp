@@ -28,6 +28,8 @@ HWND COteIF::hwndINFMSG_M_CR;
 LPST_OTE_IO COteIF::pOTEio;
 LPST_CRANE_STATUS COteIF::pCraneStat;
 LPST_PLC_IO COteIF::pPLCio;
+LPST_CS_INFO COteIF::pCSInf;
+LPST_AGENT_INFO COteIF::pAgentInf;
 
 ST_OTE_IO_WORK COteIF::ote_io_workbuf;
 
@@ -55,6 +57,9 @@ COteIF::COteIF() {
     pCraneStatusObj = new CSharedMem;
     pSimulationStatusObj = new CSharedMem;
     pPLCioObj = new CSharedMem;
+    pCSInfObj = new CSharedMem;
+    pAgentInfObj = new CSharedMem;
+
   };
 COteIF::~COteIF() {
     // ã§óLÉÅÉÇÉäÉIÉuÉWÉFÉNÉgÇÃâï˙
@@ -62,6 +67,8 @@ COteIF::~COteIF() {
     delete pCraneStatusObj;
     delete pSimulationStatusObj;
     delete pPLCioObj;
+    delete pCSInfObj;
+    delete pAgentInfObj;
 };
 
 int COteIF::set_outbuf(LPVOID pbuf) { 
@@ -96,9 +103,21 @@ int COteIF::init_proc() {
         mode |= OTE_IF_PLC_MEM_NG;
     }
 
+    if (OK_SHMEM != pCSInfObj->create_smem(SMEM_CS_INFO_NAME, sizeof(ST_CS_INFO), MUTEX_CS_INFO_NAME)) {
+        mode |= OTE_IF_PLC_MEM_NG;
+    }
+
+    if (OK_SHMEM != pAgentInfObj->create_smem(SMEM_AGENT_INFO_NAME, sizeof(ST_AGENT_INFO), MUTEX_AGENT_INFO_NAME)) {
+        mode |= OTE_IF_PLC_MEM_NG;
+    }
+
     pCraneStat = (LPST_CRANE_STATUS)(pCraneStatusObj->get_pMap());
     pPLCio = (LPST_PLC_IO)(pPLCioObj->get_pMap());
     pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
+    pCSInf = (LPST_CS_INFO )pCSInfObj->get_pMap();
+    pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
+    
+    
     pOTEio->OTEsim_status = L_OFF;          //í[ññÉVÉ~ÉÖÉåÅ[ÉVÉáÉìÉÇÅ[ÉhOFF
 
     ote_io_workbuf.te_connect_time_limit = TE_CONNECT_TIMEOVER_MS / ID_WORK_WND_TIMER;
@@ -115,6 +134,7 @@ int COteIF::init_proc() {
 }
 int COteIF::input() {                            //ì¸óÕèàóù
     ote_io_workbuf.ote_io.OTEsim_status = ((LPST_OTE_IO)poutput)->OTEsim_status;//OTE SimuratorÇÃâ“ì≠èÛë‘
+
     return 0; 
 } 
 int COteIF::parse() { return 0; }               //ÉÅÉCÉìèàóù
@@ -405,25 +425,34 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //É
     ote_io_workbuf.ote_io.snd_msg_u.head.tgid = ote_io_workbuf.id_connected_te;;
     ote_io_workbuf.ote_io.snd_msg_u.head.code = code;
     ote_io_workbuf.ote_io.snd_msg_u.head.status = ote_io_workbuf.status_connected_te;
-#if 0  
+
     //Bodyïî
-    if (mode) {
-        ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[0] = 'A', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[1] = 'O', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[2] = '0', ote_io_workbuf.ote_io.snd_msg_u.body.pad_ao[3] = '1';
-        ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[0] = 'L', ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[1] = 'A', ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[2] = 'M', ote_io_workbuf.ote_io.snd_msg_u.body.pad_lamp[3] = 'P';
-        ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[0] = 'P', ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[1] = 'L', ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[2] = 'C', ote_io_workbuf.ote_io.snd_msg_u.body.pad_plc[3] = ' '; 
+    for (int i = 0;i < N_UI_LAMP;i++) ote_io_workbuf.ote_io.snd_msg_u.body.lamp[i] = pCSInf->ui_lamp[i];
+    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[i] = pPLCio->ui.notch_pos[i];
+    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.pos[i] = (INT32)(pPLCio->status.pos[i] * 1000.0);
+    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[i] = (INT32)(pPLCio->status.v_fb[i] * 1000.0);
+    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_ref[i] = (INT32)(pPLCio->status.v_ref[i] * 1000.0);
+
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[0] = (INT32)(pCraneStat->rl.x * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[1] = (INT32)(pCraneStat->rl.y * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[2] = (INT32)(pCraneStat->rl.z * 1000.0);
+
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[0] = 0;
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[1] = 0;
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[2] = 0;
+
+    ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(pAgentInf->auto_pos_target.pos[ID_BOOM_H] * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(pAgentInf->auto_pos_target.pos[ID_SLEW] * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pAgentInf->auto_pos_target.pos[ID_HOIST] * 1000.0);
+
+    for (int i = 0;i < 6;i++) {
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][0] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_BOOM_H] * 1000.0);
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][1] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_SLEW] * 1000.0);
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][2] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_HOIST] * 1000.0);
     }
- 
-    ote_io_workbuf.ote_io.snd_msg_u.body.pos[0] = pPLCio->status.pos[ID_HOIST];     //ä™Ç´à íu
 
-    ote_io_workbuf.ote_io.snd_msg_u.body.pos[4] = pCraneStat->rl.x;                 //í›â◊ç¿ïWX
-
-    ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[0] = pPLCio->status.v_fb[ID_HOIST];   //ä™Ç´ë¨ìxFB
-
-    ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[0] = 123;
-
-    int copysize = PLC_IO_MONT_WORD_NUM * sizeof(INT16);
-    memcpy_s(ote_io_workbuf.ote_io.snd_msg_u.body.plc_data, copysize, pPLCio->plc_data , copysize);
-#endif
+    for (int i = 0;i < PLC_IO_MONT_WORD_NUM;i++) ote_io_workbuf.ote_io.snd_msg_u.body.plc_data[i] = pPLCio->plc_data[i];
+    
     return 0; 
 }                 
 
@@ -469,6 +498,7 @@ int COteIF::set_msg_m_cr(int mode, INT32 code) {                         //É}ÉãÉ
    
     ote_io_workbuf.ote_io.snd_msg_m.head.code = code;
     ote_io_workbuf.ote_io.snd_msg_m.head.status = ote_io_workbuf.status_connected_te;
+    ote_io_workbuf.ote_io.snd_msg_m.head.status = pCraneStat->OTE_req_status;
 
     return 0;
 }   
@@ -620,22 +650,24 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
             ote_io_workbuf.te_connect_chk_counter--;
         }
         else {
-            ote_io_workbuf.id_connected_te = 0;     //ê⁄ë±íÜOTEÉNÉäÉA
+            ote_io_workbuf.id_connected_te = 0;                     //ê⁄ë±íÜOTEÉNÉäÉA
         }
        
-        if (ote_io_workbuf.te_connect_chk_counter > 0) {
+        if (ote_io_workbuf.te_connect_chk_counter > 0) {            //íËé¸ä˙ëóêMë“ã@É^ÉCÉ~ÉìÉO
             ote_io_workbuf.te_connect_chk_counter--;
-            if (ote_req_last != pCraneStat->OTE_req_status) {
+            if (ote_req_last != pCraneStat->OTE_req_status) {       //ÉCÉxÉìÉgëóêMèåèî≠ê∂
                 set_msg_m_cr(ID_MSG_SET_MODE_CONST, ID_OTE_EVENT_CODE_STAT_REPORT);
                 send_msg_m();
             }
         }
-        else {
+        else {                                              //íËé¸ä˙ëóêMÉ^ÉCÉ~ÉìÉO
             set_msg_m_cr(ID_MSG_SET_MODE_CONST, ID_OTE_EVENT_CODE_CONST);
             send_msg_m();
             ote_io_workbuf.te_connect_chk_counter = ote_io_workbuf.te_multi_snd_cycle;
         }
 
+        //OTEÇÃê⁄ë±É`ÉFÉbÉNÉJÉEÉìÉ^ÉfÉNÉäÉÅÉìÉgÅ®0à»â∫Ç≈êÿífîªíË
+        if(ote_io_workbuf.ote_io.OTE_healty>0)ote_io_workbuf.ote_io.OTE_healty--;
         ote_req_last = pCraneStat->OTE_req_status;
 
     }break;
@@ -681,7 +713,7 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
                 woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L"  Snd n:" << nSnd_u << L" l:" << lSnd_u;
                 tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
 
- 
+                ote_io_workbuf.ote_io.OTE_healty = ote_io_workbuf.te_connect_time_limit;
             }
         }break;
         case FD_WRITE: {

@@ -104,9 +104,7 @@ void CClientService::input() {
 	return;
 };
 
-
 //# 操作入力取り込み処理
-
 static int as_pb_last = 0, auto_pb_last = 0, set_z_pb_last = 0, set_xy_pb_last = 0;
 static int park_pb_last = 0, pick_pb_last = 0, grnd_pb_last = 0;					//自動指定入力前回値保持
 static int mhp1_pb_last = 0, mhp2_pb_last = 0, mhm1_pb_last = 0, mhm2_pb_last = 0;	//目標位置補正入力前回値保持
@@ -150,31 +148,31 @@ int CClientService::parce_onboard_input(int mode) {
 
 				//目標設定
 				if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_RESET_TIME) {//半自動目標位置設定値更新
-					CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
-					CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
-					CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST]	= pPLC_IO->status.pos[ID_HOIST];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H]	= pPLC_IO->status.pos[ID_BOOM_H];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW]		= pPLC_IO->status.pos[ID_SLEW];
 
-					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
-					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
-					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
+					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
+					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
+					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
 
 					CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 				}
 				else if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_SELECT_TIME) {						//半自動目標設定
 					if (i == CS_workbuf.semi_auto_selected) {											//設定中のボタンを押したら解除
-						CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
-						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+						CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;	
+						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]	= pPLC_IO->status.pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
-						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]	= pPLC_IO->status.pos[ID_SLEW];
 
 						CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
 					}
 					else {
 						//半自動選択ボタン取り込み
 						CS_workbuf.semi_auto_selected = i;
-						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
+						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]	= CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
-						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
+						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]	= CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
 
 						CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 					}
@@ -328,11 +326,11 @@ int CClientService::parce_onboard_input(int mode) {
 		grnd_pb_last = pPLC_IO->ui.PB[ID_PB_GRND];
 
 		//自動起動PB
-		if (pPLC_IO->ui.PB[ID_PB_AUTO_START])CS_workbuf.plc_pb[ID_PB_AUTO_START]++;
-		else CS_workbuf.plc_pb[ID_PB_AUTO_START] = 0;
+		if (pPLC_IO->ui.PB[ID_PB_AUTO_START])CS_workbuf.ui_pb[ID_PB_AUTO_START]++;
+		else CS_workbuf.ui_pb[ID_PB_AUTO_START] = 0;
 		//JOB起動処理
 			
-		if (CS_workbuf.plc_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
+		if (CS_workbuf.ui_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
 			//半自動がスタンバイ状態
 			if (pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status == STAT_STANDBY) {
 				pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_TRIGED;
@@ -557,90 +555,90 @@ void CClientService::output() {
 
 	//振れ止めランプ
 	if (CS_workbuf.antisway_mode == L_ON) {
-		CS_workbuf.plc_lamp[ID_PB_ANTISWAY_ON] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_ANTISWAY_ON] = L_ON;
 	}
 	else {//振れ止め起動中は点滅
-		CS_workbuf.plc_lamp[ID_PB_ANTISWAY_ON] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_ANTISWAY_ON] = L_OFF;
 	}
 
 	//自動ランプ
 	if (CS_workbuf.auto_mode == L_ON) {
-		CS_workbuf.plc_lamp[ID_PB_AUTO_MODE] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_MODE] = L_ON;
 	}
 	else {
-		CS_workbuf.plc_lamp[ID_PB_AUTO_MODE] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_MODE] = L_OFF;
 	}
 
 	//起動ランプ
 
 	if ((pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_ACTIVE)||
 		(pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_ACTIVE)){
-		CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_ON;
 	}
 	else if((pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_STANDBY)||
 		(pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_STANDBY)) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_ON;
 		else
-			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_OFF;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_OFF;
 	}
 	else if ((pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status & STAT_SUSPENDED) ||
 		(pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status & STAT_SUSPENDED)) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_ON;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_ON;
 		else
-			CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_OFF;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_OFF;
 	}
 	else {
-		CS_workbuf.plc_lamp[ID_PB_AUTO_START] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_OFF;
 	}
 
 	//目標設定ランプ
 	if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_FIXED) {
-		CS_workbuf.plc_lamp[ID_PB_AUTO_SET_Z] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_ON;
 	}
 	else if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_ACTIVE) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.plc_lamp[ID_PB_AUTO_SET_Z] = L_ON;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_ON;
 		else
-			CS_workbuf.plc_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
 	}
 	else {
-		CS_workbuf.plc_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
 	}
 
 	if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_FIXED) {
-		CS_workbuf.plc_lamp[ID_PB_AUTO_SET_XY] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_ON;
 	}
 	else if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_ACTIVE) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
-			CS_workbuf.plc_lamp[ID_PB_AUTO_SET_XY] = L_ON;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_ON;
 		else
-			CS_workbuf.plc_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
+			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
 	}
 	else {
-		CS_workbuf.plc_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
 	}
 	//自動コマンドランプ
 	if (CS_workbuf.command_type == COM_TYPE_PICK) {
-		CS_workbuf.plc_lamp[ID_PB_PICK] = L_ON;
-		CS_workbuf.plc_lamp[ID_PB_GRND] = L_OFF;
-		CS_workbuf.plc_lamp[ID_PB_PARK] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_PICK] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_GRND] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_PARK] = L_OFF;
 	}
 	else if (CS_workbuf.command_type == COM_TYPE_GRND) {
-		CS_workbuf.plc_lamp[ID_PB_PICK] = L_OFF;
-		CS_workbuf.plc_lamp[ID_PB_GRND] = L_ON;
-		CS_workbuf.plc_lamp[ID_PB_PARK] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_PICK] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_GRND] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_PARK] = L_OFF;
 	}
 	else if (CS_workbuf.command_type == COM_TYPE_PICK) {
-		CS_workbuf.plc_lamp[ID_PB_PICK] = L_OFF;
-		CS_workbuf.plc_lamp[ID_PB_GRND] = L_OFF;
-		CS_workbuf.plc_lamp[ID_PB_PARK] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_PICK] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_GRND] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_PARK] = L_ON;
 	}
 	else {
-		CS_workbuf.plc_lamp[ID_PB_PICK] = L_OFF;
-		CS_workbuf.plc_lamp[ID_PB_GRND] = L_OFF;
-		CS_workbuf.plc_lamp[ID_PB_PARK] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_PICK] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_GRND] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_PARK] = L_OFF;
 	}
 
 	//半自動ランプ
@@ -666,46 +664,51 @@ void CClientService::output() {
 	//共有メモリ出力
 	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CS_workbuf, sizeof(ST_CS_INFO));
 
-	wostrs << L" AS=" << CS_workbuf.antisway_mode << L",AUTO=" << CS_workbuf.auto_mode;
-	
-	int status;
-	if (CS_workbuf.p_active_job != NULL) {
-		status = CS_workbuf.p_active_job->status;
-		wostrs << L",JOB TYPE=" << CS_workbuf.p_active_job->list_id << L", id=" << CS_workbuf.p_active_job->id;
-	}
-	else status = STAT_NA;
 
-	if ((pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job <=0) && (pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job <= 0)){
-		wostrs << L" >JOB: 0 hold";
-	}
-	else if ((CS_workbuf.p_active_job != NULL) &&
-			 (CS_workbuf.p_active_job->list_id == ID_JOBTYPE_JOB) &&
-			 (pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job > 0)) {
-		wostrs << L" >JOB: " << pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job << L" iHOT-> ";
-		if (status & STAT_STANDBY)		wostrs << L"STANDBY";
-		else if (status & STAT_ACTIVE)	wostrs << L"ACTIVE";
-		else if (status & STAT_TRIGED)	wostrs << L"TRIGED";
-		else if (status & STAT_SUSPENDED)	wostrs << L"SUSPEND";
-		else if (status & STAT_REQ_WAIT)	wostrs << L"WAIT REQ";
-		else wostrs << L"OUT OF SERV";
 
-	}
-	else if ((CS_workbuf.p_active_job != NULL) &&
-             (CS_workbuf.p_active_job->list_id == ID_JOBTYPE_SEMI) &&
-			 (pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job > 0)){
-		wostrs << L" >SEMIAUTO: " << pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job << L" iHOT-> ";
-		if (status & STAT_STANDBY)		wostrs << L"STANDBY";
-		else if (status & STAT_ACTIVE)	wostrs << L"ACTIVE";
-		else if (status & STAT_TRIGED)	wostrs << L"TRIGED";
-		else if (status & STAT_SUSPENDED)	wostrs << L"SUSPEND";
-		else if (status & STAT_REQ_WAIT)	wostrs << L"WAIT REQ";
-		else wostrs << L"OUT OF SERV";
-	}
-	else  wostrs << L" >NO JOB REQUEST ";
+	//タスクパネル表示出力
+	{
+		wostrs << L" AS=" << CS_workbuf.antisway_mode << L",AUTO=" << CS_workbuf.auto_mode;
 
-	wostrs << L" --Scan " << inf.period;
+		int status;
+		if (CS_workbuf.p_active_job != NULL) {
+			status = CS_workbuf.p_active_job->status;
+			wostrs << L",JOB TYPE=" << CS_workbuf.p_active_job->list_id << L", id=" << CS_workbuf.p_active_job->id;
+		}
+		else status = STAT_NA;
 
-	tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
+		if ((pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job <= 0) && (pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job <= 0)) {
+			wostrs << L" >JOB: 0 hold";
+		}
+		else if ((CS_workbuf.p_active_job != NULL) &&
+			(CS_workbuf.p_active_job->list_id == ID_JOBTYPE_JOB) &&
+			(pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job > 0)) {
+			wostrs << L" >JOB: " << pJob_IO->job_list[ID_JOBTYPE_JOB].n_hold_job << L" iHOT-> ";
+			if (status & STAT_STANDBY)		wostrs << L"STANDBY";
+			else if (status & STAT_ACTIVE)	wostrs << L"ACTIVE";
+			else if (status & STAT_TRIGED)	wostrs << L"TRIGED";
+			else if (status & STAT_SUSPENDED)	wostrs << L"SUSPEND";
+			else if (status & STAT_REQ_WAIT)	wostrs << L"WAIT REQ";
+			else wostrs << L"OUT OF SERV";
+
+		}
+		else if ((CS_workbuf.p_active_job != NULL) &&
+			(CS_workbuf.p_active_job->list_id == ID_JOBTYPE_SEMI) &&
+			(pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job > 0)) {
+			wostrs << L" >SEMIAUTO: " << pJob_IO->job_list[ID_JOBTYPE_SEMI].n_hold_job << L" iHOT-> ";
+			if (status & STAT_STANDBY)		wostrs << L"STANDBY";
+			else if (status & STAT_ACTIVE)	wostrs << L"ACTIVE";
+			else if (status & STAT_TRIGED)	wostrs << L"TRIGED";
+			else if (status & STAT_SUSPENDED)	wostrs << L"SUSPEND";
+			else if (status & STAT_REQ_WAIT)	wostrs << L"WAIT REQ";
+			else wostrs << L"OUT OF SERV";
+		}
+		else  wostrs << L" >NO JOB REQUEST ";
+
+		wostrs << L" --Scan " << inf.period;
+
+		tweet2owner(wostrs.str()); wostrs.str(L""); wostrs.clear();
+	}
 	return;
 
 };

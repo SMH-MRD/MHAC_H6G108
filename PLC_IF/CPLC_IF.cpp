@@ -565,50 +565,50 @@ int CPLC_IF::set_bit_coms() {
     //ランプ類
 
     //振れ止めOFFランプ
-    if (pCSInf->plc_lamp[ID_PB_ANTISWAY_OFF])
+    if (pCSInf->ui_lamp[ID_PB_ANTISWAY_OFF])
         melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] |= melnet.pc_b_map.lamp_as_off[ID_BPOS];
     else 
         melnet.pc_b_out[melnet.pc_b_map.lamp_as_off[ID_WPOS]] &= ~melnet.pc_b_map.lamp_as_off[ID_BPOS];
     //振れ止めONランプ
-    if (pCSInf->plc_lamp[ID_PB_ANTISWAY_ON])
+    if (pCSInf->ui_lamp[ID_PB_ANTISWAY_ON])
         melnet.pc_b_out[melnet.pc_b_map.lamp_as_on[ID_WPOS]] |= melnet.pc_b_map.lamp_as_on[ID_BPOS];
     else 
         melnet.pc_b_out[melnet.pc_b_map.lamp_as_on[ID_WPOS]] &= ~melnet.pc_b_map.lamp_as_on[ID_BPOS];
 
     //自動モードランプ
-    if (pCSInf->plc_lamp[ID_PB_AUTO_MODE])
+    if (pCSInf->ui_lamp[ID_PB_AUTO_MODE])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_mode[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_mode[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_mode[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_mode[ID_BPOS];
 
     //自動起動ランプ
-    if (pCSInf->plc_lamp[ID_PB_AUTO_START])
+    if (pCSInf->ui_lamp[ID_PB_AUTO_START])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_start[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_start[ID_BPOS];
     else 
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_start[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_start[ID_BPOS];
 
     //自動コマンドランプ
-    if (pCSInf->plc_lamp[ID_PB_PARK])
+    if (pCSInf->ui_lamp[ID_PB_PARK])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_park[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_park[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_park[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_park[ID_BPOS];
-    if (pCSInf->plc_lamp[ID_PB_PICK])
+    if (pCSInf->ui_lamp[ID_PB_PICK])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_pick[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_pick[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_pick[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_pick[ID_BPOS];
-    if (pCSInf->plc_lamp[ID_PB_GRND])
+    if (pCSInf->ui_lamp[ID_PB_GRND])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_grnd[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_grnd[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_grnd[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_grnd[ID_BPOS];
 
  
     //目標位置セットランプ
-    if (pCSInf->plc_lamp[ID_PB_AUTO_SET_Z])
+    if (pCSInf->ui_lamp[ID_PB_AUTO_SET_Z])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_set_z[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_set_z[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_set_z[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_set_z[ID_BPOS];
 
-    if (pCSInf->plc_lamp[ID_PB_AUTO_SET_XY])
+    if (pCSInf->ui_lamp[ID_PB_AUTO_SET_XY])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_set_xy[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_set_xy[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_set_xy[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_set_xy[ID_BPOS];
@@ -646,17 +646,17 @@ int CPLC_IF::set_bit_coms() {
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_tg_l3[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_tg_l3[ID_BPOS];
 
     //自動コマンドランプ
-    if (pCSInf->plc_lamp[ID_PB_PICK])
+    if (pCSInf->ui_lamp[ID_PB_PICK])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_pick[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_pick[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_pick[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_pick[ID_BPOS];
 
-    if (pCSInf->plc_lamp[ID_PB_GRND])
+    if (pCSInf->ui_lamp[ID_PB_GRND])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_grnd[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_grnd[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_grnd[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_grnd[ID_BPOS];
 
-    if (pCSInf->plc_lamp[ID_PB_PARK])
+    if (pCSInf->ui_lamp[ID_PB_PARK])
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_park[ID_WPOS]] |= melnet.pc_b_map.lamp_auto_park[ID_BPOS];
     else
         melnet.pc_b_out[melnet.pc_b_map.lamp_auto_park[ID_WPOS]] &= ~melnet.pc_b_map.lamp_auto_park[ID_BPOS];

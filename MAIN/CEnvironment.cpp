@@ -56,6 +56,17 @@ void CEnvironment::init_task(void* pobj) {
 	set_panel_tip_txt();
 
 	inf.is_init_complete = true;
+
+	stWorkCraneStat.notch0 = stWorkCraneStat.notch0_crane = BIT_SEL_MOTION;//全ノッチ0で初期化
+	motion_bit[ID_HOIST] = BIT_SEL_HST;
+	motion_bit[ID_GANTRY] = BIT_SEL_GNT;
+	motion_bit[ID_TROLLY] = BIT_SEL_TRY;
+	motion_bit[ID_BOOM_H] = BIT_SEL_BH;
+	motion_bit[ID_SLEW] = BIT_SEL_SLW;
+	motion_bit[ID_OP_ROOM] = BIT_SEL_OPR;
+	motion_bit[ID_H_ASSY] = BIT_SEL_ASS;
+	motion_bit[ID_COMMON] = BIT_SEL_COM;
+	
 	return;
 };
 
@@ -121,7 +132,7 @@ void CEnvironment::main_proc() {
 	parse_for_auto_ctrl();
 
 	//遠隔モードセット
-
+	parse_ote_status();
 
 	return;
 }
@@ -186,30 +197,65 @@ void CEnvironment::tweet_update() {
 
 };
 
-
 /****************************************************************************/
 /*　　ノッチ入力信号を速度指令に変換して取り込み				            */
 /****************************************************************************/
 int CEnvironment::parse_notch_com() {
 
-	//ノッチ位置配列のポインタセット
+	//クレーン上ノッチ
 	INT16* p_notch;
-	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) 
-		p_notch = pOTE_IO->rcv_msg_u.body.notch_pos;
-	else 
-		p_notch = pPLC_IO->ui.notch_pos;
+	p_notch = pPLC_IO->ui.notch_pos;
+	for (int i = 0;i < MOTION_ID_MAX;i++) {
+		notch_pos[i] = *p_notch;
+		if (*p_notch != NOTCH_0) {
+			stWorkCraneStat.notch0_crane &= ~motion_bit[i];
+		}
+		else {
+			stWorkCraneStat.notch0_crane |= motion_bit[i];
+		}
+		p_notch++;
+	}
+
+	//0ノッチインターロック用判定
+	if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= BIT_SEL_ALL_0NOTCH;
+	else												stWorkCraneStat.notch0_crane |= BIT_SEL_ALL_0NOTCH;
+
+
+	//端末ノッチ
+	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) {
+		p_notch = pOTE_IO->rcv_msg_u.body.notch_pos;				//端末受信内容
+		for (int i = 0;i < MOTION_ID_MAX;i++) {
+			if (!(stWorkCraneStat.notch0_crane & motion_bit[i])) {//機上0ノッチでない
+				stWorkCraneStat.notch0 &= ~motion_bit[i];
+			}
+			else if (*p_notch != NOTCH_0) {
+				stWorkCraneStat.notch0 &= ~motion_bit[i];
+				notch_pos[i] = *p_notch;
+			}
+			else {
+				stWorkCraneStat.notch0 |= motion_bit[i];
+			}
+			p_notch++;
+		}
+		//0ノッチインターロック用判定
+		if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= BIT_SEL_ALL_0NOTCH;
+		else												stWorkCraneStat.notch0_crane |= BIT_SEL_ALL_0NOTCH;
+	}
+	else {
+		stWorkCraneStat.notch0 = stWorkCraneStat.notch0_crane;
+	}
+
+
 
 	for (int i = 0;i < MOTION_ID_MAX;i++) {
-		if (*(p_notch+i) == NOTCH_0) {
-			stWorkCraneStat.is_notch_0[i] = true;
+		if (notch_pos[i] == NOTCH_0) {
 			stWorkCraneStat.notch_spd_ref[i] = 0.0;
 		}
 		else {
-			stWorkCraneStat.is_notch_0[i] = false;
-			if (p_notch[i] < 0) 
-				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_r[i][-p_notch[i]] * 1.001;
+			if (notch_pos[i] < 0)
+				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_r[i][-notch_pos[i]] * 1.001;
 			else 
-				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_f[i][p_notch[i]] * 1.001;
+				stWorkCraneStat.notch_spd_ref[i] = stWorkCraneStat.spec.notch_spd_f[i][notch_pos[i]] * 1.001;
 		}
 	}
 
@@ -414,7 +460,7 @@ double CEnvironment::cal_sway_y_amp2_m() { return 0.0; }																				//振
 
 bool CEnvironment::is_speed_0(int motion) { 
 
-	if (pCraneStat->is_notch_0[motion] == false) return false;//ノッチ0で無い
+	if (!(pCraneStat->notch0 & motion_bit[motion])) return false;//ノッチ0で無い
 
 	if ((pPLC_IO->status.v_fb[motion] >= pCraneStat->spec.notch_spd_f[motion][NOTCH_1] * SPD0_CHECK_RETIO) ||		// 0速チェック
 		(pPLC_IO->status.v_fb[motion] <= pCraneStat->spec.notch_spd_r[motion][NOTCH_1] * SPD0_CHECK_RETIO)) {		//1ノッチの10％速度以上
@@ -529,6 +575,23 @@ int CEnvironment::parse_for_auto_ctrl() {
 	stWorkCraneStat.T = PI360 / stWorkCraneStat.w;
 	return 0;
 }
+
+/****************************************************************************/
+/*　 自動用情報セット											            */
+/****************************************************************************/
+int CEnvironment::parse_ote_status() {
+	if (pOTE_IO->OTE_healty > 0) {
+		stWorkCraneStat.OTE_req_status = ID_TE_CONNECT_STATUS_ACTIVE;
+	}
+	else if (stWorkCraneStat.operation_mode & OPERATION_MODE_OTE_ACTIVE) {
+		stWorkCraneStat.OTE_req_status = ID_TE_CONNECT_STATUS_WAITING;
+	}
+	else {
+		stWorkCraneStat.OTE_req_status = ID_TE_CONNECT_STATUS_OFF_LINE;
+	}
+	return 0;
+}
+
 
 /****************************************************************************/
 /*　　サブプロセスの状態確認			            */

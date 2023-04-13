@@ -68,8 +68,9 @@ private:
     LPST_CS_INFO pCSInf;
     LPST_POLICY_INFO pPolicyInf;
     LPST_AGENT_INFO pAgentInf;
+    INT32 motion_bit[MOTION_ID_MAX];
+    INT16 notch_pos[MOTION_ID_MAX];
 
- 
     void input();                   //外部データ取り込み
     void main_proc();               //処理内容
     void output();                  //出力データ更新
@@ -78,6 +79,7 @@ private:
     int sys_mode_set();             //システムモード状態セット
     int parse_for_auto_ctrl();      //振れ周期,振れ止め目標,ノッチ状態計算
     int pos_set();                  //位置情報セット
+    int parse_ote_status();         //遠隔端末接続状態判定セット
 
     void chk_subproc();             //サブプロセス状態チェック
 

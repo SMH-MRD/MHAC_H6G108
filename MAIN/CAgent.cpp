@@ -232,7 +232,7 @@ bool CAgent::can_job_trigger() {
 /****************************************************************************/
 
 static int auto_on_going_last = AUTO_TYPE_MANUAL;
-static bool notch0_last[MOTION_ID_MAX];
+static INT32 notch0_last;
 
 void CAgent::main_proc() {
 
@@ -246,10 +246,10 @@ void CAgent::main_proc() {
 		}
 		else {//FB振れ止め
 			if (AgentInf_workbuf.auto_on_going & AUTO_TYPE_FB_ANTI_SWAY) {
-				if (pCraneStat->is_notch_0[ID_BOOM_H]) AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_on_going;
+				if (pCraneStat->notch0 & BIT_SEL_BH) AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_on_going;		//0ノッチ
 				else AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
 
-				if (pCraneStat->is_notch_0[ID_SLEW]) AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
+				if (pCraneStat->notch0 & BIT_SEL_SLW) AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
 				else AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
 			}
 			AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
@@ -260,14 +260,14 @@ void CAgent::main_proc() {
 	//# PLCへのPC選択指令セット
 	{
 		if ((pPLC_IO->mode & PLC_IF_PC_DBG_MODE) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_OPERATION)) {//デバッグモード　または　リモート手動操作モード
-			AgentInf_workbuf.pc_ctrl_mode |= (BITSEL_HOIST | BITSEL_GANTRY | BITSEL_BOOM_H | BITSEL_SLEW);
+			AgentInf_workbuf.pc_ctrl_mode |= (BIT_SEL_HST | BIT_SEL_GNT | BIT_SEL_BH | BIT_SEL_SLW);
 		}
 		else {
 			AgentInf_workbuf.pc_ctrl_mode = 0;
-			if (AgentInf_workbuf.auto_active[ID_HOIST])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_HOIST;
-			if (AgentInf_workbuf.auto_active[ID_GANTRY])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_GANTRY;
-			if (AgentInf_workbuf.auto_active[ID_BOOM_H])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_BOOM_H;
-			if (AgentInf_workbuf.auto_active[ID_SLEW])  AgentInf_workbuf.pc_ctrl_mode |= BITSEL_SLEW;
+			if (AgentInf_workbuf.auto_active[ID_HOIST])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_HST;
+			if (AgentInf_workbuf.auto_active[ID_GANTRY])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_GNT;
+			if (AgentInf_workbuf.auto_active[ID_BOOM_H])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_BH;
+			if (AgentInf_workbuf.auto_active[ID_SLEW])  AgentInf_workbuf.pc_ctrl_mode |= BIT_SEL_SLW;
 		}
 	}
 		
@@ -291,18 +291,18 @@ void CAgent::main_proc() {
 			AgentInf_workbuf.auto_pos_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
 
 			//引込、旋回はノッチ入りまたは振れ止めOFFで現在位置　0ノッチトリガで現在位置＋減速距離位置
-			if ((notch0_last[ID_BOOM_H] == false) && (pCraneStat->is_notch_0[ID_BOOM_H] == true)) { //0ノッチトリガ
+			if (!(notch0_last & BIT_SEL_BH) && (pCraneStat->notch0 & BIT_SEL_BH)) { //0ノッチトリガ
 				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + pEnv->cal_dist4stop(ID_BOOM_H, false);
 			}
-			else if((pCraneStat->is_notch_0[ID_BOOM_H] == false)||(pCSInf->antisway_mode!=L_ON)) {
+			else if(!(pCraneStat->notch0 & BIT_SEL_BH)||(pCSInf->antisway_mode!=L_ON)) {
 				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
 			}
 			else;
 
-			if ((notch0_last[ID_SLEW] == false) && (pCraneStat->is_notch_0[ID_SLEW] == true)) { //0ノッチトリガ
+			if (!(notch0_last & BIT_SEL_SLW) && (pCraneStat->notch0 & BIT_SEL_SLW)) { //0ノッチトリガ
 				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + pEnv->cal_dist4stop(ID_SLEW, false);
 			}
-			else if((pCraneStat->is_notch_0[ID_SLEW] == false)||(pCSInf->antisway_mode != L_ON)) {
+			else if(!(pCraneStat->notch0 & BIT_SEL_SLW) ||(pCSInf->antisway_mode != L_ON)) {
 				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
 			}
 			else;
@@ -310,9 +310,8 @@ void CAgent::main_proc() {
 
 		//前回値保持
 		auto_on_going_last = AgentInf_workbuf.auto_on_going;
-		notch0_last[ID_HOIST] = pCraneStat->is_notch_0[ID_HOIST];
-		notch0_last[ID_BOOM_H] = pCraneStat->is_notch_0[ID_BOOM_H];
-		notch0_last[ID_SLEW] = pCraneStat->is_notch_0[ID_SLEW];
+		notch0_last = pCraneStat->notch0;
+
 	}
 	
 	//#PLCへの出力計算　
@@ -362,7 +361,7 @@ void CAgent::output() {
 /*   巻指令出力処理		                                                    */
 /****************************************************************************/
 int CAgent::set_ref_mh(){
-	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_HOIST) {
+	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_HST) {
 		if (AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
 		else if ((AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_JOB) ||
@@ -383,7 +382,7 @@ int CAgent::set_ref_mh(){
 /*   走行指令出力処理		                                                */
 /****************************************************************************/
 int CAgent::set_ref_gt(){
-	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_GANTRY) {
+	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_GNT) {
 		if (AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_GANTRY] = pCraneStat->notch_spd_ref[ID_GANTRY];
 		else if ((AgentInf_workbuf.auto_active[ID_GANTRY] == AUTO_TYPE_JOB) ||
@@ -406,7 +405,7 @@ int CAgent::set_ref_gt(){
 /****************************************************************************/
 int CAgent::set_ref_slew(){
 
-	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_SLEW) {										//制御PC指令選択ON
+	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_SLW) {										//制御PC指令選択ON
 		//マニュアルモード
 		if (AgentInf_workbuf.auto_active[ID_SLEW] == AUTO_TYPE_MANUAL) {
 			AgentInf_workbuf.v_ref[ID_SLEW] = pCraneStat->notch_spd_ref[ID_SLEW];
@@ -444,7 +443,7 @@ int CAgent::set_ref_slew(){
 /****************************************************************************/
 int CAgent::set_ref_bh(){
 
-	if (AgentInf_workbuf.pc_ctrl_mode & BITSEL_BOOM_H) {									//制御PC指令選択ON
+	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_BH) {									//制御PC指令選択ON
 		//マニュアルモード
 		if (AgentInf_workbuf.auto_active[ID_BOOM_H] == AUTO_TYPE_MANUAL) {
 			AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
