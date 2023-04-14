@@ -55,9 +55,18 @@
 #define ID_STATIC_MON_OTE_M_LABEL            10723
 #define ID_STATIC_MON_CR_M_LABEL             10724
 
+#define ID_RADIO_HST_NOTCH_5                 10750
+#define ID_RADIO_GNT_NOTCH_5                 10770
+#define ID_RADIO_BH_NOTCH_5                  10810
+#define ID_RADIO_SLW_NOTCH_5                 10830
+
+#define ID_CHECK_PB_0                        10900
+
 //起動タイマーID
 #define ID_OTE_SIM_TIMER					106
-#define OTE_SIM_SCAN_TIME					1000		// マルチキャスト IF送信周期msec
+#define OTE_SIM_MULTI_TIME					1000		// マルチキャスト IF送信周期msec
+#define OTE_SIM_SCAN_TIME					100		    // ユニキャスト IF送信周期msec
+
 
 
 #define SIM_WORK_WND_X						1050		//メンテパネル表示位置X
@@ -68,7 +77,7 @@
 #define OTE_SIM_CODE_MON_OTE                0
 #define OTE_SIM_CODE_MON_SIM                1
 
-
+#define OTE_SIM_NOTCH_ARR_0                 5
 
 class CSimOTE : public CBasicControl
 {
@@ -80,6 +89,9 @@ private:
     static CSharedMem* pOteIOObj;
     static LPST_OTE_IO pOTEio;
     static ST_OTE_IO ote_io_workbuf;
+
+    static HWND hwnd_monbuf[32];
+    static HWND hwnd_simbuf[128];
 
     //Work Window表示用
     static HWND hwndSTAT_U;
@@ -95,15 +107,12 @@ private:
     static HWND h_radio_disp_monOTE;
     static HWND h_radio_disp_monSIM;
 
-    static HWND hwndMON_U_OTE;
-    static HWND hwndMON_U_CR;
-    static HWND hwndMON_M_OTE;
-    static HWND hwndMON_M_CR;
-    static HWND hwndMON_U_OTE_LABEL;
-    static HWND hwndMON_U_CR_LABEL;
-    static HWND hwndMON_M_OTE_LABEL;
-    static HWND hwndMON_M_CR_LABEL;
-
+    static HWND hwndMON_U_OTE,hwndMON_U_CR,hwndMON_M_OTE,hwndMON_M_CR,hwndMON_U_OTE_LABEL,hwndMON_U_CR_LABEL,hwndMON_M_OTE_LABEL,hwndMON_M_CR_LABEL;
+ 
+    static HWND hwnd_notch_radio[MOTION_ID_MAX][12];
+    static HWND hwnd_pb_chk[N_UI_PB];
+    static INT32 sim_notchpos[MOTION_ID_MAX];
+    static INT32 sim_pb[N_UI_PB];
    
     static void tweet2infMSG(const std::wstring& srcw, int code);
     static void tweet2statusMSG(const std::wstring& srcw, int code);

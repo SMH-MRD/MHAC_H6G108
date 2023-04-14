@@ -217,29 +217,33 @@ int CEnvironment::parse_notch_com() {
 	}
 
 	//0ノッチインターロック用判定
-	if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= BIT_SEL_ALL_0NOTCH;
+	if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= ~BIT_SEL_ALL_0NOTCH;
 	else												stWorkCraneStat.notch0_crane |= BIT_SEL_ALL_0NOTCH;
 
 
 	//端末ノッチ
 	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) {
-		p_notch = pOTE_IO->rcv_msg_u.body.notch_pos;				//端末受信内容
-		for (int i = 0;i < MOTION_ID_MAX;i++) {
-			if (!(stWorkCraneStat.notch0_crane & motion_bit[i])) {//機上0ノッチでない
-				stWorkCraneStat.notch0 &= ~motion_bit[i];
+
+		if (stWorkCraneStat.notch0_crane & BIT_SEL_ALL_0NOTCH) {//機上全0ノッチ
+			p_notch = pOTE_IO->rcv_msg_u.body.notch_pos;				//端末受信内容
+			for (int i = 0;i < MOTION_ID_MAX;i++) {
+				if (!(stWorkCraneStat.notch0_crane & motion_bit[i])) {//機上0ノッチでない
+					stWorkCraneStat.notch0 &= ~motion_bit[i];
+				}
+				else if (*p_notch != NOTCH_0) {
+					stWorkCraneStat.notch0 &= ~motion_bit[i];
+					notch_pos[i] = *p_notch;
+				}
+				else {
+					stWorkCraneStat.notch0 |= motion_bit[i];
+				}
+				p_notch++;
 			}
-			else if (*p_notch != NOTCH_0) {
-				stWorkCraneStat.notch0 &= ~motion_bit[i];
-				notch_pos[i] = *p_notch;
-			}
-			else {
-				stWorkCraneStat.notch0 |= motion_bit[i];
-			}
-			p_notch++;
+			//0ノッチインターロック用判定
+			if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= ~BIT_SEL_ALL_0NOTCH;
+			else
+				stWorkCraneStat.notch0_crane |= BIT_SEL_ALL_0NOTCH;
 		}
-		//0ノッチインターロック用判定
-		if (~stWorkCraneStat.notch0_crane & BIT_SEL_MOTION) stWorkCraneStat.notch0_crane &= BIT_SEL_ALL_0NOTCH;
-		else												stWorkCraneStat.notch0_crane |= BIT_SEL_ALL_0NOTCH;
 	}
 	else {
 		stWorkCraneStat.notch0 = stWorkCraneStat.notch0_crane;

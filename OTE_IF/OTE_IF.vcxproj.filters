@@ -33,6 +33,9 @@
     <ClInclude Include="CSimOTE.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="OTEmsglist.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OTE_IF.cpp">

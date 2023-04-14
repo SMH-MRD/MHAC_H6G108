@@ -129,21 +129,9 @@ public:
     WORD helthy_cnt = 0;
  
     //Work Window•\Ž¦—p
-    static HWND hwndSTAT_U;
-    static HWND hwndRCVMSG_U;
-    static HWND hwndSNDMSG_U;
-    static HWND hwndINFMSG_U;
-
-    static HWND hwndSTAT_M_TE;
-    static HWND hwndRCVMSG_M_TE;
-    static HWND hwndSNDMSG_M_TE;
-    static HWND hwndINFMSG_M_TE;
-
-    static HWND hwndSTAT_M_CR;
-    static HWND hwndRCVMSG_M_CR;
-    static HWND hwndSNDMSG_M_CR;
-    static HWND hwndINFMSG_M_CR;
-
+    static HWND hwndSTAT_U,hwndRCVMSG_U,hwndSNDMSG_U,hwndINFMSG_U;
+    static HWND hwndSTAT_M_TE,hwndRCVMSG_M_TE,hwndSNDMSG_M_TE,hwndINFMSG_M_TE;
+    static HWND hwndSTAT_M_CR,hwndRCVMSG_M_CR,hwndSNDMSG_M_CR,hwndINFMSG_M_CR;
 
     void set_debug_mode(int id) {
         if (id) mode |= OTE_IF_DBG_MODE;

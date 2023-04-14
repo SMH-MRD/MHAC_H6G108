@@ -749,7 +749,7 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
                 else {
 
                     lRcv_te = nRtn;
-                    woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_te ;
+                    woMSG << L"Rcv n:" << nRcv_te << L" l:" << lRcv_te ;
                     tweet2infMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L"");woMSG.clear();
 
                     woMSG << L"ID:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.myid << L" CD:" << ote_io_workbuf.ote_io.rcv_msg_m_te.head.code;

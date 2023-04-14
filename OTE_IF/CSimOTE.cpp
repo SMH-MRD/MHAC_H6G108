@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "OTEmsglist.h"
+
 HWND CSimOTE::hWorkWnd = NULL;
 
 CSharedMem* CSimOTE::pOteIOObj;
@@ -26,14 +28,12 @@ HWND CSimOTE::h_chkMsgSnd;
 HWND CSimOTE::h_radio_disp_monOTE;
 HWND CSimOTE::h_radio_disp_monSIM;
 
-HWND CSimOTE::hwndMON_U_OTE;
-HWND CSimOTE::hwndMON_U_CR;
-HWND CSimOTE::hwndMON_M_OTE;
-HWND CSimOTE::hwndMON_M_CR;
-HWND CSimOTE::hwndMON_U_OTE_LABEL;
-HWND CSimOTE::hwndMON_U_CR_LABEL;
-HWND CSimOTE::hwndMON_M_OTE_LABEL;
-HWND CSimOTE::hwndMON_M_CR_LABEL;
+HWND CSimOTE::hwndMON_U_OTE,CSimOTE::hwndMON_U_CR,CSimOTE::hwndMON_M_OTE,CSimOTE::hwndMON_M_CR,CSimOTE::hwndMON_U_OTE_LABEL,CSimOTE::hwndMON_U_CR_LABEL,CSimOTE::hwndMON_M_OTE_LABEL,CSimOTE::hwndMON_M_CR_LABEL;
+
+HWND CSimOTE::hwnd_monbuf[32],CSimOTE::hwnd_simbuf[128];
+
+HWND CSimOTE::hwnd_notch_radio[MOTION_ID_MAX][12], CSimOTE::hwnd_pb_chk[N_UI_PB];
+INT32 CSimOTE::sim_pb[N_UI_PB];
 
 ST_OTE_IO CSimOTE::ote_io_workbuf;
 
@@ -59,10 +59,14 @@ int CSimOTE::n_active_ote = 1;
 int CSimOTE::connect_no_onboad = 0;
 int CSimOTE::connect_no_remorte = 0;
 int CSimOTE::my_connect_no = 0;
+INT32 CSimOTE::sim_notchpos[MOTION_ID_MAX];
 
 
 CSimOTE::CSimOTE() {
     pOteIOObj = new CSharedMem;
+
+    for(int i=0;i<32;i++) CSimOTE::hwnd_monbuf[32]=NULL;
+    for (int i = 0;i < 128;i++) CSimOTE::hwnd_simbuf[128]=NULL;
 };
 CSimOTE::~CSimOTE() {
     delete pOteIOObj;
@@ -91,8 +95,11 @@ int CSimOTE::init_proc() {
     }
     pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
 
-    return 0;
+   return 0;
 }
+
+
+
 int CSimOTE::input() { return 0; }               //入力処理
 int CSimOTE::parse() { return 0; }               //メイン処理
 int CSimOTE::output() {                          //出力処理
@@ -231,7 +238,7 @@ int CSimOTE::init_sock_m_te(HWND hwnd) {
         WSACleanup();
         return -6;
     }
-    nRtn = WSAAsyncSelect(s_m_te, hwnd, ID_UDP_EVENT_M_TE_SIM, FD_READ | FD_WRITE | FD_CLOSE);
+    nRtn = WSAAsyncSelect(s_m_te,hwnd, ID_UDP_EVENT_M_TE_SIM, FD_READ | FD_WRITE | FD_CLOSE);
 
     if (nRtn == SOCKET_ERROR) {
         woMSG << L"非同期化失敗";
@@ -407,7 +414,14 @@ int CSimOTE::set_msg_u(int mode, INT32 code, INT32 status) {
         ote_io_workbuf.rcv_msg_u.head.status = ID_TE_CONNECT_STATUS_OFF_LINE;
         ote_io_workbuf.rcv_msg_u.head.tgid = 2;
 
-        ote_io_workbuf.rcv_msg_u.body.tg_pos1[0] = 1.5;
+        ote_io_workbuf.rcv_msg_u.body.tg_pos1[0] = 15;
+        for (int i = 0;i < MOTION_ID_MAX;i++) {
+            ote_io_workbuf.rcv_msg_u.body.notch_pos[i] = sim_notchpos[i];
+        }
+        for (int i = 0;i < N_UI_PB;i++) {
+            ote_io_workbuf.rcv_msg_u.body.pb[i] = sim_pb[i];
+        }
+
     return 0;
 }
 //*********************************************************************************************
@@ -430,8 +444,9 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         LPST_OTE_IO pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
         pOTEio->OTEsim_status = L_ON;          //端末シミュレーションモードON
 
-
-         hwndSTAT_U = CreateWindowW(TEXT("STATIC"), L"UNI",
+        //通信バッファモニタSTATIC生成
+        {
+        hwndSTAT_U = CreateWindowW(TEXT("STATIC"), L"UNI",
             WS_CHILD | WS_VISIBLE | SS_LEFT,10, 5, 250, 20, hwnd, (HMENU)ID_STATIC_OTE_SIM_VIEW_STAT_U, hInst, NULL);
         hwndINFMSG_U = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
             10, 25, 250, 20, hwnd, (HMENU)ID_STATIC_OTE_SIM_VIEW_INF_U, hInst, NULL);
@@ -444,13 +459,7 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         hwndINFMSG_M_CR = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
             520, 25, 250, 20, hwnd, (HMENU)ID_STATIC_OTE_SIM_VIEW_INF_CR, hInst, NULL);
 
-        h_chkMsgSnd = CreateWindow(L"BUTTON", L"SND MSG", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX ,
-            20, 520, 100, 25, hwnd, (HMENU)ID_CHK_OTE_SIM_MSG_SND, hInst, NULL);
-        h_radio_disp_monOTE = CreateWindow(L"BUTTON", L"MON BUF", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            140, 520, 80, 25, hwnd, (HMENU)IDC_RADIO_DISP_MON_OTE, hInst, NULL);
-        h_radio_disp_monSIM = CreateWindow(L"BUTTON", L"MON SIM", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            220, 520, 80, 25, hwnd, (HMENU)IDC_RADIO_DISP_MON_SIM, hInst, NULL);
-        SendMessage(h_radio_disp_monOTE, BM_SETCHECK, BST_CHECKED, 0L);
+ 
 
         hwndMON_U_OTE_LABEL = CreateWindowW(TEXT("STATIC"), L"#FROM OTE UNI",
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 50, 800, 20, hwnd, (HMENU)ID_STATIC_MON_OTE_U_LABEL, hInst, NULL);
@@ -458,6 +467,8 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 75, 800, 55, hwnd, (HMENU)ID_STATIC_MON_OTE_U, hInst, NULL);
 
         hwndMON_U_CR_LABEL = CreateWindowW(TEXT("STATIC"), L"#TO OTE UNI",
+
+
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 135, 800, 20, hwnd, (HMENU)ID_STATIC_MON_CR_U_LABEL, hInst, NULL);
         hwndMON_U_CR = CreateWindowW(TEXT("STATIC"), L"-",
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 160, 800, 140, hwnd, (HMENU)ID_STATIC_MON_CR_U, hInst, NULL);
@@ -471,8 +482,154 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 405, 800, 20, hwnd, (HMENU)ID_STATIC_MON_CR_M_LABEL, hInst, NULL);
         hwndMON_M_CR = CreateWindowW(TEXT("STATIC"), L"-",
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 430, 800, 55, hwnd, (HMENU)ID_STATIC_MON_CR_M, hInst, NULL);
-
+        }
         
+        //機能設定ラジオボタン,チェックボタン
+        {
+        h_chkMsgSnd = CreateWindow(L"BUTTON", L"SND MSG", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+            20, 520, 100, 25, hwnd, (HMENU)ID_CHK_OTE_SIM_MSG_SND, hInst, NULL);
+        h_radio_disp_monOTE = CreateWindow(L"BUTTON", L"MON BUF", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
+            140, 520, 80, 25, hwnd, (HMENU)IDC_RADIO_DISP_MON_OTE, hInst, NULL);
+        h_radio_disp_monSIM = CreateWindow(L"BUTTON", L"MON SIM", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+            220, 520, 80, 25, hwnd, (HMENU)IDC_RADIO_DISP_MON_SIM, hInst, NULL);
+        SendMessage(h_radio_disp_monSIM, BM_SETCHECK, BST_CHECKED, 0L);
+        }
+
+        hwnd_monbuf[0] = hwndMON_U_OTE; hwnd_monbuf[1] = hwndMON_U_CR; hwnd_monbuf[2] = hwndMON_M_OTE; hwnd_monbuf[3] = hwndMON_U_OTE_LABEL;hwnd_monbuf[4] = hwndMON_M_CR;
+        hwnd_monbuf[5] = hwndMON_U_CR_LABEL; hwnd_monbuf[6] = hwndMON_M_OTE_LABEL; hwnd_monbuf[7] = hwndMON_M_CR_LABEL;
+        for (int i = 0;i < 32;i++) {if (hwnd_monbuf[i] == NULL) break; else ShowWindow(hwnd_monbuf[i], SW_HIDE); }
+
+        //ノッチ入力ラジオボタン
+        {
+            
+            int mid = ID_HOIST;
+ 
+            int pos_adjust = 0;
+            LONGLONG idc;
+            for (int j = 0;j < MOTION_ID_MAX;j++) {
+                if (be_create[j] == false) {
+                     continue;
+                }
+                int notch = 5;//ボタン表示テキスト
+                for (int i = 0;i < 11;i++) {
+                    idc = ID_RADIO_HST_NOTCH_5 + 20*j +i;
+                    woMSG.str(L"");woMSG << notch;
+                    if (i == 0) {
+                        hwnd_notch_radio[j][i] = CreateWindow(L"BUTTON", woMSG.str().c_str(), WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
+                            80 + i * 40, 60 + pos_adjust * 35, 40, 25, hwnd, (HMENU)idc, hInst, NULL);
+                    }
+                    else {
+                        hwnd_notch_radio[j][i] = CreateWindow(L"BUTTON", woMSG.str().c_str(), WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
+                            80 + i * 40, 60 + pos_adjust * 35, 40, 25, hwnd, (HMENU)idc, hInst, NULL);
+                    }
+                    notch--;
+                }
+
+                hwnd_notch_radio[j][11] = CreateWindowW(TEXT("STATIC"), motion_text[j], WS_CHILD | WS_VISIBLE | SS_LEFT, 
+                    25 , 60 + pos_adjust * 35, 40, 25, hwnd, (HMENU)(++idc), hInst, NULL);
+
+                SendMessage(hwnd_notch_radio[j][OTE_SIM_NOTCH_ARR_0], BM_SETCHECK, BST_CHECKED, 0L);
+                sim_notchpos[j] = 0;
+                pos_adjust++;
+                woMSG.str(L"");
+            }
+ 
+        }
+
+        //操作入力チェックボタン
+        {
+            int pos_x_offset = 0;
+            
+            hwnd_pb_chk[ID_PB_ANTISWAY_ON] = CreateWindow(L"BUTTON", pb_text[ID_PB_ANTISWAY_ON], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_ANTISWAY_ON), hInst, NULL); 
+            hwnd_pb_chk[ID_PB_ESTOP] = CreateWindow(L"BUTTON", pb_text[ID_PB_ESTOP], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_ESTOP), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_AUTO_START] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_START], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_START), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_AUTO_START] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_START], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_START), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_AUTO_MODE] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_MODE], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_MODE), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_AUTO_SET_Z] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_SET_Z], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_SET_Z), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_AUTO_SET_XY] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_SET_XY], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_SET_XY), hInst, NULL); pos_x_offset = 0;
+            hwnd_pb_chk[ID_PB_REMOTE_MODE] = CreateWindow(L"BUTTON", pb_text[ID_PB_REMOTE_MODE], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_REMOTE_MODE), hInst, NULL); pos_x_offset += 105;
+            hwnd_pb_chk[ID_PB_CTRL_SOURCE_ON] = CreateWindow(L"BUTTON", pb_text[ID_PB_CTRL_SOURCE_ON], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE_ON), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_CTRL_SOURCE2_ON] = CreateWindow(L"BUTTON", pb_text[ID_PB_CTRL_SOURCE2_ON], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE2_ON), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_AUTO_RESET] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_RESET), hInst, NULL); pos_x_offset+=105;
+            hwnd_pb_chk[ID_PB_FAULT_RESET] = CreateWindow(L"BUTTON", pb_text[ID_PB_FAULT_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_FAULT_RESET), hInst, NULL); pos_x_offset+=105;
+
+            
+/*
+#define ID_PB_ANTISWAY_OFF		2
+#define ID_PB_AUTO_START		3
+#define ID_PB_AUTO_MODE			4
+#define ID_PB_AUTO_SET_Z		5
+#define ID_PB_AUTO_SET_XY		6
+
+
+#define ID_PB_CRANE_MODE		12
+#define ID_PB_REMOTE_MODE		13
+#define ID_PB_CTRL_SOURCE_ON	14
+#define ID_PB_CTRL_SOURCE_OFF	15
+#define ID_PB_CTRL_SOURCE2_ON	16
+#define ID_PB_CTRL_SOURCE2_OFF	17
+#define ID_PB_AUTO_RESET		18
+#define ID_PB_FAULT_RESET		19
+#define ID_PB_SEMI_AUTO_S1		20
+#define ID_PB_SEMI_AUTO_S2		21
+#define ID_PB_SEMI_AUTO_S3		22
+#define ID_PB_SEMI_AUTO_L1		23
+#define ID_PB_SEMI_AUTO_L2		24
+#define ID_PB_SEMI_AUTO_L3		25
+
+#define ID_PB_MH_P1             30
+#define ID_PB_MH_P2             31
+#define ID_PB_MH_M1             32
+#define ID_PB_MH_M2             33
+#define ID_PB_SL_P1             34
+#define ID_PB_SL_P2             35
+#define ID_PB_SL_M1             36
+#define ID_PB_SL_M2             37
+#define ID_PB_BH_P1             38
+#define ID_PB_BH_P2             39
+#define ID_PB_BH_M1             40
+#define ID_PB_BH_M2             41
+#define ID_PB_PARK              42
+#define ID_PB_GRND              43
+#define ID_PB_PICK              44
+
+     */       
+            for (LONGLONG i = 0;i < 4;i++) {
+                hwnd_pb_chk[ID_PB_MH_P1+i] = CreateWindow(L"BUTTON", pb_text[ID_PB_MH_P1+i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    540 + i*60, 60 , 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_MH_P1+i), hInst, NULL);
+            }
+            for (LONGLONG i = 0;i < 4;i++) {
+                hwnd_pb_chk[ID_PB_BH_P1+i] = CreateWindow(L"BUTTON", pb_text[ID_PB_BH_P1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    540 + i * 60, 130, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_BH_P1 + i), hInst, NULL);
+            }
+            for (LONGLONG i = 0;i < 4;i++) {
+                hwnd_pb_chk[ID_PB_SL_P1 + i] = CreateWindow(L"BUTTON", pb_text[ID_PB_SL_P1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    540 + i * 60, 165, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_SL_P1 + i), hInst, NULL);
+            }
+        
+        
+        
+        
+        
+        
+        }
+
+
+
+
+        //ソケット初期化処理
          if (init_sock_u(hwnd) == 0) {
             woMSG << L"UNI SOCK OK";
             tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L""); woMSG.clear();
@@ -485,7 +642,6 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             wsMSG = L"-";
             tweet2infMSG(wsMSG, ID_SOCK_CODE_U);wsMSG.clear();
          }
-
         if (init_sock_m_te(hwnd) == 0) {
             woMSG << L"M-TE SOCK OK";
             tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_TE); woMSG.str(L""); woMSG.clear();
@@ -498,7 +654,6 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             wsMSG = L"-";
             tweet2infMSG(wsMSG, ID_SOCK_CODE_TE);wsMSG.clear();
          }
-
         if (init_sock_m_cr(hwnd) == 0) {
             woMSG << L"M-CR SOCK OK";
             tweet2statusMSG(woMSG.str(), ID_SOCK_CODE_CR); woMSG.str(L""); woMSG.clear();
@@ -511,7 +666,8 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             wsMSG = L"-";
             tweet2infMSG(wsMSG, ID_SOCK_CODE_CR);wsMSG.clear();
            }
-    //マルチキャスト送信電文初期値セット
+
+         //マルチキャスト送信電文初期値セット
         set_msg_m_te(0,0,0);
         set_msg_u(0, 0, 0);
 
@@ -522,7 +678,9 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
     case WM_TIMER: {
         timer_count++;
         if (is_ote_msg_snd) {
+            set_msg_m_te(1,1,1);
             send_msg_m_te();
+            set_msg_u(1,1,1);
             send_msg_u();
         }
 
@@ -533,7 +691,7 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
 
             woMSG << L" IP:" << sockaddr.sin_addr.S_un.S_un_b.s_b1 << L"." << sockaddr.sin_addr.S_un.S_un_b.s_b2 << L"." << sockaddr.sin_addr.S_un.S_un_b.s_b3 << L"." << sockaddr.sin_addr.S_un.S_un_b.s_b4;
             woMSG << L" PORT: " << htons(sockaddr.sin_port);
-             woMSG << L" CODE:" << pOTEio->rcv_msg_u.head.status << L"  PC" << pOTEio->rcv_msg_u.head.tgid;
+            woMSG << L" CODE:" << pOTEio->rcv_msg_u.head.status << L"  PC" << pOTEio->rcv_msg_u.head.tgid;
             SetWindowText(hwndMON_U_OTE_LABEL, woMSG.str().c_str());woMSG.str(L""); woMSG.clear();
 
             woMSG << L"PB :";  
@@ -791,21 +949,100 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         switch (wmId)
         {
 
-        case  ID_CHK_OTE_SIM_MSG_SND:
+        case  ID_CHK_OTE_SIM_MSG_SND: {
             if (IsDlgButtonChecked(hwnd, ID_CHK_OTE_SIM_MSG_SND) == BST_CHECKED) is_ote_msg_snd = L_ON;
             else  is_ote_msg_snd = L_OFF;
-            break;
+        }break;
 
-        case  IDC_RADIO_DISP_MON_OTE:
+        case  IDC_RADIO_DISP_MON_OTE: {
             panel_disp_mode = OTE_SIM_CODE_MON_OTE;
-            break;
+            ShowWindow(hwndSTAT_M_TE, SW_RESTORE);
+            for (int i = 0;i < 32;i++) {
+                if (hwnd_monbuf[i] == NULL) break;
+                else ShowWindow(hwnd_monbuf[i], SW_RESTORE);
+            }
+            
+            for (int j = 0;j < MOTION_ID_MAX;j++) {
+                for (int i = 0;i < 12;i++) {
+                    if (hwnd_notch_radio[j][i] == NULL) break;
+                    else ShowWindow(hwnd_notch_radio[j][i], SW_HIDE);
+                }
+            }
 
-        case  IDC_RADIO_DISP_MON_SIM:
+          }break;
+
+        case  IDC_RADIO_DISP_MON_SIM: {
             panel_disp_mode = OTE_SIM_CODE_MON_SIM;
-            break;
+            for (int i = 0;i < 32;i++) {
+                if (hwnd_monbuf[i] == NULL) break;
+                else ShowWindow(hwnd_monbuf[i], SW_HIDE);
+            }
+            for (int j = 0;j < MOTION_ID_MAX;j++) {
+                for (int i = 0;i < 12;i++) {
+                    if (hwnd_notch_radio[j][i] == NULL) break;
+                    else ShowWindow(hwnd_notch_radio[j][i], SW_RESTORE);
+                }
+            }
+        }break;
+            //ノッチ入力
+        case  ID_RADIO_HST_NOTCH_5 + 0: sim_notchpos[ID_HOIST] = 5;break;
+        {
+        case  ID_RADIO_HST_NOTCH_5 + 1: sim_notchpos[ID_HOIST] = 4;break;
+        case  ID_RADIO_HST_NOTCH_5 + 2: sim_notchpos[ID_HOIST] = 3;break;
+        case  ID_RADIO_HST_NOTCH_5 + 3: sim_notchpos[ID_HOIST] = 2;break;
+        case  ID_RADIO_HST_NOTCH_5 + 4: sim_notchpos[ID_HOIST] = 1;break;
+        case  ID_RADIO_HST_NOTCH_5 + 5: sim_notchpos[ID_HOIST] = 0;break;
+        case  ID_RADIO_HST_NOTCH_5 + 6: sim_notchpos[ID_HOIST] = -1;break;
+        case  ID_RADIO_HST_NOTCH_5 + 7: sim_notchpos[ID_HOIST] = -2;break;
+        case  ID_RADIO_HST_NOTCH_5 + 8: sim_notchpos[ID_HOIST] = -3;break;
+        case  ID_RADIO_HST_NOTCH_5 + 9: sim_notchpos[ID_HOIST] = -4;break;
+        case  ID_RADIO_HST_NOTCH_5 + 10: sim_notchpos[ID_HOIST] = -5;break;
 
-        default:
-            break;
+        case  ID_RADIO_GNT_NOTCH_5 + 0: sim_notchpos[ID_GANTRY] = 5;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 1: sim_notchpos[ID_GANTRY] = 4;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 2: sim_notchpos[ID_GANTRY] = 3;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 3: sim_notchpos[ID_GANTRY] = 2;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 4: sim_notchpos[ID_GANTRY] = 1;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 5: sim_notchpos[ID_GANTRY] = 0;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 6: sim_notchpos[ID_GANTRY] = -1;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 7: sim_notchpos[ID_GANTRY] = -2;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 8: sim_notchpos[ID_GANTRY] = -3;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 9: sim_notchpos[ID_GANTRY] = -4;break;
+        case  ID_RADIO_GNT_NOTCH_5 + 10: sim_notchpos[ID_GANTRY] = -5;break;
+
+        case  ID_RADIO_BH_NOTCH_5 + 0: sim_notchpos[ID_BOOM_H] = 5;break;
+        case  ID_RADIO_BH_NOTCH_5 + 1: sim_notchpos[ID_BOOM_H] = 4;break;
+        case  ID_RADIO_BH_NOTCH_5 + 2: sim_notchpos[ID_BOOM_H] = 3;break;
+        case  ID_RADIO_BH_NOTCH_5 + 3: sim_notchpos[ID_BOOM_H] = 2;break;
+        case  ID_RADIO_BH_NOTCH_5 + 4: sim_notchpos[ID_BOOM_H] = 1;break;
+        case  ID_RADIO_BH_NOTCH_5 + 5: sim_notchpos[ID_BOOM_H] = 0;break;
+        case  ID_RADIO_BH_NOTCH_5 + 6: sim_notchpos[ID_BOOM_H] = -1;break;
+        case  ID_RADIO_BH_NOTCH_5 + 7: sim_notchpos[ID_BOOM_H] = -2;break;
+        case  ID_RADIO_BH_NOTCH_5 + 8: sim_notchpos[ID_BOOM_H] = -3;break;
+        case  ID_RADIO_BH_NOTCH_5 + 9: sim_notchpos[ID_BOOM_H] = -4;break;
+        case  ID_RADIO_BH_NOTCH_5 + 10: sim_notchpos[ID_BOOM_H] = -5;break;
+
+        case  ID_RADIO_SLW_NOTCH_5 + 0: sim_notchpos[ID_SLEW] = 5;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 1: sim_notchpos[ID_SLEW] = 4;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 2: sim_notchpos[ID_SLEW] = 3;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 3: sim_notchpos[ID_SLEW] = 2;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 4: sim_notchpos[ID_SLEW] = 1;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 5: sim_notchpos[ID_SLEW] = 0;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 6: sim_notchpos[ID_SLEW] = -1;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 7: sim_notchpos[ID_SLEW] = -2;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 8: sim_notchpos[ID_SLEW] = -3;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 9: sim_notchpos[ID_SLEW] = -4;break;
+        case  ID_RADIO_SLW_NOTCH_5 + 10: sim_notchpos[ID_SLEW] = -5;break;
+        }
+
+
+        //PB入力
+        case (ID_CHECK_PB_0 + ID_PB_ANTISWAY_ON): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_ANTISWAY_ON), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_ANTISWAY_ON] = L_ON;
+            else sim_pb[ID_PB_ANTISWAY_ON] = L_OFF;
+        }break;
+         default:
+         break;
         }
     }
     break;
