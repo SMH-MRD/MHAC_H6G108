@@ -61,6 +61,7 @@
 #define ID_RADIO_SLW_NOTCH_5                 10830
 
 #define ID_CHECK_PB_0                        10900
+#define ID_STATIC_LAMP_0                     11000
 
 //起動タイマーID
 #define ID_OTE_SIM_TIMER					106
@@ -111,8 +112,9 @@ private:
  
     static HWND hwnd_notch_radio[MOTION_ID_MAX][12];
     static HWND hwnd_pb_chk[N_UI_PB];
+    static HWND hwnd_lamp[N_UI_LAMP];
     static INT32 sim_notchpos[MOTION_ID_MAX];
-    static INT32 sim_pb[N_UI_PB];
+    static INT16 sim_pb[N_UI_PB];
    
     static void tweet2infMSG(const std::wstring& srcw, int code);
     static void tweet2statusMSG(const std::wstring& srcw, int code);

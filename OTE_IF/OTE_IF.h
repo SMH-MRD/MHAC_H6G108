@@ -1,6 +1,57 @@
 #pragma once
 
 #include "resource.h"
+// #Touchタッチポイント
+//Windowsタッチ
+#ifndef WINVER                  // Specifies that the minimum required platform is Windows 7.
+#define WINVER 0x0601           // Change this to the appropriate value to target other versions of Windows.
+#endif
+
+#ifndef _WIN32_WINNT            // Specifies that the minimum required platform is Windows 7.
+#define _WIN32_WINNT 0x0601     // Change this to the appropriate value to target other versions of Windows.
+#endif     
+
+#ifndef _WIN32_WINDOWS          // Specifies that the minimum required platform is Windows 98.
+#define _WIN32_WINDOWS 0x0410 // Change this to the appropriate value to target Windows Me or later.
+#endif
+
+#ifndef _WIN32_IE                       // Specifies that the minimum required platform is Internet Explorer 7.0.
+#define _WIN32_IE 0x0700        // Change this to the appropriate value to target other versions of IE.
+#endif
+
+#include <windows.h>    // included for Windows Touch
+#include <windowsx.h>   // included for point conversion
+
+#define MAXPOINTS 10
+
+// You will use this array to track touch points
+int points[MAXPOINTS][2];
+
+// You will use this array to switch the color / track ids
+int idLookup[MAXPOINTS];
+
+
+// You can make the touch points larger
+// by changing this radius value
+static int radius = 50;
+
+// There should be at least as many colors
+// as there can be touch points so that you
+// can have different colors for each point
+COLORREF colors[] = { RGB(153,255,51),
+					  RGB(153,0,0),
+					  RGB(0,153,0),
+					  RGB(255,255,0),
+					  RGB(255,51,204),
+					  RGB(0,0,0),
+					  RGB(0,153,0),
+					  RGB(153, 255, 255),
+					  RGB(153,153,255),
+					  RGB(0,51,153)
+};
+
+// #Touchタッチポイント
+
 ///# ベース設定
 
 //-タスク設定

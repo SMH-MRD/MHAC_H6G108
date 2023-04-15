@@ -630,7 +630,7 @@ void CClientService::output() {
 		CS_workbuf.ui_lamp[ID_PB_GRND] = L_ON;
 		CS_workbuf.ui_lamp[ID_PB_PARK] = L_OFF;
 	}
-	else if (CS_workbuf.command_type == COM_TYPE_PICK) {
+	else if (CS_workbuf.command_type == COM_TYPE_PARK) {
 		CS_workbuf.ui_lamp[ID_PB_PICK] = L_OFF;
 		CS_workbuf.ui_lamp[ID_PB_GRND] = L_OFF;
 		CS_workbuf.ui_lamp[ID_PB_PARK] = L_ON;
@@ -659,6 +659,8 @@ void CClientService::output() {
 		else {	//半自動選択中でないPB
 			CS_workbuf.semiauto_lamp[i] = L_OFF;
 		}
+
+		CS_workbuf.ui_lamp[ID_PB_SEMI_AUTO_S1 + i] = CS_workbuf.semiauto_lamp[i];//表示ランプバッファへコピー
 	}
 
 	//共有メモリ出力

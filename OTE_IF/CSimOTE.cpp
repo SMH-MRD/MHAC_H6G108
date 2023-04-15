@@ -31,9 +31,10 @@ HWND CSimOTE::h_radio_disp_monSIM;
 HWND CSimOTE::hwndMON_U_OTE,CSimOTE::hwndMON_U_CR,CSimOTE::hwndMON_M_OTE,CSimOTE::hwndMON_M_CR,CSimOTE::hwndMON_U_OTE_LABEL,CSimOTE::hwndMON_U_CR_LABEL,CSimOTE::hwndMON_M_OTE_LABEL,CSimOTE::hwndMON_M_CR_LABEL;
 
 HWND CSimOTE::hwnd_monbuf[32],CSimOTE::hwnd_simbuf[128];
+HWND CSimOTE::hwnd_lamp[N_UI_LAMP];
 
 HWND CSimOTE::hwnd_notch_radio[MOTION_ID_MAX][12], CSimOTE::hwnd_pb_chk[N_UI_PB];
-INT32 CSimOTE::sim_pb[N_UI_PB];
+INT16 CSimOTE::sim_pb[N_UI_PB];
 
 ST_OTE_IO CSimOTE::ote_io_workbuf;
 
@@ -65,8 +66,10 @@ INT32 CSimOTE::sim_notchpos[MOTION_ID_MAX];
 CSimOTE::CSimOTE() {
     pOteIOObj = new CSharedMem;
 
-    for(int i=0;i<32;i++) CSimOTE::hwnd_monbuf[32]=NULL;
-    for (int i = 0;i < 128;i++) CSimOTE::hwnd_simbuf[128]=NULL;
+    for(int i=0;i<32;i++) hwnd_monbuf[i]=NULL;
+    for (int i = 0;i < 128;i++) hwnd_simbuf[i]=NULL;
+    for (int i = 0;i < N_UI_PB;i++) hwnd_pb_chk[i] = NULL;
+    for (int i = 0;i < N_UI_LAMP;i++) hwnd_lamp[i] = NULL;
 };
 CSimOTE::~CSimOTE() {
     delete pOteIOObj;
@@ -334,10 +337,8 @@ int CSimOTE::init_sock_m_cr(HWND hwnd) {
 
     return 0;
 }
-
 //*********************************************************************************************
 int CSimOTE::send_msg_u() {
-
     //クレーン側受信メッセージ
     int n = sizeof(ST_UOTE_RCV_MSG);
     nRtn = sendto(s_u, reinterpret_cast<const char*> (&ote_io_workbuf.rcv_msg_u), n, 0, (LPSOCKADDR)&addrin_ote_u, sizeof(addrin_ote_u));
@@ -357,10 +358,7 @@ int CSimOTE::send_msg_u() {
         
         woMSG << L"Rcv n:" << nRcv_u << L" l:" << lRcv_u << L" sendto size ERROR" ;
      }
- 
     tweet2infMSG(woMSG.str(), ID_SOCK_CODE_U); woMSG.str(L"");woMSG.clear();
-
-   
     return nRtn;
 }
 
@@ -459,17 +457,13 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         hwndINFMSG_M_CR = CreateWindowW(TEXT("STATIC"), L"-", WS_CHILD | WS_VISIBLE | SS_LEFT,
             520, 25, 250, 20, hwnd, (HMENU)ID_STATIC_OTE_SIM_VIEW_INF_CR, hInst, NULL);
 
- 
-
         hwndMON_U_OTE_LABEL = CreateWindowW(TEXT("STATIC"), L"#FROM OTE UNI",
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 50, 800, 20, hwnd, (HMENU)ID_STATIC_MON_OTE_U_LABEL, hInst, NULL);
         hwndMON_U_OTE = CreateWindowW(TEXT("STATIC"), L"-", 
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 75, 800, 55, hwnd, (HMENU)ID_STATIC_MON_OTE_U, hInst, NULL);
 
         hwndMON_U_CR_LABEL = CreateWindowW(TEXT("STATIC"), L"#TO OTE UNI",
-
-
-            WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 135, 800, 20, hwnd, (HMENU)ID_STATIC_MON_CR_U_LABEL, hInst, NULL);
+           WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 135, 800, 20, hwnd, (HMENU)ID_STATIC_MON_CR_U_LABEL, hInst, NULL);
         hwndMON_U_CR = CreateWindowW(TEXT("STATIC"), L"-",
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 160, 800, 140, hwnd, (HMENU)ID_STATIC_MON_CR_U, hInst, NULL);
 
@@ -534,101 +528,94 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
                 woMSG.str(L"");
             }
  
+            //自動目標位置調整ボタン
+            for (int i = 0;i < 4;i++) {
+                hwnd_pb_chk[ID_PB_MH_P1 + i] = CreateWindow(L"BUTTON", pb_text[ID_PB_MH_P1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    535 + i * 60, 60, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_MH_P1 + i), hInst, NULL);
+            }
+            for (int i = 0;i < 4;i++) {
+                hwnd_pb_chk[ID_PB_BH_P1 + i] = CreateWindow(L"BUTTON", pb_text[ID_PB_BH_P1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    535 + i * 60, 130, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_BH_P1 + i), hInst, NULL);
+            }
+            for (int i = 0;i < 4;i++) {
+                hwnd_pb_chk[ID_PB_SL_P1 + i] = CreateWindow(L"BUTTON", pb_text[ID_PB_SL_P1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    535 + i * 60, 165, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_SL_P1 + i), hInst, NULL);
+            }
         }
 
-        //操作入力チェックボタン
+        //操作入力チェックボタン + ランプ表示スタティック
         {
             int pos_x_offset = 0;
-            
-            hwnd_pb_chk[ID_PB_ANTISWAY_ON] = CreateWindow(L"BUTTON", pb_text[ID_PB_ANTISWAY_ON], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                20, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_ANTISWAY_ON), hInst, NULL); 
+      
+            hwnd_lamp[ID_PB_ESTOP] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20, 355, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_ESTOP), hInst, NULL);
             hwnd_pb_chk[ID_PB_ESTOP] = CreateWindow(L"BUTTON", pb_text[ID_PB_ESTOP], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_ESTOP), hInst, NULL); pos_x_offset+=105;
+                20, 380, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_ESTOP), hInst, NULL); pos_x_offset += 105;
+
+            hwnd_lamp[ID_PB_ANTISWAY_ON] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 355, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_ANTISWAY_ON), hInst, NULL);
+            hwnd_pb_chk[ID_PB_ANTISWAY_ON] = CreateWindow(L"BUTTON", pb_text[ID_PB_ANTISWAY_ON], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20 + pos_x_offset, 380, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_ANTISWAY_ON), hInst, NULL);pos_x_offset += 105;
+
+            hwnd_lamp[ID_PB_AUTO_START] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 355, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_AUTO_START), hInst, NULL);
             hwnd_pb_chk[ID_PB_AUTO_START] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_START], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_START), hInst, NULL); pos_x_offset+=105;
-            hwnd_pb_chk[ID_PB_AUTO_START] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_START], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_START), hInst, NULL); pos_x_offset+=105;
+                20+ pos_x_offset, 380, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_START), hInst, NULL); pos_x_offset+=105;
+
+            hwnd_lamp[ID_PB_AUTO_MODE] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 355, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_AUTO_MODE), hInst, NULL);
             hwnd_pb_chk[ID_PB_AUTO_MODE] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_MODE], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_MODE), hInst, NULL); pos_x_offset+=105;
+                20+ pos_x_offset, 380, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_MODE), hInst, NULL); pos_x_offset+=105;
+
+            hwnd_lamp[ID_PB_AUTO_SET_Z] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 355, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_AUTO_SET_Z), hInst, NULL);
             hwnd_pb_chk[ID_PB_AUTO_SET_Z] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_SET_Z], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_SET_Z), hInst, NULL); pos_x_offset+=105;
+                20+ pos_x_offset, 380, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_SET_Z), hInst, NULL); pos_x_offset+=105;
+
+            hwnd_lamp[ID_PB_AUTO_SET_XY] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 355, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_AUTO_SET_XY), hInst, NULL);
             hwnd_pb_chk[ID_PB_AUTO_SET_XY] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_SET_XY], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                20+ pos_x_offset, 400, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_SET_XY), hInst, NULL); pos_x_offset = 0;
+                20+ pos_x_offset, 380, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_SET_XY), hInst, NULL); pos_x_offset = 0;
+
+            hwnd_lamp[ID_PB_REMOTE_MODE] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_REMOTE_MODE), hInst, NULL);
             hwnd_pb_chk[ID_PB_REMOTE_MODE] = CreateWindow(L"BUTTON", pb_text[ID_PB_REMOTE_MODE], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_REMOTE_MODE), hInst, NULL); pos_x_offset += 105;
+
+            hwnd_lamp[ID_PB_CTRL_SOURCE_ON] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_CTRL_SOURCE_ON), hInst, NULL);
             hwnd_pb_chk[ID_PB_CTRL_SOURCE_ON] = CreateWindow(L"BUTTON", pb_text[ID_PB_CTRL_SOURCE_ON], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE_ON), hInst, NULL); pos_x_offset+=105;
+
+            hwnd_lamp[ID_PB_CTRL_SOURCE2_ON] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_CTRL_SOURCE2_ON), hInst, NULL);
             hwnd_pb_chk[ID_PB_CTRL_SOURCE2_ON] = CreateWindow(L"BUTTON", pb_text[ID_PB_CTRL_SOURCE2_ON], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE2_ON), hInst, NULL); pos_x_offset+=105;
+
+            hwnd_lamp[ID_PB_AUTO_RESET] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_ESTOP), hInst, NULL);
             hwnd_pb_chk[ID_PB_AUTO_RESET] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_RESET), hInst, NULL); pos_x_offset+=105;
+
+            hwnd_lamp[ID_PB_FAULT_RESET] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_FAULT_RESET), hInst, NULL);
             hwnd_pb_chk[ID_PB_FAULT_RESET] = CreateWindow(L"BUTTON", pb_text[ID_PB_FAULT_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_FAULT_RESET), hInst, NULL); pos_x_offset+=105;
 
-            
-/*
-#define ID_PB_ANTISWAY_OFF		2
-#define ID_PB_AUTO_START		3
-#define ID_PB_AUTO_MODE			4
-#define ID_PB_AUTO_SET_Z		5
-#define ID_PB_AUTO_SET_XY		6
-
-
-#define ID_PB_CRANE_MODE		12
-#define ID_PB_REMOTE_MODE		13
-#define ID_PB_CTRL_SOURCE_ON	14
-#define ID_PB_CTRL_SOURCE_OFF	15
-#define ID_PB_CTRL_SOURCE2_ON	16
-#define ID_PB_CTRL_SOURCE2_OFF	17
-#define ID_PB_AUTO_RESET		18
-#define ID_PB_FAULT_RESET		19
-#define ID_PB_SEMI_AUTO_S1		20
-#define ID_PB_SEMI_AUTO_S2		21
-#define ID_PB_SEMI_AUTO_S3		22
-#define ID_PB_SEMI_AUTO_L1		23
-#define ID_PB_SEMI_AUTO_L2		24
-#define ID_PB_SEMI_AUTO_L3		25
-
-#define ID_PB_MH_P1             30
-#define ID_PB_MH_P2             31
-#define ID_PB_MH_M1             32
-#define ID_PB_MH_M2             33
-#define ID_PB_SL_P1             34
-#define ID_PB_SL_P2             35
-#define ID_PB_SL_M1             36
-#define ID_PB_SL_M2             37
-#define ID_PB_BH_P1             38
-#define ID_PB_BH_P2             39
-#define ID_PB_BH_M1             40
-#define ID_PB_BH_M2             41
-#define ID_PB_PARK              42
-#define ID_PB_GRND              43
-#define ID_PB_PICK              44
-
-     */       
-            for (LONGLONG i = 0;i < 4;i++) {
-                hwnd_pb_chk[ID_PB_MH_P1+i] = CreateWindow(L"BUTTON", pb_text[ID_PB_MH_P1+i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                    540 + i*60, 60 , 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_MH_P1+i), hInst, NULL);
+            for (int i = 0;i < 6;i++) {
+                hwnd_lamp[ID_PB_SEMI_AUTO_S1 + i] = CreateWindowW(TEXT("STATIC"), L"-",
+                    WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + i * 60, 465, 58, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_SEMI_AUTO_S1 + i), hInst, NULL);
+                hwnd_pb_chk[ID_PB_SEMI_AUTO_S1 + i] = CreateWindow(L"BUTTON", pb_text[ID_PB_SEMI_AUTO_S1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    20 + i * 60, 490, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S1 + i), hInst, NULL);
             }
-            for (LONGLONG i = 0;i < 4;i++) {
-                hwnd_pb_chk[ID_PB_BH_P1+i] = CreateWindow(L"BUTTON", pb_text[ID_PB_BH_P1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                    540 + i * 60, 130, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_BH_P1 + i), hInst, NULL);
+            for (int i = 0;i < 3;i++) {
+                hwnd_lamp[ID_PB_PARK + i] = CreateWindowW(TEXT("STATIC"), L"-",
+                    WS_CHILD | WS_VISIBLE | SS_CENTER, 400 + i * 60, 465, 58, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_PARK + i), hInst, NULL);
+                hwnd_pb_chk[ID_PB_PARK + i] = CreateWindow(L"BUTTON", pb_text[ID_PB_PARK + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                    400 + i * 60, 490, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_PARK + i), hInst, NULL);
             }
-            for (LONGLONG i = 0;i < 4;i++) {
-                hwnd_pb_chk[ID_PB_SL_P1 + i] = CreateWindow(L"BUTTON", pb_text[ID_PB_SL_P1 + i], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
-                    540 + i * 60, 165, 58, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_SL_P1 + i), hInst, NULL);
-            }
-        
-        
-        
-        
-        
-        
         }
-
-
-
-
+        
         //ソケット初期化処理
          if (init_sock_u(hwnd) == 0) {
             woMSG << L"UNI SOCK OK";
@@ -695,7 +682,7 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             SetWindowText(hwndMON_U_OTE_LABEL, woMSG.str().c_str());woMSG.str(L""); woMSG.clear();
 
             woMSG << L"PB :";  
-            for (int i = 0;i < 30;i++) {
+            for (int i = 0;i < 45;i++) {
                 woMSG << pOTEio->rcv_msg_u.body.pb[i]; woMSG << L",";
               }
             woMSG << L"  NOTCH :";
@@ -743,13 +730,12 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
 
         //モニタ表示　UNI　CR->OTE
         {
-            woMSG << L"#FROM OTE MULTI  ID:" << pOTEio->snd_msg_u.head.myid << L"  EVENT:" << pOTEio->snd_msg_u.head.code;
+            woMSG << L"#TO OTE UNI ID:" << pOTEio->snd_msg_u.head.myid << L"  EVENT:" << pOTEio->snd_msg_u.head.code;
             sockaddr_in sockaddr = (sockaddr_in)pOTEio->snd_msg_u.head.addr;
-
             woMSG << L" IP:" << sockaddr.sin_addr.S_un.S_un_b.s_b1 << L"." << sockaddr.sin_addr.S_un.S_un_b.s_b2 << L"." << sockaddr.sin_addr.S_un.S_un_b.s_b3 << L"." << sockaddr.sin_addr.S_un.S_un_b.s_b4;
             woMSG << L" PORT: " << htons(sockaddr.sin_port);
             woMSG << L" CODE:" << pOTEio->snd_msg_u.head.status << L"  PC" << pOTEio->snd_msg_u.head.tgid;
-            SetWindowText(hwndMON_M_OTE_LABEL, woMSG.str().c_str());woMSG.str(L""); woMSG.clear();
+            SetWindowText(hwndMON_U_CR_LABEL, woMSG.str().c_str());woMSG.str(L""); woMSG.clear();
 
             woMSG << L"POS :";
             for (int i = 0;i < 8;i++) {
@@ -832,6 +818,16 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             SetWindowText(hwndMON_M_CR_LABEL, woMSG.str().c_str());woMSG.str(L""); woMSG.clear();
         }
 
+        //ランプ表示
+        {
+            for (int i = 0;i < N_UI_LAMP;i++) {
+                if (hwnd_lamp[i] == NULL)continue;
+                else {
+                    if(pOTEio->snd_msg_u.body.lamp[i]>0)    SetWindowText(hwnd_lamp[i], L"●"); 
+                    else                                    SetWindowText(hwnd_lamp[i], L"〇");
+                }
+            }
+        }
 
     }break;
 
@@ -941,14 +937,11 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         hdc = BeginPaint(hwnd, &ps);
         EndPaint(hwnd, &ps);
     }break;
- 
-    
-    case WM_COMMAND:
-    {
+     
+    case WM_COMMAND: {
         int wmId = LOWORD(wp);
         switch (wmId)
         {
-
         case  ID_CHK_OTE_SIM_MSG_SND: {
             if (IsDlgButtonChecked(hwnd, ID_CHK_OTE_SIM_MSG_SND) == BST_CHECKED) is_ote_msg_snd = L_ON;
             else  is_ote_msg_snd = L_OFF;
@@ -961,15 +954,20 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
                 if (hwnd_monbuf[i] == NULL) break;
                 else ShowWindow(hwnd_monbuf[i], SW_RESTORE);
             }
-            
+
             for (int j = 0;j < MOTION_ID_MAX;j++) {
                 for (int i = 0;i < 12;i++) {
                     if (hwnd_notch_radio[j][i] == NULL) break;
                     else ShowWindow(hwnd_notch_radio[j][i], SW_HIDE);
                 }
+ 
+            }
+            for (int i = 0;i < 64;i++) {
+                if (hwnd_pb_chk[i] == NULL) continue;
+                else ShowWindow(hwnd_pb_chk[i], SW_HIDE);
             }
 
-          }break;
+        }break;
 
         case  IDC_RADIO_DISP_MON_SIM: {
             panel_disp_mode = OTE_SIM_CODE_MON_SIM;
@@ -983,10 +981,13 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
                     else ShowWindow(hwnd_notch_radio[j][i], SW_RESTORE);
                 }
             }
+            for (int i = 0;i < 64;i++) {
+                if (hwnd_pb_chk[i] == NULL) continue;
+                else ShowWindow(hwnd_pb_chk[i], SW_RESTORE);
+            }
         }break;
             //ノッチ入力
         case  ID_RADIO_HST_NOTCH_5 + 0: sim_notchpos[ID_HOIST] = 5;break;
-        {
         case  ID_RADIO_HST_NOTCH_5 + 1: sim_notchpos[ID_HOIST] = 4;break;
         case  ID_RADIO_HST_NOTCH_5 + 2: sim_notchpos[ID_HOIST] = 3;break;
         case  ID_RADIO_HST_NOTCH_5 + 3: sim_notchpos[ID_HOIST] = 2;break;
@@ -1033,26 +1034,141 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         case  ID_RADIO_SLW_NOTCH_5 + 8: sim_notchpos[ID_SLEW] = -3;break;
         case  ID_RADIO_SLW_NOTCH_5 + 9: sim_notchpos[ID_SLEW] = -4;break;
         case  ID_RADIO_SLW_NOTCH_5 + 10: sim_notchpos[ID_SLEW] = -5;break;
-        }
 
-
-        //PB入力
+            //PB入力
+        case (ID_CHECK_PB_0 + ID_PB_ESTOP): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_ESTOP), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_ESTOP] = L_ON;
+            else sim_pb[ID_PB_ESTOP] = L_OFF;
+        }break;
         case (ID_CHECK_PB_0 + ID_PB_ANTISWAY_ON): {
             if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_ANTISWAY_ON), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_ANTISWAY_ON] = L_ON;
             else sim_pb[ID_PB_ANTISWAY_ON] = L_OFF;
         }break;
-         default:
-         break;
+        case (ID_CHECK_PB_0 + ID_PB_AUTO_START): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_AUTO_START), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_AUTO_START] = L_ON;
+            else sim_pb[ID_PB_AUTO_START] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_AUTO_MODE): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_AUTO_MODE), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_AUTO_MODE] = L_ON;
+            else sim_pb[ID_PB_AUTO_MODE] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_AUTO_SET_Z): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_AUTO_SET_Z), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_AUTO_SET_Z] = L_ON;
+            else sim_pb[ID_PB_AUTO_SET_Z] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_AUTO_SET_XY): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_AUTO_SET_XY), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_AUTO_SET_XY] = L_ON;
+            else sim_pb[ID_PB_AUTO_SET_XY] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE_ON): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE_ON), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_CTRL_SOURCE_ON] = L_ON;
+            else sim_pb[ID_PB_CTRL_SOURCE_ON] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE2_ON): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE2_ON), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_CTRL_SOURCE2_ON] = L_ON;
+            else sim_pb[ID_PB_CTRL_SOURCE2_ON] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_AUTO_RESET): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_AUTO_RESET), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_AUTO_RESET] = L_ON;
+            else sim_pb[ID_PB_AUTO_RESET] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_FAULT_RESET): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_FAULT_RESET), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_FAULT_RESET] = L_ON;
+            else sim_pb[ID_PB_FAULT_RESET] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SEMI_AUTO_S1] = L_ON;
+            else sim_pb[ID_PB_SEMI_AUTO_S1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SEMI_AUTO_S2] = L_ON;
+            else sim_pb[ID_PB_SEMI_AUTO_S2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S3): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S3), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SEMI_AUTO_S3] = L_ON;
+            else sim_pb[ID_PB_SEMI_AUTO_S3] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_L1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_L1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SEMI_AUTO_L1] = L_ON;
+            else sim_pb[ID_PB_SEMI_AUTO_L1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_L2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_L2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SEMI_AUTO_L2] = L_ON;
+            else sim_pb[ID_PB_SEMI_AUTO_L2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_L3): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_L3), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SEMI_AUTO_L3] = L_ON;
+            else sim_pb[ID_PB_SEMI_AUTO_L3] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_MH_P1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_MH_P1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_MH_P1] = L_ON;
+            else sim_pb[ID_PB_MH_P1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_MH_P2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_MH_P2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_MH_P2] = L_ON;
+            else sim_pb[ID_PB_MH_P2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_MH_M1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_MH_M1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_MH_M1] = L_ON;
+            else sim_pb[ID_PB_MH_M1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_MH_M2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_MH_M2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_MH_M2] = L_ON;
+            else sim_pb[ID_PB_MH_M2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_BH_P1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_BH_P1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_BH_P1] = L_ON;
+            else sim_pb[ID_PB_BH_P1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_BH_P2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_BH_P2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_BH_P2] = L_ON;
+            else sim_pb[ID_PB_BH_P2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_BH_M1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_BH_M1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_BH_M1] = L_ON;
+            else sim_pb[ID_PB_BH_M1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_BH_M2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_BH_M2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_BH_M2] = L_ON;
+            else sim_pb[ID_PB_BH_M2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SL_P1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SL_P1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SL_P1] = L_ON;
+            else sim_pb[ID_PB_SL_P1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SL_P2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SL_P2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SL_P2] = L_ON;
+            else sim_pb[ID_PB_SL_P2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SL_M1): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SL_M1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SL_M1] = L_ON;
+            else sim_pb[ID_PB_SL_M1] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_SL_M2): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SL_M2), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SL_M2] = L_ON;
+            else sim_pb[ID_PB_SL_M2] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_PARK): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_PARK), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_PARK] = L_ON;
+            else sim_pb[ID_PB_PARK] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_GRND): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_GRND), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_GRND] = L_ON;
+            else sim_pb[ID_PB_ANTISWAY_ON] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_PB_PICK): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_PICK), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_PICK] = L_ON;
+            else sim_pb[ID_PB_PICK] = L_OFF;
+        }break;
+        default:break;
         }
     }
-    break;
-    
     default:
         return DefWindowProc(hwnd, msg, wp, lp);
     }
-
     return 0;
 }
+
 
 //# ウィンドウへのメッセージ表示　wstring
 void CSimOTE::tweet2statusMSG(const std::wstring& srcw, int code) {

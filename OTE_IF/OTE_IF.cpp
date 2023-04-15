@@ -27,6 +27,13 @@ DWORD* psource_proc_counter = NULL;             //メインプロセスのヘル
 COteIF* pProcObj;                               //メイン処理オブジェクト:
 CSimOTE* pSimOTE;                               //操作端末シミュレータ用オブジェクト
 
+// #Touchタッチポイント
+    int wmId, wmEvent, i, x, y;
+    UINT cInputs;
+    PTOUCHINPUT pInputs;
+    POINT ptInput;
+// #Touchタッチポイント
+
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -166,11 +173,46 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        }
    }
 
+
+   // #Touch タッチポイント
+ 
+      // register the window for touch instead of gestures
+       RegisterTouchWindow(hWnd, 0);
+
+       // the following code initializes the points
+       for (int i = 0; i < MAXPOINTS; i++) {
+           points[i][0] = -1;
+           points[i][1] = -1;
+           idLookup[i] = -1;
+       }
+
+   // #Touch タッチポイント
+
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
    return TRUE;
 }
+
+// #Touch タッチポイント
+// This function is used to return an index given an ID
+int GetContactIndex(int dwID) {
+    for (int i = 0; i < MAXPOINTS; i++) {
+        if (idLookup[i] == -1) {
+            idLookup[i] = dwID;
+            return i;
+        }
+        else {
+            if (idLookup[i] == dwID) {
+                return i;
+            }
+        }
+    }
+    // Out of contacts
+    return -1;
+}
+// #Touch タッチポイント
 
 //
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -182,8 +224,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 中止メッセージを表示して戻る
 //
 //
+
+// For double buffering
+static HDC memDC = 0;
+static HBITMAP hMemBmp = 0;
+HBITMAP hOldBmp = 0;
+
+
+
+// For tracking dwId to points
+int index;
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    
     switch (message)
     {
     case WM_CREATE:
@@ -268,7 +322,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
 
+    case WM_TOUCH:
+        cInputs = LOWORD(wParam);
+        pInputs = new TOUCHINPUT[cInputs];
+        if (pInputs) {
+            if (GetTouchInputInfo((HTOUCHINPUT)lParam, cInputs, pInputs, sizeof(TOUCHINPUT))) {
+                for (int i = 0; i < static_cast<INT>(cInputs); i++) {
+                    TOUCHINPUT ti = pInputs[i];
+                    index = GetContactIndex(ti.dwID);
+                    if (ti.dwID != 0 && index < MAXPOINTS) {
+                        // Do something with your touch input handle
+                        ptInput.x = TOUCH_COORD_TO_PIXEL(ti.x);
+                        ptInput.y = TOUCH_COORD_TO_PIXEL(ti.y);
+                        ScreenToClient(hWnd, &ptInput);
 
+                        if (ti.dwFlags & TOUCHEVENTF_UP) {
+                            points[index][0] = -1;
+                            points[index][1] = -1;
+                        }
+                        else {
+                            points[index][0] = ptInput.x;
+                            points[index][1] = ptInput.y;
+                        }
+                    }
+                }
+            }
+            // If you handled the message and don't want anything else done with it, you can close it
+            CloseTouchInputHandle((HTOUCHINPUT)lParam);
+            delete[] pInputs;
+        }
+        else {
+            // Handle the error here 
+        }
+        break;
 
     case WM_COMMAND:
     {
@@ -368,13 +454,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
 
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: HDC を使用する描画コードをここに追加してください...
-            EndPaint(hWnd, &ps);
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        hdc = BeginPaint(hWnd, &ps);
+        RECT client;
+        GetClientRect(hWnd, &client);
+
+        // start double buffering
+        if (!memDC) {
+            memDC = CreateCompatibleDC(hdc);
         }
-        break;
+        hMemBmp = CreateCompatibleBitmap(hdc, client.right, client.bottom);
+        hOldBmp = (HBITMAP)SelectObject(memDC, hMemBmp);
+
+        FillRect(memDC, &client, CreateSolidBrush(RGB(255, 255, 255)));
+
+        //Draw Touched Points                
+        for (i = 0; i < MAXPOINTS; i++) {
+            SelectObject(memDC, CreateSolidBrush(colors[i]));
+            x = points[i][0];
+            y = points[i][1];
+            if (x > 0 && y > 0) {
+                Ellipse(memDC, x - radius, y - radius, x + radius, y + radius);
+            }
+        }
+
+        SelectObject(memDC, CreateSolidBrush(colors[i]));
+        Ellipse(memDC, 10, 10, 20, 20);
+ 
+        BitBlt(hdc, 0, 0, client.right, client.bottom, memDC, 0, 0, SRCCOPY);
+
+        EndPaint(hWnd, &ps);
+    }
+    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
