@@ -113,31 +113,29 @@ LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 
 	if (pjob_set->status & STAT_TRIGED) {							//JOBのステータスが実行待ち
 		_i_hot_com = pjob_set->i_hot_com = 0;						//起動時は、実行レシピののインデックスは、0
-		pcom_set=setup_job_command(&(pjob_set->recipe[_i_hot_com]), pjob_set->list_id);
+		pcom_set = setup_job_command(&(pjob_set->recipe[_i_hot_com]), pjob_set->list_id);
 		pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;			//コマンドステータス更新
+	
 		pCS->update_job_status(pjob_set, STAT_ACTIVE);				//JOBのステータスをACTIVEに更新
-
-		pjob_set->recipe[_i_hot_com].comset.active_motion[0] = L_ON;
-
 	}
 	else if (pjob_set->status & STAT_ACTIVE) {						//JOB実行中からの呼び出し＝ 次のレシピ実行待ち
 		if (pjob_set->i_hot_com < (pjob_set->n_com - 1)) {			//次のレシピ有
 			_i_hot_com = pjob_set->i_hot_com++;
 			pcom_set = setup_job_command(&(pjob_set->recipe[_i_hot_com]), pjob_set->list_id);
 			pjob_set->recipe[_i_hot_com].status = STAT_STANDBY;		//コマンドステータス更新
-			//pCS->update_job_status(pjob_set, STAT_ACTIVE);		//JOBのステータスの更新無し
 		}
 		else {														//次レシピ無　既に完了済 
 			_i_hot_com = pjob_set->i_hot_com;
 			pcom_set = NULL;										//次レシピ無し→NULLリターン
-			pjob_set->recipe[_i_hot_com].status = STAT_END;	//コマンドステータス更新
-			pCS->update_job_status(pjob_set, STAT_END);		//JOBのステータスをNORMAL　END更新
+			pjob_set->recipe[_i_hot_com].status = STAT_END;			//コマンドステータス更新
+			pCS->update_job_status(pjob_set, STAT_END);				//JOBのステータスをNORMAL　END更新
 		}
 	}
 	else {
 		pcom_set= NULL;
 		pCS->update_job_status(pjob_set, STAT_ABOTED);				//JOBのステータスをABOTE更新　正常完了の時はupdate_command_status()から報告
 	}
+
 
 	if (pcom_set != NULL) {
 		//### コマンドコードセット
@@ -152,42 +150,39 @@ LPST_COMMAND_SET CPolicy::req_command(LPST_JOB_SET pjob_set) {
 // AGENTからのコマンド実行報告処理
 int CPolicy::update_command_status(LPST_COMMAND_SET pcom, int code) {
 
+	if (pcom == NULL)return STAT_NAK;
 	LPST_JOB_SET pjob_set = &pJob_IO->job_list[pcom->com_code.i_list].job[pcom->com_code.i_job];//紐付きJOB
 
 	//コマンドコードとJOB＿SETの内容に不整合でエラー
 	int _i_recipe = pcom->com_code.i_recipe;
-	if (_i_recipe != pjob_set->i_hot_com) return STAT_LOGICAL_ERROR;
+	if (_i_recipe != pjob_set->i_hot_com) return NULL;
 
 	LPST_COM_RECIPE pcom_recipe = &pjob_set->recipe[_i_recipe];
 	switch (code) {
 	case STAT_END: {
-		pcom_recipe->status = code;		//コマンドのステータスを報告内容に更新
-		if(_i_recipe >= pjob_set->n_com -1) pCS->update_job_status(pjob_set, STAT_END);	//JOBのステータス更新
-		return STAT_ACCEPTED;
+		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
+		pCS->update_job_status(pjob_set, STAT_END);				//JOBのステータス更新
 	}break;
 	case STAT_ABNORMAL_END: {
 		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
 		pCS->update_job_status(pjob_set, STAT_ABNORMAL_END);	//JOBのステータス更新
-		return STAT_ACCEPTED;
 	}break;
 	case STAT_ACTIVE: {
-		pCS->update_job_status(pjob_set, STAT_ACTIVE);	//JOBのステータス更新
-		pcom_recipe->status = code;		//コマンドのステータスを報告内容に更新
-		return STAT_ACCEPTED;
+		pCS->update_job_status(pjob_set, STAT_ACTIVE);			//JOBのステータス更新
+		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
 	}break;
 	case STAT_ABOTED: {
 		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
-		pCS->update_job_status(pjob_set, STAT_ABOTED);	//JOBのステータス更新
-		return STAT_ACCEPTED;
+		pCS->update_job_status(pjob_set, STAT_ABOTED);			//JOBのステータス更新
 	}break;
 	case STAT_SUSPENDED: {
 		pcom_recipe->status = code;								//コマンドのステータスを報告内容に更新
-		pCS->update_job_status(pjob_set, STAT_SUSPENDED);	//JOBのステータス更新
-		return STAT_ACCEPTED;
+		pCS->update_job_status(pjob_set, STAT_SUSPENDED);		//JOBのステータス更新
 	}break;
 	default: break;
 	}
-	return STAT_CODE_ERROR;
+	//return req_command(pjob_set);
+	return STAT_ACK;
 }
 
 LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe, int type) {							//実行する半自動コマンドをセットする
@@ -206,6 +201,7 @@ LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe, int typ
 		pcom_set->active_motion[ID_SLEW] = L_ON;
 		pcom_set->active_motion[ID_BOOM_H] = L_ON;
 	}
+	else;
 
 	set_com_workbuf(pcom_recipe->target);	//半自動パターン作成作業用構造体（st_com_work）にデータ取り込み
 
@@ -213,8 +209,8 @@ LPST_COMMAND_SET CPolicy::setup_job_command(LPST_COM_RECIPE pcom_recipe, int typ
 	if (pCSInf->antisway_mode == L_ON) {
 		is_fb_antisway = true;
 	}
-
-
+	//コマンドセットに目標位置セット
+	pcom_set->target = st_com_work.target;
 	//旋回,引込,巻のレシピセット　set_recipe_semiauto_bh(JOBタイプ,レシピアドレス,isFBタイプ,レシピ設定条件バッファアドレス
 	set_recipe_semiauto_bh(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_BOOM_H]), is_fb_antisway, &st_com_work);
 	set_recipe_semiauto_slw(ID_JOBTYPE_SEMI, &(pcom_set->recipe[ID_SLEW]), is_fb_antisway, &st_com_work);
@@ -284,7 +280,7 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		D = D;																	// 残り距離変更なし
 
 
-		// 巻、旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し						
+		// 旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し						
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_WAIT_POS_HST;									// 他軸位置待ち
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
@@ -508,8 +504,6 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 
 	return POLICY_PTN_OK;
 }
-
-
 
 /* # 旋回レシピ　*/
 int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
@@ -810,41 +804,33 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 	return POLICY_PTN_OK;
 }
+
 /* # 巻レシピ　*/
 int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork) {
 
 	//#レシピ条件セット
-	//軸ID
-	int id = precipe->axis_id = ID_HOIST;
+	int id = precipe->axis_id = ID_HOIST;			//軸ID
+	precipe->n_step = 0;							//ステップ数初期化
+	precipe->direction = pwork->motion_dir[id];		//移動方向
+	precipe->time_limit = 120000/inf.cycle_ms;		//タイムオーバーカウント
+	precipe->motion_type = PTN_ORDINARY;			//作成パターンのタイプ
 
-	//移動方向
-	precipe->direction = pwork->motion_dir[id];
 
+	//#パターン計算用データセット
+	double D = pwork->dist_for_target[id];			//残り移動距 絶対値								
+	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;	//加速度が0.0はエラー　0割り防止
 
-	//作成パターンのタイプ   FBありなしと１回のインチングで移動可能な距離かで区別
-	precipe->motion_type = PTN_ORDINARY;
-
-	double D = pwork->dist_for_target[id];										//残り移動距 絶対値
-
-	//加速度が0.0はエラー　0割り防止
-	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;
-
-	LPST_MOTION_STEP pelement;
-
-	/*### 作成パターンタイプの判定 ###*/
-	
-	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;							//加速度0は演算エラーとなるのでエラーリターン
 
 	/*### パターン作成 ###*/
-	precipe->n_step = 0;													// ステップクリア
+	LPST_MOTION_STEP pelement;
 
-	/*### STEP0  待機　###*/												// 引込、旋回位置待ち　巻上時：条件無し　巻下時： 引込・旋回共が目標位置の指定範囲内
-	if (precipe->direction < 0) {	//巻き下げ時は、旋回、引込が目標付近着まで待機
+	/*### STEP0  待機　###	引込、旋回位置待ち　巻上時：条件無し　巻下時： 引込・旋回共が目標位置の指定範囲内 */
+	if (precipe->direction == ID_REV) {											//巻き下げ時は、旋回、引込が目標付近着まで待機
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_WAIT_POS_SLW;									//旋回位置待ち
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
-		pelement->_p = pwork->pos[id];											// 目標位置
+		pelement->_p = pwork->pos[id];											// 目標位置＝現在位置
 		D = D;																	// 残り距離変更なし
 
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
@@ -854,7 +840,7 @@ int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_p = pwork->pos[id];											// 目標位置＝現在位置
 		D = D;																	// 残り距離変更なし
 	}
-	else {							//停止または巻き上げ時は、確認待ち
+	else {																		//停止または巻き上げ時は、確認待ち
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_WAIT_TIME;									// 待機時間待ち
 		pelement->_t = TIME_LIMIT_CONFIRMATION;									// 待ち時間
@@ -865,62 +851,56 @@ int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 
 	/*### STEP1 速度ステップ出力　###*/
 
-	double d_step = D;																//ステップでの移動距離
-	double v_top = 0.0;																//ステップ速度用
+	double v_top = 0.0;																	//ステップ速度用
 	double check_d;
 	int n = 0, i;
 
-	pelement = &(precipe->steps[precipe->n_step++]);								//ステップのポインタセットして次ステップ用にカウントアップ
-	pelement->type = CTR_TYPE_VOUT_POS;												//位置到達待ち
+	pelement = &(precipe->steps[precipe->n_step++]);									//ステップのポインタセットして次ステップ用にカウントアップ
+	pelement->type = CTR_TYPE_VOUT_POS;													//位置到達待ち定速出力
 
 	double ta, tc;//加速時間,定速時間
 	
-	if (precipe->direction >= 0) {						//巻上時
+	if (precipe->direction >= ID_FWD) {														//巻上時
 		//ノッチ速度選択
 		for (i = (NOTCH_MAX - 1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
-			check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * v_top;	//インチング距離評価
-			if (check_d < d_step) break;
+			check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * v_top;	//インチング距離 → V^2/α　+　V*遅れ時間
+			if (check_d < D) break;														//ノッチ速度確定
 			else continue;																//次のノッチへ
 		}
-
-		ta = v_top / st_com_work.a[id];													//加速度は正の値
-		tc = (D - v_top * ta) / v_top;													//(残り距離 - インチング距離)/トップ速度
-		pelement->_t = ta + tc;															// 加速時間　＋定速時間
-		pelement->_v = v_top;															// 速度
-
-		double d4stop = v_top * (SPD_FB_DELAY_TIME + 0.5 * ta);							//停止移動距離
-		pelement->_p = pwork->pos[id] + pwork->dist_for_target[id] - d4stop;			// 目標位置　ターゲット位置-減速距離
-
-		D = d4stop;																		// 残り距離更新
 	}
 	else {												//巻下時
 		//ノッチ速度選択
 		for (i = (NOTCH_MAX - 1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_r[id][i];
-			check_d = v_top * v_top / st_com_work.a[id] - SPD_FB_DELAY_TIME * v_top;	//巻き下げはv_top < 0.0
-			if (check_d < d_step) break;
+			check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * -v_top;	//巻き下げはv_top < 0.0
+			if (check_d < D) break;														//ノッチ速度確定
 			else continue;																//次のノッチへ
 		}
-
-		ta = -v_top / st_com_work.a[id];												//加速度は正の値
-		tc = (D	+ v_top * ta) / v_top ;													//(残り距離 - インチング距離)/トップ速度
-		pelement->_t = ta + tc;															// 加速時間　＋定速時間
-		pelement->_v = v_top;															// 速度
-
-		double d4stop = v_top * (SPD_FB_DELAY_TIME + 0.5 * ta);							//停止移動距離
-		pelement->_p = pwork->pos[id] - pwork->dist_for_target[id] - d4stop;			// 目標位置　ターゲット位置-減速距離
-
-		D = -d4stop;																	// 残り距離更新
 	}
-	
+
+	ta = v_top / st_com_work.a[id]; 													//加速度は正の値
+	if (ta < 0.0) ta *= -1.0;
+
+	double dd = SPD_FB_DELAY_TIME * v_top; if (dd < 0.0)dd *= -1.0;
+	tc = (D - v_top * v_top / st_com_work.a[id] / 2.0 - dd)/ v_top;						//(残り距離 - インチング距離)/トップ速度
+	if (tc < 0.0) tc *= -1.0;
+
+	pelement->_t = ta + tc;																// 加速時間　＋定速時間
+	pelement->_v = v_top;																// 速度
+
+	double d4stop = v_top * (SPD_FB_DELAY_TIME + 0.5 * ta);								//停止移動距離
+	pelement->_p = pwork->target.pos[ID_HOIST] -  d4stop;								// 目標位置　ターゲット位置-減速距離
+
+	if(d4stop <0.0) D = -d4stop;
+	else			D = -d4stop;// 残り距離更新	
+
 	/*### STEP2 停止　###*/
 	pelement = &(precipe->steps[precipe->n_step++]);									//ステップのポインタセットして次ステップ用にカウントアップ
 	pelement->type = CTR_TYPE_VOUT_V;													//速度到達待ち
 	pelement->_t = ta;																	//減速時間
 	pelement->_v = 0.0;																	// 速度0
 	pelement->_p = st_com_work.target.pos[id];											// 目標位置
-	CHelper::fit_slew_axis(&(pelement->_p));											//目標位置の校正
 	D = 0.0;																			// 残り距離更新
 
 	/*### STEP3 位置合わせ　###*/

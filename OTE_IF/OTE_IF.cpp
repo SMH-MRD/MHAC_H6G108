@@ -225,6 +225,7 @@ int GetContactIndex(int dwID) {
 //
 //
 
+//Touch Point
 // For double buffering
 static HDC memDC = 0;
 static HBITMAP hMemBmp = 0;
@@ -234,6 +235,9 @@ HBITMAP hOldBmp = 0;
 
 // For tracking dwId to points
 int index;
+
+POINT touch_pos;
+//Touch Point
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -349,11 +353,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             // If you handled the message and don't want anything else done with it, you can close it
             CloseTouchInputHandle((HTOUCHINPUT)lParam);
+            InvalidateRect(hWnd, NULL, TRUE);
             delete[] pInputs;
         }
         else {
             // Handle the error here 
         }
+
         break;
 
     case WM_COMMAND:
@@ -469,14 +475,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         hOldBmp = (HBITMAP)SelectObject(memDC, hMemBmp);
 
         FillRect(memDC, &client, CreateSolidBrush(RGB(255, 255, 255)));
-
-        //Draw Touched Points                
+         //Draw Touched Points                
         for (i = 0; i < MAXPOINTS; i++) {
             SelectObject(memDC, CreateSolidBrush(colors[i]));
             x = points[i][0];
             y = points[i][1];
             if (x > 0 && y > 0) {
                 Ellipse(memDC, x - radius, y - radius, x + radius, y + radius);
+                TCHAR tbuf[32];
+                wsprintf(tbuf, L"%08d", points[0][0]);
+                SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 1, (LPARAM)tbuf);
+                wsprintf(tbuf, L"%08d", points[1][0]);
+                SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 2, (LPARAM)tbuf);
+                wsprintf(tbuf, L"%08d", points[3][0]);
+                SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 3, (LPARAM)tbuf);
             }
         }
 

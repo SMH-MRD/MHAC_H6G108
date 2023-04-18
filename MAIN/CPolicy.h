@@ -4,7 +4,7 @@
 #include "Spec.h"
 #include "CSharedMem.h"
 
-#define PTN_ORDINARY                0x00000000
+#define PTN_ORDINARY                0x00000000  //通常
 #define PTN_NON_FBSWAY_FULL         0x00000001
 #define PTN_FBSWAY_FULL             0x00000002
 #define PTN_NON_FBSWAY_2INCH        0x00000004
@@ -52,8 +52,8 @@ public:
    void routine_work(void* param);
  
   //AGENT
-   LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);                             //Agentからの要求に応じて実行コマンドをセットして返す
-   int update_command_status(LPST_COMMAND_SET pcom, int code);         //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
+   LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);                      //Agentからの要求に応じて実行コマンドをセットして返す
+   int update_command_status(LPST_COMMAND_SET pcom, int code);  //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
  
 private:
 

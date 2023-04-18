@@ -506,7 +506,7 @@ double CEnvironment::cal_dist4stop(int motion, bool is_abs_answer) {
 //目標位置までの距離
 /* #Agentの自動目標位置までの距離を計算*/
 double CEnvironment::cal_dist4target(int motion, bool is_abs_answer) {
-	double dist=pPLC_IO->status.pos[motion] - pAgentInf->auto_pos_target.pos[motion];
+	double dist=pAgentInf->auto_pos_target.pos[motion] - pPLC_IO->status.pos[motion] ;
 
 	if (motion == ID_SLEW) {
 		if (dist > PI180) dist -= PI360;

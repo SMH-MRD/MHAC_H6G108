@@ -88,16 +88,16 @@ UINT	CHelper::bits_count(UINT64 x) { int ret = 0; while (x) { x &= x - 1; ret++;
 void CHelper::fit_slew_axis(double* pd) {
 
 	int n;
-	double pi2;
+	double pi2 = 6.2832;
 	if (*pd > 0.0) {
-		n = (int)(*pd / 6.2832);
-		*pd -= (double)n * 6.2832;
-		if(*pd > 3.1416) *pd -= 6.2832;
+		n = (int)(*pd / pi2);		// €2ƒÎ
+		*pd -= (double)n * pi2;
+		if(*pd > 0.5*pi2) *pd -= pi2; //-ƒÎ`ƒÎ‚ÌƒŒƒ“ƒW‚Ö•ÏŠ·
 	}
 	else {
-		n = (int)(*pd / -6.2832);
-		*pd += (double)n * 6.2832;
-		if (*pd < -3.1416) *pd += 6.2832;
+		n = (int)(*pd / -pi2);
+		*pd += (double)n * pi2;
+		if (*pd < -0.5 * pi2) *pd += pi2;
 	}
 
 	return;

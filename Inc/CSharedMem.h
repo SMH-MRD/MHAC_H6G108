@@ -436,13 +436,17 @@ typedef struct stMotionRecipe {					//移動パターン
 #define STAT_REQ_WAIT           0x0080      //要求待ち
 #define STAT_POSITIVE			0x1000		//OK
 #define STAT_SUCCEED			0x1000		//成功
-#define STAT_ACCEPTED			0x1001		//正常受付
-#define STAT_NEGATIVE			0x8000		//NG
+#define STAT_ACK				0x1001		//正常受付
+#define STAT_NAK				0x8000		//NG
 #define STAT_ABNORMAL			0x8000		//失敗
 #define STAT_ABNORMAL_END       0x8020      //異常完了
 #define STAT_LOGICAL_ERROR		0x8004      //整合性異常
 #define STAT_CODE_ERROR			0x8008      //適合コード無し
 
+typedef struct StPosTargets {
+	double pos[MOTION_ID_MAX];
+	bool is_held[MOTION_ID_MAX];				//目標位置ホールド中フラグ
+}ST_POS_TARGETS, * LPST_POS_TARGETS;
 
 typedef struct StCommandCode {
 	int i_list;
@@ -456,10 +460,12 @@ typedef struct stCommandSet {
 	int n_motion;									//コマンドで動作する軸の数
 	int active_motion[MOTION_ID_MAX];				//コマンド動作する軸のID配列（MOTION　RECIPEの対象配列）
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
+	ST_POS_TARGETS target;							//目標位置	
 
 	//AGENT SET
 	int motion_status[MOTION_ID_MAX];
 	int recipe_counter[MOTION_ID_MAX];
+	int com_status;
 
 }ST_COMMAND_SET, * LPST_COMMAND_SET;
 
@@ -482,10 +488,7 @@ typedef struct stCommandSet {
 #define JOB_N_STEP_SEMIAUTO		1
 
 
-typedef struct StPosTargets {
-	double pos[MOTION_ID_MAX];
-	bool is_held[MOTION_ID_MAX];				//目標位置ホールド中フラグ
-}ST_POS_TARGETS, * LPST_POS_TARGETS;
+
 
 #define COM_RECIPE_OPTION_N			8
 
@@ -547,6 +550,7 @@ typedef struct stJobIO {
 /****************************************************************************/
 
 #define CS_SEMIAUTO_TG_SEL_DEFAULT      0
+#define CS_SEMIAUTO_TG_SEL_CLEAR		0
 #define CS_SEMIAUTO_TG_SEL_ACTIVE       1
 #define CS_SEMIAUTO_TG_SEL_FIXED        2
 

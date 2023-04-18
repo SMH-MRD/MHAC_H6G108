@@ -13,9 +13,13 @@
 #define AGENT_STOP                  0
 #define AGENT_NA                    0
 
-#define AGENT_AUTO_TRIG_ACK_COUNT   10
-#define AGENT_CHECK_LARGE_SWAY_m2   1.0     //起動時に初期振れ大とみなす振れ量mの2乗
-
+#define AGENT_AUTO_TRIG_ACK_COUNT                       10
+#define AGENT_CHECK_LARGE_SWAY_m2                       1.0     //起動時に初期振れ大とみなす振れ量mの2乗
+#define AGENT_CHECK_HST_POS_CLEAR_RANGE                 2.0     //自動巻上時に引込、旋回開始可能な巻上到達距離
+#define AGENT_CHECK_BH_POS_CLEAR_HST_DOWN_RANGE         2.0     //自動巻下可能な引込到達距離m
+#define AGENT_CHECK_SLW_POS_CLEAR_HST_DOWN_RANGE_rad    0.17    //自動巻下可能な旋回到達距離m
+#define AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE              2.0     //旋回開始可能な引込到達距離m
+#define AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad          0.17    //引込開始可能な旋回到達距離rad
 
 typedef struct stAgentWork {
     double T;	                                //振れ周期
@@ -57,23 +61,23 @@ class CAgent:public CTaskObj
     LPST_CRANE_STATUS   pCraneStat;
     LPST_PLC_IO         pPLC_IO;
     LPST_SWAY_IO        pSway_IO;
-    LPST_JOB_IO        pJob_IO;
+    LPST_JOB_IO         pJob_IO;
 
     ST_AGENT_INFO       AgentInf_workbuf;
     ST_AGENT_WORK       st_as_work;                         //振れ止めパターン作成用
-
-    LPST_JOB_SET        pjob_active;                //実行中JOB
-    LPST_COMMAND_SET    pCom_hot;                   //実行中コマンド
+    
+    LPST_JOB_SET        pjob_active;                        //実行中JOB
+    LPST_COMMAND_SET    pCom_hot;                           //実行中コマンド
+ 
 
 
     void input();                                           //外部データ取り込み
     void main_proc();                                       //処理内容
     void output();                                          //出力データ更新
 
-    bool can_job_trigger();                                 //ジョブの起動可否判定
- 
-    int clear_comset(LPST_COMMAND_SET pcom);               //コマンド初期化
+    int init_comset(LPST_COMMAND_SET pcom);               //コマンド初期化
 
+    LPST_COMMAND_SET    pCom_as;                            //振れ止め用コマンドセットポインタ（実態は共有メモリ上へ）
     void set_as_workbuf();                                  //振れ止めパターン作成用データ取り込み
     int cal_as_recipe(int motion);                          //振れ止めパターン計算セット
   
