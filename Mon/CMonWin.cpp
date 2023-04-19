@@ -459,13 +459,22 @@ VOID CMonWin::draw_inf_main() {
 	_stprintf_s(tbuf, L"%.4f", pSway_IO->dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 580, 45, ws.c_str(), (int)ws.length());
 
-	wos.str(L"                                                  ");
+	wos.str(L"                                                     ");
 	TextOutW(stGraphic.hdc_mem_bg, 10, 35, wos.str().c_str(), (int)wos.str().length());
 	wos.str(L"");
-	wos << L"SEMI Target MH:" << pCSinf->semi_auto_selected_target.pos[ID_HOIST];
+	wos << L"SEMI TG MH:" << fixed << setprecision(3) << pCSinf->semi_auto_selected_target.pos[ID_HOIST];
 	wos << L"  SL:" << pCSinf->semi_auto_selected_target.pos[ID_SLEW];
 	wos << L"  BH:" << pCSinf->semi_auto_selected_target.pos[ID_BOOM_H];
 	TextOutW(stGraphic.hdc_mem_bg, 10, 35, wos.str().c_str(), (int)wos.str().length());
+
+	wos.str(L"                                                     ");
+	TextOutW(stGraphic.hdc_mem_bg, 10, 60, wos.str().c_str(), (int)wos.str().length());
+	wos.str(L"");
+	wos << L"CTR TG MH:" << fixed << setprecision(3) << pAgentInf->auto_pos_target.pos[ID_HOIST];
+	wos << L"  SL:" << pAgentInf->auto_pos_target.pos[ID_SLEW];
+	wos << L"  BH:" << pAgentInf->auto_pos_target.pos[ID_BOOM_H];
+	TextOutW(stGraphic.hdc_mem_bg, 10, 60, wos.str().c_str(), (int)wos.str().length());
+	
 
 	return;
 }

@@ -636,9 +636,9 @@ typedef struct stPolicyInfo {
 #define ANTISWAY_BH_ACTIVE		 0x00000001      //ˆøU~Às’†
 #define ANTISWAY_BH_PAUSED		 0x00000002      //ˆøU~ˆê’â~
 #define ANTISWAY_BH_COMPLETE	 0x00000008      //ˆøU~Š®—¹
-#define ANTISWAY_SLEW_ACTIVE	 0x00000010      //ˆøU~Às
-#define ANTISWAY_SLEW_PAUSED	 0x00000020      //ˆøU~Às
-#define ANTISWAY_SLEW_COMPLETE	 0x00000080      //ˆøU~Às 
+#define ANTISWAY_SLEW_ACTIVE	 0x00000010      //ù‰ñU~Às
+#define ANTISWAY_SLEW_PAUSED	 0x00000020      //ù‰ñU~ˆê’â~
+#define ANTISWAY_SLEW_COMPLETE	 0x00000080      //ù‰ñU~Š®—¹ 
 
 //axis_status—p
 #define AG_AXIS_STAT_FB0				0x000000001	 //’â~’†

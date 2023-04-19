@@ -188,7 +188,51 @@ static LPST_COMMAND_SET pCom_hot_last;
 
 void CAgent::main_proc() {
 
-	//# 振れ止め完了判定
+
+	//# 制御モードセット auto_on_going,antisway_on_going
+	{
+		//自動制御モードのセット
+		if ((pCSInf->auto_mode == L_ON) && (pjob_active != NULL)) {//自動制御モードONで実行中JOB有
+			if (pjob_active->type == ID_JOBTYPE_SEMI)		AgentInf_workbuf.auto_on_going |= AUTO_TYPE_SEMIAUTO;
+			else if (pjob_active->type == ID_JOBTYPE_JOB)	AgentInf_workbuf.auto_on_going |= AUTO_TYPE_JOB;
+			else;
+		}
+		else {
+			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_SEMIAUTO;
+			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_JOB;
+		}
+		
+		//振れ止めモードセット
+		if (pCSInf->antisway_mode == L_OFF) {
+			//auto_on_going
+			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
+			//antisway_on_going
+			AgentInf_workbuf.antisway_on_going = ANTISWAY_ALL_MANUAL;
+		}
+		else {
+			AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
+
+			if (pCraneStat->notch0 & BIT_SEL_BH) {							//0ノッチ
+				AgentInf_workbuf.antisway_on_going |= ANTISWAY_BH_ACTIVE;
+				AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_BH_PAUSED;
+			}
+			else {															//ノッチ入り
+				AgentInf_workbuf.antisway_on_going |= ANTISWAY_BH_PAUSED;
+				AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_BH_ACTIVE;
+			}
+
+			if (pCraneStat->notch0 & BIT_SEL_SLW) {							//0ノッチ
+				AgentInf_workbuf.antisway_on_going |= ANTISWAY_SLEW_ACTIVE;
+				AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_SLEW_PAUSED;
+			}
+			else {															//ノッチ入り
+				AgentInf_workbuf.antisway_on_going |= ANTISWAY_SLEW_PAUSED;
+				AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_SLEW_ACTIVE;
+			}
+		}
+	}
+
+	//# 振れ止め完了状態セット　antisway_on_going
 	{
 		double tmp_amp2, tmp_dist;
 		//引込
@@ -235,45 +279,26 @@ void CAgent::main_proc() {
 		}
 	}
 
-	//# モードセット 
-	{
-		//振れ止めモードセット auto_on_going,antisway_on_going
-		if (pCSInf->antisway_mode == L_OFF) {
-			AgentInf_workbuf.auto_on_going &= ~AUTO_TYPE_FB_ANTI_SWAY;
-			AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_BH_ACTIVE;
-			AgentInf_workbuf.antisway_on_going &= ~ANTISWAY_SLEW_ACTIVE;
+	//# 軸毎のモードセット(PLC指令出力軸の判定）
+	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
+	}
+	else if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
+		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
+	}
+	else {//FB振れ止め
+		if (AgentInf_workbuf.auto_on_going & AUTO_TYPE_FB_ANTI_SWAY) {
+			AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_on_going;
+			AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
 		}
 		else {
-			AgentInf_workbuf.auto_on_going |= AUTO_TYPE_FB_ANTI_SWAY;
-			AgentInf_workbuf.antisway_on_going |= ANTISWAY_BH_ACTIVE;
-			AgentInf_workbuf.antisway_on_going |= ANTISWAY_SLEW_ACTIVE;
+			AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
+			AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
 		}
-
-		//自動制御モードのセット
-		if ((pCSInf->auto_mode == L_ON)&&(pjob_active != NULL)) {//自動制御モードONで実行中JOB有
-			if (pjob_active->type == ID_JOBTYPE_SEMI)		AgentInf_workbuf.auto_on_going |= AUTO_TYPE_SEMIAUTO;
-			else if (pjob_active->type == ID_JOBTYPE_JOB)	AgentInf_workbuf.auto_on_going |= AUTO_TYPE_JOB;
-			else;
-		}
-
-		//# 軸毎のモードセット(PLC指令出力軸の判定）
-		if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
-			AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
-		}
-		else if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {
-			AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
-		}
-		else {//FB振れ止め
-			if (AgentInf_workbuf.auto_on_going & AUTO_TYPE_FB_ANTI_SWAY) {
-				if (pCraneStat->notch0 & BIT_SEL_BH) AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_on_going;		//0ノッチ
-				else AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
-
-				if (pCraneStat->notch0 & BIT_SEL_SLW) AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
-				else AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
-			}
-			AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
-		}
+		AgentInf_workbuf.auto_active[ID_HOIST] = AUTO_TYPE_MANUAL;
+		AgentInf_workbuf.auto_active[ID_GANTRY] = AUTO_TYPE_MANUAL;
 	}
+
 
 	//#自動目標位置設定
 	{
