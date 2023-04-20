@@ -233,22 +233,23 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	precipe->direction = pwork->motion_dir[id];
 
 	double dist_inch_max;
-	if (pwork->vmax[id] / pwork->a[id] > pwork->T) {							//最大速度までの加速時間が振れ周期より大きい時は振れ周期分の加速時間がインチング最大距離
-		dist_inch_max = pwork->a[id] * pwork->T * pwork->T;
+	if (pwork->vmax_abs[id] / pwork->a_abs[id] > pwork->T) {							//最大速度までの加速時間が振れ周期より大きい時は振れ周期分の加速時間がインチング最大距離
+		dist_inch_max = pwork->a_abs[id] * pwork->T * pwork->T;
 	}
 	else {
-		dist_inch_max = pwork->vmax[id] * pwork->vmax[id] / pwork->a[id];		//最大速度までの加速時間が振れ周期より小さい時V^2/α
+		dist_inch_max = pwork->vmax_abs[id] * pwork->vmax_abs[id] / pwork->a_abs[id];	//最大速度までの加速時間が振れ周期より小さい時V^2/α
 	}
 
 	//作成パターンのタイプ   FBありなしと１回のインチングで移動可能な距離かで区別
-	double D = pwork->dist_for_target[id];										//残り移動距離
+	double D_abs = pwork->dist_for_target_abs[id];										//残り移動距離
+	
 	int ptn = 0;
 	if (is_fbtype) {															//インチング最大距離の計算 移動距離がインチング最大距離より小さいとき,FB有はFB振れ止め、FB無しは2回インチング移動
-		if (D > dist_inch_max) ptn = PTN_FBSWAY_FULL;
+		if (D_abs > dist_inch_max) ptn = PTN_FBSWAY_FULL;
 		else ptn = PTN_FBSWAY_AS;
 	}
 	else {
-		if (D > dist_inch_max) ptn = PTN_NON_FBSWAY_FULL;
+		if (D_abs > dist_inch_max) ptn = PTN_NON_FBSWAY_FULL;
 		else ptn = PTN_NON_FBSWAY_2INCH;
 	}
 	precipe->motion_type =ptn;
@@ -257,7 +258,7 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	
 	
 	//加速度が0.0はエラー　0割り防止
-	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;								
+	if (pwork->a_abs[id] == 0.0) return POLICY_PTN_NG;								
 
 
 	/*### パターン作成 ###*/
@@ -277,16 +278,16 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置
-		D = D;																	// 残り距離変更なし
+		D_abs = D_abs;															// 残り距離変更なし
 
 
 		// 旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し						
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_WAIT_POS_HST;									// 他軸位置待ち
+		pelement->type = CTR_TYPE_WAIT_POS_SLW;									// 他軸位置待ち
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置
-		D = D;																	// 残り距離変更なし
+		D_abs = D_abs;															// 残り距離変更なし
 
 
 	}break;
@@ -294,19 +295,29 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	case PTN_FBSWAY_FULL:		//FB有のフルパターン
 	{																			// 巻旋回位置＋位相待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し、減衰位相到達		
 
+		// 巻位置待ち　巻き位置：巻目標高さ-Xm　以上になったら						
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_WAIT_POS_HST;									// 他軸位置待ち
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置
-		D = D;																	// 残り距離変更なし
+		D_abs = D_abs;															// 残り距離変更なし
 
-		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_WAIT_PH_SINGLE;								// 他軸位置待ち
+
+		// 旋回位置待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し						
+		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->type = CTR_TYPE_WAIT_POS_SLW;									// 他軸位置待ち
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置
-		D = D;																	// 残り距離変更なし
+		D_abs = D_abs;															// 残り距離変更なし
+
+		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->type = CTR_TYPE_WAIT_PH_SINGLE;								// 振れ位相待ち
+		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
+		pelement->_v = 0.0;														// 速度0
+		pelement->_p = pwork->pos[id];											// 目標位置
+		D_abs = D_abs;															// 残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -317,91 +328,81 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	case PTN_FBSWAY_FULL:		//FB有のフルパターン		
 	//台形パターン部 減速を２段階にして距離を調整
 	{																			// 出力するノッチ速度を計算して設定
-		double d_step = D;														//ステップでの移動距離
-		double v_top=0.0;														//ステップ速度用
-		double check_d;
+		
+		double d_step = D_abs;													//ステップでの移動距離
+		double v_top_abs=0.0;													//ステップ速度用
+		double check_d_abs;
+		double check_d_inch_abs;	//インチング距離
 		int n=0, i;
 
-		// #Step1-1 ２段構成になるときの１段目 Top Speed出力
+		// #Step1-1 ２段構成になるときの１段目
 		// まずは、移動距離が1周期振れ止めと出来るTop速度を求める
-		for (i = (NOTCH_MAX-1);i > 0;i--) {
-			v_top = pCraneStat->spec.notch_spd_f[id][i];
+		for (i = (NOTCH_MAX - 1);i > 0;i--) {
+			v_top_abs = pCraneStat->spec.notch_spd_f[id][i];
+			n = (int)(D_abs / (v_top_abs * st_com_work.T));				//1周期振れ止めの移動距離　=nTV
+			if (n) {
+				pelement = &(precipe->steps[precipe->n_step++]);		//ステップのポインタセットして次ステップ用にカウントアップ
+				pelement->type = CTR_TYPE_VOUT_POS;						//位置到達待ちステップ出力
+				pelement->_t = (double)n  * st_com_work.T;				// n x 振れ周期
 
-			int k = (int)(v_top / st_com_work.a[id] / st_com_work.T);			// (int)k > 0 →　加速時間が振れ周期以上
-			check_d = v_top * (1.0 + (double)k) * st_com_work.T;				// 台形振れ止めパターンでの移動距離＝nTVtopが制約条件
-
-			if (check_d == 0.0) break;	// 1ノッチの1周期移動距離も無し
-
-			n = int(d_step / check_d);
-			if (n) break;														//n>残り移動距離が一周期振れ止め距離以上有り→Top speed確定
-			else continue;														//次のノッチへ
+				double d_move_abs = (double)n * v_top_abs * st_com_work.T - 0.5 * v_top_abs * v_top_abs / st_com_work.a_abs[id];	// 台形移動距離 -減速距離
+				if (precipe->direction == ID_REV) {
+					pelement->_p = (pelement - 1)->_p - d_move_abs;					// 目標位置
+					pelement->_v = -v_top_abs;										// 出力速度
+				}
+				else {
+					pelement->_p = (pelement - 1)->_p + d_move_abs;					// 目標位置
+					pelement->_v = v_top_abs;										// 出力速度
+				}
+				D_abs -= d_move_abs;												// 残り距離更新
+				break;
+			}
 		}
-
-
-		if (n) {
-			//n>0（一周期振れ止めの移動距離有）で要素のセット
-			pelement = &(precipe->steps[precipe->n_step++]);									//ステップのポインタセットして次ステップ用にカウントアップ
-			pelement->type = CTR_TYPE_VOUT_POS;													//位置到達待ちステップ出力
-
-			double ta = v_top / st_com_work.a[id];
-			pelement->_t = (double)n * st_com_work.T - ta;										// n x 振れ周期　-　減速時間
-
-			pelement->_v = v_top;																// 出力速度
-
-			double d_move = v_top * ((double)n *  st_com_work.T - 0.5 * ta);					// 減速開始までの移動距離 nTVtop-減速距離
-
-			pelement->_p =  (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;	// 目標位置
-
-			D -= d_move;																		// 残り距離更新
-		}
-
-		
-	
-
 		//  #Step1-2　2段目　残り移動距離が１周期移動距離以上あるとき2段目追加
-		d_step = D;
-		for (i -= 1;i > 0;i--) {//1段目の次のノッチから評価
-			v_top = pCraneStat->spec.notch_spd_f[id][i];
-			check_d = v_top * st_com_work.T;
-			if (check_d == 0.0) break;
+		// ノッチ選択は続きから
+		for (;i > 0;i--) {
+			v_top_abs = pCraneStat->spec.notch_spd_f[id][i];
+			n = (int)(D_abs / (v_top_abs * st_com_work.T));				//1周期振れ止めの移動距離　=nTV
+			if (n) {
+				pelement = &(precipe->steps[precipe->n_step++]);		//ステップのポインタセットして次ステップ用にカウントアップ
+				pelement->type = CTR_TYPE_VOUT_POS;						//位置到達待ちステップ出力
+				pelement->_t = (double)n * st_com_work.T;				// n x 振れ周期
 
-			n = int(d_step / check_d);
-			if (n) break;																		//一周期移動以上の距離有りで出力速度（ノッチ）決定
-			else continue;																		//次のノッチへ
+				double d_move_abs = (double)n * v_top_abs * st_com_work.T ;	// 定速移動距離（振れ周期の整数倍移動）
+				if (precipe->direction == ID_REV) {
+					pelement->_p = (pelement - 1)->_p - d_move_abs;					// 目標位置
+					pelement->_v = -v_top_abs;										// 出力速度
+				}
+				else {
+					pelement->_p = (pelement - 1)->_p + d_move_abs;					// 目標位置
+					pelement->_v = v_top_abs;										// 出力速度
+				}
+				D_abs -= d_move_abs;												// 残り距離更新
+				break;
+			}
 		}
-		
-		if (n) {																				//一周期以上の移動距離有でステップ追加
-			pelement = &(precipe->steps[precipe->n_step++]);									//ステップのポインタセットして次ステップ用にカウントアップ
-			pelement->type = CTR_TYPE_VOUT_POS;													//位置到達待ち
-
-			double td = ((pelement - 1)->_v - v_top) / st_com_work.a[id];						// 減速時間 ２段目ステップ速度までの減速時間
-			pelement->_t = (double)n * st_com_work.T + td;										// n x 振れ周期　+　2段目までの減速時間
-
-			pelement->_v = v_top;																// 速度
-
-			double d_move = v_top * ((double)n * st_com_work.T + td) + 0.5 * td * ((pelement - 1)->_v - v_top) ;
-			pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;	// 目標位置
-
-			D -= d_move;																		// 残り距離更新
-		}
-
 
 		//  #Step2 停止
-		pelement = &(precipe->steps[precipe->n_step++]);								//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_VOUT_V;												//速度到達待ち
-		pelement->_t = (pelement - 1)->_v / st_com_work.a[id];							//減速時間
-		pelement->_v = 0.0;																// 速度0
-		double d_move = 0.5 * (pelement - 1)->_v * pelement->_t;
-		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
+		if (v_top_abs > 0.0) {
+			pelement = &(precipe->steps[precipe->n_step++]);				//ステップのポインタセットして次ステップ用にカウントアップ
+			pelement->type = CTR_TYPE_VOUT_V;								//速度到達待ち
+			pelement->_t = v_top_abs / st_com_work.a_abs[id];				//減速時間
+			pelement->_v = 0.0;												// 速度0
 
-		D -= d_move;																	// 残り距離更新
+			double d_move = 0.5 * (pelement - 1)->_v * pelement->_t;
+			pelement->_p = (pelement - 1)->_p + d_move;						// 目標位置
+
+			if (d_move < 0.0) D_abs += d_move;								// 残り距離更新
+			else D_abs -= d_move;
+		}
+																			
 	}break;
 
 	//台形部無いケースはスキップ
 	case PTN_NON_FBSWAY_2INCH:	//FB無のインチングパターン												
 	case PTN_FBSWAY_AS:			//FB振れ止めパターン	
 	{
-		D = D;
+		D_abs = D_abs;
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -411,45 +412,64 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	case PTN_NON_FBSWAY_FULL:	//FB無のフルパターン	
 	case PTN_NON_FBSWAY_2INCH:	//FB無のインチングパターン	
 	{
-		double v_inch = sqrt(0.5 * D * st_com_work.a[id]);
-		double ta = v_inch/st_com_work.a[id];
-		double v_top;
+		double v_inch = sqrt(0.5 * D_abs * st_com_work.a_abs[id]);
+		double ta = v_inch/st_com_work.a_abs[id];
+		double v_top_abs;
 		for (int i = (NOTCH_MAX-1);i > 1;i--) {	
-			v_top = pCraneStat->spec.notch_spd_f[id][i];
+			v_top_abs = pCraneStat->spec.notch_spd_f[id][i];
 			if (v_inch > pCraneStat->spec.notch_spd_f[id][i - 1])break;
 			else continue;			//次のノッチへ
 		}
+
+		double d_move_abs = 0.5 * ta * v_inch;
 
 		//STEP3
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_VOUT_TIME;									// 加速用速度出力
 		pelement->_t = ta;														// 加速時間
-		pelement->_v = v_top;													// ノッチ速度
-		double d_move = 0.5 * v_inch * ta;
-		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
-		D -= d_move;															
+		if (precipe->direction == ID_REV) {
+			pelement->_p = (pelement - 1)->_p - d_move_abs;					// 目標位置
+			pelement->_v = -v_top_abs;										// 出力速度
+		}
+		else {
+			pelement->_p = (pelement - 1)->_p + d_move_abs;					// 目標位置
+			pelement->_v = v_top_abs;										// 出力速度
+		}
+		D_abs -= d_move_abs;															
 
 		//STEP4
 		double tc = 0.5 * st_com_work.T - 2.0 * ta;
 		if (tc < 0.0) {
-			int n = (int)(-tc / st_com_work.T) + 1;
-			tc += (double)n * st_com_work.T;
+
+			int n = (-tc / st_com_work.T)+1;
+			tc = tc + (double)(n* st_com_work.T);
 		} 
 		
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_VOUT_TIME;									// 加速用速度出力
 		pelement->_t = ta + tc;													// 位相待ち停止時間
 		pelement->_v = 0.0;														// ノッチ速度
-		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
-		D -= d_move;															
+		if (precipe->direction == ID_REV) {
+			pelement->_p = (pelement - 1)->_p - d_move_abs;					// 目標位置
+		}
+		else {
+			pelement->_p = (pelement - 1)->_p + d_move_abs;					// 目標位置
+		}
+		D_abs -= d_move_abs;
 
 		//STEP5
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_VOUT_TIME;									// 加速用速度出力
 		pelement->_t = ta;														// 加速時間
-		pelement->_v = v_top;													// ノッチ速度
-		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
-		D -= d_move;
+		if (precipe->direction == ID_REV) {
+			pelement->_p = (pelement - 1)->_p - d_move_abs;					// 目標位置
+			pelement->_v = -v_top_abs;										// 出力速度
+		}
+		else {
+			pelement->_p = (pelement - 1)->_p + d_move_abs;					// 目標位置
+			pelement->_v = v_top_abs;										// 出力速度
+		}
+		D_abs -= d_move_abs;
 
 		//STEP6
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
@@ -457,14 +477,14 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_t = ta;														// 位相待ち停止時間
 		pelement->_v = 0.0;														// ノッチ速度
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		D -= d_move;
+		D_abs = 0.0;
 
 	}break;
 
 	case PTN_FBSWAY_AS:															//振れFBあるパターンはスキップ
 	case PTN_FBSWAY_FULL:														
 	{
-		D = D;																	//残り距離変更なし
+		D_abs = D_abs;																	//残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -479,7 +499,7 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_t = FINE_POS_TIMELIMIT;										// 位置合わせ最大継続時間
 		pelement->_v = pCraneStat->spec.notch_spd_f[id][NOTCH_1];				// １ノッチ速度
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		D = 0;																	// 残り距離変更なし
+		D_abs = 0.0;															// 残り距離変更なし
 
 	}break;
 
@@ -491,7 +511,7 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_t = st_com_work.T * 4.0;										// 振れ4周期分
 		pelement->_v = 0.0;														// 振れ止めロジックで決定
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		D = 0;																	// 残り距離変更なし
+		D_abs = 0;																	// 残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -516,22 +536,22 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	precipe->direction = pwork->motion_dir[id];
 
 	double dist_inch_max;
-	if (pwork->vmax[id] / pwork->a[id] > pwork->T) {							//最大速度までの加速時間が振れ周期より大きい時は振れ周期分の加速時間がインチング最大距離
-		dist_inch_max = pwork->a[id] * pwork->T * pwork->T;
+	if (pwork->vmax_abs[id] / pwork->a_abs[id] > pwork->T) {					//最大速度までの加速時間が振れ周期より大きい時は振れ周期分の加速時間がインチング最大距離
+		dist_inch_max = pwork->a_abs[id] * pwork->T * pwork->T;
 	}
 	else {
-		dist_inch_max = pwork->vmax[id] * pwork->vmax[id] / pwork->a[id];		//最大速度までの加速時間が振れ周期より小さい時V^2/α
+		dist_inch_max = pwork->vmax_abs[id] * pwork->vmax_abs[id] / pwork->a_abs[id];		//最大速度までの加速時間が振れ周期より小さい時V^2/α
 	}
 
 	//作成パターンのタイプ   FBありなしと１回のインチングで移動可能な距離かで区別
-	double D = pwork->dist_for_target[id];										//残り移動距離
+	double D_abs = pwork->dist_for_target_abs[id];										//残り移動距離
 	int ptn = 0;
 	if (is_fbtype) {															//インチング最大距離の計算 移動距離がインチング最大距離より小さいとき,FB有はFB振れ止め、FB無しは2回インチング移動
-		if (D > dist_inch_max) ptn = PTN_FBSWAY_FULL;
+		if (D_abs > dist_inch_max) ptn = PTN_FBSWAY_FULL;
 		else ptn = PTN_FBSWAY_AS;
 	}
 	else {
-		if (D > dist_inch_max) ptn = PTN_NON_FBSWAY_FULL;
+		if (D_abs > dist_inch_max) ptn = PTN_NON_FBSWAY_FULL;
 		else ptn = PTN_NON_FBSWAY_2INCH;
 	}
 	precipe->motion_type = ptn;
@@ -540,7 +560,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 
 
 	//加速度が0.0はエラー　0割り防止
-	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;
+	if (pwork->a_abs[id] == 0.0) return POLICY_PTN_NG;
 
 
 	/*### パターン作成 ###*/
@@ -559,7 +579,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置現在位置
 		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
-		D = D;																	// 残り距離変更なし
+		D_abs = D_abs;																	// 残り距離変更なし
 
 	}break;
 
@@ -571,7 +591,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));								// 目標位置の校正（-180°～180°の表現にする
-		D = D;																	// 残り距離変更なし
+		D_abs = D_abs;																	// 残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -582,7 +602,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	switch (ptn) {
 	case PTN_NON_FBSWAY_FULL:												// 旋回はFBなしの時のみ振れ周期パターン
 	{
-		double d_step = D;													//ステップでの移動距離
+		double d_step = D_abs;													//ステップでの移動距離
 		double v_top = 0.0;													//ステップ速度用
 		double check_d;
 		int n = 0, i;
@@ -591,7 +611,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		for (i = (NOTCH_MAX-1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 
-			int k = (int)(v_top / st_com_work.a[id] / st_com_work.T);					// k > 0 →　加速時間が振れ周期以上
+			int k = (int)(v_top / st_com_work.a_abs[id] / st_com_work.T);					// k > 0 →　加速時間が振れ周期以上
 			check_d = v_top * (1.0+ (double)k) * st_com_work.T;
 			if (check_d == 0.0) break;
 
@@ -604,7 +624,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement = &(precipe->steps[precipe->n_step++]);							//ステップのポインタセットして次ステップ用にカウントアップ
 			pelement->type = CTR_TYPE_VOUT_POS;											//位置到達待ち
 
-			double ta = v_top / st_com_work.a[id];
+			double ta = v_top / st_com_work.a_abs[id];
 			pelement->_t = (double)n * st_com_work.T - ta;								// 振れ周期　-　減速時間
 
 			pelement->_v = v_top;														// 速度0
@@ -613,11 +633,11 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;	// 目標位置
 			CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
 
-			D -= d_move;																// 残り距離更新
+			D_abs -= d_move;																// 残り距離更新
 		}
 
 		//  #Step1-2２段目
-		d_step = D;
+		d_step = D_abs;
 		for (i -= 1;i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
 			check_d = v_top * st_com_work.T;
@@ -632,7 +652,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement = &(precipe->steps[precipe->n_step++]);							//ステップのポインタセットして次ステップ用にカウントアップ
 			pelement->type = CTR_TYPE_VOUT_POS;											//位置到達待ち
 
-			double td = ((pelement - 1)->_v - v_top) / st_com_work.a[id];				// 減速時間 ステップ速度までの減速時間
+			double td = ((pelement - 1)->_v - v_top) / st_com_work.a_abs[id];				// 減速時間 ステップ速度までの減速時間
 			pelement->_t = (double)n * st_com_work.T + td;								// 振れ周期　+　2段目までの減速時間
 
 			pelement->_v = v_top;														// 速度0
@@ -641,24 +661,24 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;	// 目標位置
 			CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
 
-			D -= d_move;																// 残り距離更新
+			D_abs -= d_move;																// 残り距離更新
 		}
 
 		//  #Step2 停止
 		pelement = &(precipe->steps[precipe->n_step++]);								//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_VOUT_V;												//速度到達待ち
-		pelement->_t = (pelement - 1)->_v / st_com_work.a[id];							//減速時間
+		pelement->_t = (pelement - 1)->_v / st_com_work.a_abs[id];							//減速時間
 		pelement->_v = 0.0;																// 速度0
 		double d_move = 0.5 * (pelement - 1)->_v * pelement->_t;
 		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
 
-		D -= d_move;																	// 残り距離更新
+		D_abs -= d_move;																	// 残り距離更新
 	}break;
 
 	case PTN_FBSWAY_FULL:																// 旋回はFBありの時は振れ止め無し1段のみ：減速タイミングで調整
 	{
-		double d_step = D;																//ステップでの移動距離
+		double d_step = D_abs;																//ステップでの移動距離
 		double v_top = 0.0;																//ステップ速度用
 		double check_d;
 		int n = 0, i;
@@ -666,21 +686,21 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		// #Step1　１段目
 		for (i = (NOTCH_MAX-1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
-			check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * v_top;
+			check_d = v_top * v_top / st_com_work.a_abs[id] + SPD_FB_DELAY_TIME * v_top;
 			if (check_d < d_step) break;
 			else continue;																//次のノッチへ
 		}
 
 		pelement = &(precipe->steps[precipe->n_step++]);								//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_VOUT_POS;												//位置到達待ち
-		double ta = v_top / st_com_work.a[id];
-		double tc = (D - v_top * ta) / v_top;
+		double ta = v_top / st_com_work.a_abs[id];
+		double tc = (D_abs - v_top * ta) / v_top;
 		pelement->_t = ta + tc;															// 振れ周期　-　減速時間
 		pelement->_v = v_top;															// 速度0
 		double d_move = v_top * (tc + 0.5 * ta);
 		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
-		D -= d_move;																	// 残り距離更新
+		D_abs -= d_move;																	// 残り距離更新
 
 		//  #Step2 停止
 		pelement = &(precipe->steps[precipe->n_step++]);								//ステップのポインタセットして次ステップ用にカウントアップ
@@ -689,13 +709,13 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = 0.0;																// 速度0
 		pelement->_p = st_com_work.target.pos[id];											// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
-		D -= d_move;																	// 残り距離更新
+		D_abs -= d_move;																	// 残り距離更新
 	}break;
 
 	case PTN_NON_FBSWAY_2INCH:													//台形部無いケースはスキップ
 	case PTN_FBSWAY_AS:
 	{
-		D = D;
+		D_abs = D_abs;
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -705,8 +725,8 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	case PTN_NON_FBSWAY_FULL:													
 	case PTN_NON_FBSWAY_2INCH:
 	{
-		double v_inch = sqrt(0.5 * D * st_com_work.a[id]);
-		double ta = v_inch / st_com_work.a[id];
+		double v_inch = sqrt(0.5 * D_abs * st_com_work.a_abs[id]);
+		double ta = v_inch / st_com_work.a_abs[id];
 		double v_top;
 		for (int i = (NOTCH_MAX-1);i > 1;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
@@ -722,7 +742,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		double d_move = 0.5 * v_inch * ta;
 		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
-		D -= d_move;
+		D_abs -= d_move;
 
 		//STEP4
 		double tc = 0.5 * st_com_work.T - 2.0 * ta;
@@ -737,7 +757,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = 0.0;														// ノッチ速度
 		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
-		D -= d_move;
+		D_abs -= d_move;
 
 		//STEP5
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
@@ -746,7 +766,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = v_top;													// ノッチ速度
 		pelement->_p = (pelement - 1)->_p + (double)st_com_work.motion_dir[id] * d_move;// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
-		D -= d_move;
+		D_abs -= d_move;
 
 		//STEP6
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
@@ -755,14 +775,14 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = 0.0;														// ノッチ速度
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正
-		D -= d_move;
+		D_abs -= d_move;
 
 	}break;
 
 	case PTN_FBSWAY_AS:															//振れFBあるパターンはスキップ
 	case PTN_FBSWAY_FULL:
 	{
-		D = D;																	//残り距離変更なし
+		D_abs = D_abs;																	//残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -778,7 +798,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = pCraneStat->spec.notch_spd_f[id][NOTCH_1];				// １ノッチ速度
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
-		D = 0;																	// 残り距離変更なし
+		D_abs = 0;																	// 残り距離変更なし
 
 	}break;
 
@@ -791,7 +811,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_v = 0.0;														// 振れ止めロジックで決定
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
 		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正
-		D = 0;																	// 残り距離変更なし
+		D_abs = 0;																	// 残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -818,7 +838,7 @@ int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 
 	//#パターン計算用データセット
 	double D = pwork->dist_for_target[id];			//残り移動距 絶対値								
-	if (pwork->a[id] == 0.0) return POLICY_PTN_NG;	//加速度が0.0はエラー　0割り防止
+	if (pwork->a_abs[id] == 0.0) return POLICY_PTN_NG;	//加速度が0.0はエラー　0割り防止
 
 
 	/*### パターン作成 ###*/
@@ -864,7 +884,7 @@ int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		//ノッチ速度選択
 		for (i = (NOTCH_MAX - 1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_f[id][i];
-			check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * v_top;	//インチング距離 → V^2/α　+　V*遅れ時間
+			check_d = v_top * v_top / st_com_work.a_abs[id] + SPD_FB_DELAY_TIME * v_top;	//インチング距離 → V^2/α　+　V*遅れ時間
 			if (check_d < D) break;														//ノッチ速度確定
 			else continue;																//次のノッチへ
 		}
@@ -873,17 +893,17 @@ int CPolicy::set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		//ノッチ速度選択
 		for (i = (NOTCH_MAX - 1);i > 0;i--) {
 			v_top = pCraneStat->spec.notch_spd_r[id][i];
-			check_d = v_top * v_top / st_com_work.a[id] + SPD_FB_DELAY_TIME * -v_top;	//巻き下げはv_top < 0.0
+			check_d = v_top * v_top / st_com_work.a_abs[id] + SPD_FB_DELAY_TIME * -v_top;	//巻き下げはv_top < 0.0
 			if (check_d < D) break;														//ノッチ速度確定
 			else continue;																//次のノッチへ
 		}
 	}
 
-	ta = v_top / st_com_work.a[id]; 													//加速度は正の値
+	ta = v_top / st_com_work.a_abs[id]; 													//加速度は正の値
 	if (ta < 0.0) ta *= -1.0;
 
 	double dd = SPD_FB_DELAY_TIME * v_top; if (dd < 0.0)dd *= -1.0;
-	tc = (D - v_top * v_top / st_com_work.a[id] / 2.0 - dd)/ v_top;						//(残り距離 - インチング距離)/トップ速度
+	tc = (D - v_top * v_top / st_com_work.a_abs[id] / 2.0 - dd)/ v_top;						//(残り距離 - インチング距離)/トップ速度
 	if (tc < 0.0) tc *= -1.0;
 
 	pelement->_t = ta + tc;																// 加速時間　＋定速時間
@@ -938,35 +958,41 @@ LPST_POLICY_WORK CPolicy::set_com_workbuf(ST_POS_TARGETS target) {
 		//現在速度
 		st_com_work.v[i] = pPLC_IO->status.v_fb[i];
 		//移動距離　方向
-		temp_d = st_com_work.target.pos[i] - st_com_work.pos[i];
+		st_com_work.dist_for_target[i] = st_com_work.target.pos[i] - st_com_work.pos[i];
 		if (i == ID_SLEW) {		//旋回は、180を越えるときは逆方向が近い
-			if (temp_d > PI180)	temp_d -= PI360;
-			else if (temp_d < -PI180) temp_d += PI360;
+			if (st_com_work.dist_for_target[ID_SLEW] > PI180)	st_com_work.dist_for_target[ID_SLEW] -= PI360;
+			else if (st_com_work.dist_for_target[ID_SLEW] < -PI180) st_com_work.dist_for_target[ID_SLEW] += PI360;
 			else;
 		}
-		if (temp_d < pCraneStat->spec.pos_check_limit[i][ID_LV_DIR_CHECK_MARGIN]) {
-			st_com_work.motion_dir[i] = ID_REV;												//移動方向
-			st_com_work.dist_for_target[i] = -1.0 * temp_d;									//移動距離
+	
+		if (st_com_work.dist_for_target[i] < 0.0) {
+			st_com_work.motion_dir[i] = ID_REV;
+			st_com_work.dist_for_target_abs[i] = -1.0 * st_com_work.dist_for_target[i];
 		}
-		else if (temp_d > pCraneStat->spec.pos_check_limit[i][ID_LV_DIR_CHECK_MARGIN]) {
-			st_com_work.motion_dir[i] = ID_FWD;												//移動方向
-			st_com_work.dist_for_target[i] = temp_d;										//移動距離
+		else if (st_com_work.dist_for_target[i] > 0.0) {
+			st_com_work.motion_dir[i] = ID_FWD;
+			st_com_work.dist_for_target_abs[i] = st_com_work.dist_for_target[i];
 		}
 		else {
-			st_com_work.motion_dir[i] = ID_STOP;											//移動方向
-			st_com_work.dist_for_target[i] = 0.0;											//移動距離
+			st_com_work.motion_dir[i] = ID_STOP;
+			st_com_work.dist_for_target_abs[i] = 0.0;
 		}
 
+
 		//動作軸加速度
-		st_com_work.a[i] = pCraneStat->spec.accdec[i][FWD][ACC];
+		st_com_work.a_abs[i] = pCraneStat->spec.accdec[i][FWD][ACC];
+
 		//最大速度
-		st_com_work.vmax[i] = pCraneStat->spec.notch_spd_f[i][NOTCH_MAX - 1];
+		st_com_work.vmax_abs[i] = pCraneStat->spec.notch_spd_f[i][NOTCH_MAX - 1];
+
 		//最大加速時間
-		st_com_work.acc_time2Vmax[i] = st_com_work.vmax[i] / st_com_work.a[i];
+		st_com_work.acc_time2Vmax[i] = st_com_work.vmax_abs[i] / st_com_work.a_abs[i];
 
 		if ((i == ID_BOOM_H) || (i == ID_SLEW)) {
 			//吊点の加速度
-			st_com_work.a_hp[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);
+			st_com_work.a_hp_abs[i] = pEnvironment->cal_hp_acc(i, st_com_work.motion_dir[i]);
+			if (st_com_work.a_hp_abs[i] < 0.0) st_com_work.a_hp_abs[i] *= -1.0;
+
 			//加速時振れ中心
 			st_com_work.pp_th0[i][ACC] = pEnvironment->cal_arad_acc(i, FWD);
 			//減速時振れ中心

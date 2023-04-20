@@ -27,11 +27,12 @@ typedef struct stPolicyWork {
     double w2;	                                //振れ角周波数2乗
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //モータの速度
-    double a[MOTION_ID_MAX];	                //モータの加速度
-    double a_hp[MOTION_ID_MAX];	                //吊点の加速度
-    double vmax[MOTION_ID_MAX];                 //モータの最大速度
+    double a_abs[MOTION_ID_MAX];	            //モータの加速度　絶対値
+    double a_hp_abs[MOTION_ID_MAX];	            //吊点の加速度　絶対値
+    double vmax_abs[MOTION_ID_MAX];             //モータの最大速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
-    double dist_for_target[MOTION_ID_MAX];      //目標までの距離
+    double dist_for_target[MOTION_ID_MAX];      //目標までの距離符号あり
+    double dist_for_target_abs[MOTION_ID_MAX];      //目標までの距離符号あり
     double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
     ST_POS_TARGETS target;                      //目標位置
     int motion_dir[MOTION_ID_MAX];              //移動方向

@@ -346,7 +346,6 @@ double CEnvironment::cal_hp_acc(int motion, int dir ) {
 	}break;
 	default:break;
 	}
-
 	return ans;      //’Ý“_‚Ì‰Á‘¬“xŒvŽZ
 }
 double CEnvironment::cal_hp_dec(int motion, int dir) {
