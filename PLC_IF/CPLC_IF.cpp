@@ -179,6 +179,9 @@ int CPLC_IF::parse() {
     }
 #endif
 
+    //ブレーキ状態取り込み
+    parce_brk_status();
+
     //### PLCへの出力信号バッファセット
     
     set_notch_ref();  //ノッチ出力信号セット
@@ -866,6 +869,25 @@ int CPLC_IF::parse_ope_com() {
 
     return 0;
 }
+
+//*********************************************************************************************
+// parse_brk_status()
+// ブレーキ状態読み込み
+//*********************************************************************************************
+int CPLC_IF::parce_brk_status() {
+
+    //#### OTEチェック用　仮
+    for (int i = 0;i < MOTION_ID_MAX;i++) {
+        if ((plc_io_workbuf.status.v_fb[i] == 0.0) && (plc_io_workbuf.status.v_ref[i] == 0.0)) {
+            plc_io_workbuf.status.brk[i] = L_ON;
+        }
+        else {
+            plc_io_workbuf.status.brk[i] = L_OFF;
+        }
+    }
+    return 0;
+}
+
 
 //*********************************************************************************************
 // set_sim_status()

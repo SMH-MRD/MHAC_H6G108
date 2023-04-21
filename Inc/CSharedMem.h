@@ -96,6 +96,8 @@ using namespace std;
 #define ID_PB_SEMI_AUTO_L1		23
 #define ID_PB_SEMI_AUTO_L2		24
 #define ID_PB_SEMI_AUTO_L3		25
+#define ID_PB_AUTO_SET_Z_FIXED	26
+#define ID_PB_AUTO_SET_XY_FIXED	27
 
 #define ID_PB_MH_P1             30
 #define ID_PB_MH_P2             31
@@ -112,6 +114,12 @@ using namespace std;
 #define ID_PB_PARK              42
 #define ID_PB_GRND              43
 #define ID_PB_PICK              44
+#define ID_LAMP_HST_BRK         45
+#define ID_LAMP_GNT_BRK         46
+#define ID_LAMP_TRY_BRK         47
+#define ID_LAMP_BH_BRK			48
+#define ID_LAMP_SLW_BRK			49
+
 
 #define SEMI_AUTO_REGIST_MAX	8
 
@@ -146,6 +154,7 @@ typedef struct StPLCStatus {
 	double trq_fb_01per[MOTION_ID_MAX];
 	double pos[MOTION_ID_MAX];
 	double weight;
+	INT16 brk[MOTION_ID_MAX];
 }ST_PLC_STATUS, * LPST_PLC_STATUS;
 
 // PLC_IO構造体
@@ -173,6 +182,8 @@ typedef struct StOTE_IO {
 	INT32 OTEsim_status;
 	INT32 OTEactive;				//接続中の端末ID　接続断の時0
 	INT32 OTE_healty;				//OTEのヘルシー信号
+
+	ST_PLC_UI ui;
 }ST_OTE_IO, * LPST_OTE_IO;
 
 /****************************************************************************/
@@ -488,8 +499,6 @@ typedef struct stCommandSet {
 #define JOB_N_STEP_SEMIAUTO		1
 
 
-
-
 #define COM_RECIPE_OPTION_N			8
 
 typedef struct stComRecipe {
@@ -553,6 +562,9 @@ typedef struct stJobIO {
 #define CS_SEMIAUTO_TG_SEL_CLEAR		0
 #define CS_SEMIAUTO_TG_SEL_ACTIVE       1
 #define CS_SEMIAUTO_TG_SEL_FIXED        2
+#define CS_SEMIAUTO_TG_MAX				16
+
+#define CS_ID_SEMIAUTO_TOUCH_PT			8
 
 typedef struct stCSInfo {
 	//UI関連
@@ -560,7 +572,7 @@ typedef struct stCSInfo {
 	int ui_pb[N_UI_PB];												//PLC操作PB入力確認用（自動開始）
 	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];							//半自動ランプ表示出力用
 	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
-	ST_POS_TARGETS semi_auto_setting_target[SEMI_AUTO_TARGET_MAX];		//半自動設定目標位置
+	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
 	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置		
 	int	semi_auto_selected;												//選択中の半自動ID
 	int command_type;													//PARK,PICK,GRND

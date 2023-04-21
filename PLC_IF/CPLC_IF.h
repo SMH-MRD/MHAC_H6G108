@@ -173,6 +173,7 @@ private:
     LPST_CS_INFO pCSInf;
 
     int parse_notch_com();
+    int parce_brk_status();
     int parse_ope_com();
     int parse_sensor_fb();
     int set_notch_ref();

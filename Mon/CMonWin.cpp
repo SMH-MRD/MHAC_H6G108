@@ -523,10 +523,10 @@ VOID CMonWin::draw_graphic() {
 
 	//”¼Ž©“®ƒ^[ƒQƒbƒg•`‰æ
 	if (pCSinf->semi_auto_selected != SEMI_AUTO_TG_CLR) {
-		sin_slew = sin(pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_SLEW]);
-		cos_slew = cos(pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_SLEW]);
-		x = pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_BOOM_H] * cos_slew;
-		y = pCSinf->semi_auto_setting_target[pCSinf->semi_auto_selected].pos[ID_BOOM_H] * sin_slew;
+		sin_slew = sin(pCSinf->semi_auto_selected_target.pos[ID_SLEW]);
+		cos_slew = cos(pCSinf->semi_auto_selected_target.pos[ID_SLEW]);
+		x = pCSinf->semi_auto_selected_target.pos[ID_BOOM_H] * cos_slew;
+		y = pCSinf->semi_auto_selected_target.pos[ID_BOOM_H] * sin_slew;
 
 		tg_xy.x = CRANE_GRAPHIC_CENTER_X + (int)(x * CMON_PIX_PER_M_CRANE);
 		tg_xy.y = CRANE_GRAPHIC_CENTER_Y - (int)(y * CMON_PIX_PER_M_CRANE);

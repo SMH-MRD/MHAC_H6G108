@@ -465,7 +465,7 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         hwndMON_U_CR_LABEL = CreateWindowW(TEXT("STATIC"), L"#TO OTE UNI",
            WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 135, 800, 20, hwnd, (HMENU)ID_STATIC_MON_CR_U_LABEL, hInst, NULL);
         hwndMON_U_CR = CreateWindowW(TEXT("STATIC"), L"-",
-            WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 160, 800, 140, hwnd, (HMENU)ID_STATIC_MON_CR_U, hInst, NULL);
+            WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 160, 800, 150, hwnd, (HMENU)ID_STATIC_MON_CR_U, hInst, NULL);
 
         hwndMON_M_OTE_LABEL = CreateWindowW(TEXT("STATIC"), L"#FROM OTE MULTI",
             WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 320, 800, 20, hwnd, (HMENU)ID_STATIC_MON_OTE_M_LABEL, hInst, NULL);
@@ -798,10 +798,10 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
 
 
             woMSG << L"\nLAMP :";
-            for (int i = 0;i < 30;i++) {
+            for (int i = 0;i < 55;i++) {
                 woMSG << pOTEio->snd_msg_u.body.lamp[i]; woMSG << L",";
             }
-            woMSG << L"  NOTCH :";
+            woMSG << L"  \nNOTCH :";
             for (int i = 0;i < 5;i++) {
                 woMSG << pOTEio->snd_msg_u.body.notch_pos[i]; woMSG << L",";
             }
@@ -966,6 +966,11 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
                 if (hwnd_pb_chk[i] == NULL) continue;
                 else ShowWindow(hwnd_pb_chk[i], SW_HIDE);
             }
+            for (int i = 0;i < 64;i++) {
+                if (hwnd_lamp[i] == NULL) continue;
+                else ShowWindow(hwnd_lamp[i], SW_HIDE);
+            }
+ 
 
         }break;
 
@@ -985,6 +990,12 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
                 if (hwnd_pb_chk[i] == NULL) continue;
                 else ShowWindow(hwnd_pb_chk[i], SW_RESTORE);
             }
+            for (int i = 0;i < 64;i++) {
+                if (hwnd_lamp[i] == NULL) continue;
+                else ShowWindow(hwnd_lamp[i], SW_RESTORE);
+            }
+
+
         }break;
             //ƒmƒbƒ`“ü—Í
         case  ID_RADIO_HST_NOTCH_5 + 0: sim_notchpos[ID_HOIST] = 5;break;

@@ -19,6 +19,7 @@
 
 #define SPD_FB_DELAY_TIME           0.3             //速度指令-FB遅れ時間
 #define FINE_POS_TIMELIMIT          5.0             //ファインポジショニング制限時間
+#define POL_TM_OVER_CHECK_COUNTms   120000
 
 
 typedef struct stPolicyWork {

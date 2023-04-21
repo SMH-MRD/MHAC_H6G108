@@ -512,13 +512,12 @@ int CAgent::set_ref_bh(){
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(pCom_hot, ID_BOOM_H);
 			}
 		}
-
 		//FBU‚ê~‚ß
-		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_FB_ANTI_SWAY) {				//U‚ê~‚ß’†
-			if (AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_COMPLETE) {						//U‚ê~‚ßŠ®—¹
+		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_FB_ANTI_SWAY) {	//U‚ê~‚ß’†
+			if (AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_COMPLETE) {			//U‚ê~‚ßŠ®—¹
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
 			}
-			else { 																					 //U‚ê~‚ß–¢Š®
+			else { 																		//U‚ê~‚ß–¢Š®
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(&AgentInf_workbuf.st_as_comset,ID_BOOM_H);
 			}
 		}

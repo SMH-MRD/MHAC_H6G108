@@ -114,23 +114,51 @@ static int semi_auto_selected_last = SEMI_AUTO_TG_CLR,job_set_event_last;
 
 int CClientService::parce_onboard_input(int mode) { 
 
+
+
+
 	/*### モード管理 ###*/
 	//振れ止めモードセット
-	if ((pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON]) && (as_pb_last == 0)) { // PB入力立ち上がり
-		if (CS_workbuf.antisway_mode == L_OFF)
-			CS_workbuf.antisway_mode = L_ON;
-		else
-			CS_workbuf.antisway_mode = L_OFF;
+	if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {
+		if ((pOTE_IO->rcv_msg_u.body.pb[ID_PB_ANTISWAY_ON]) && (as_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.antisway_mode == L_OFF)
+				CS_workbuf.antisway_mode = L_ON;
+			else
+				CS_workbuf.antisway_mode = L_OFF;
+		}
+		as_pb_last = pOTE_IO->rcv_msg_u.body.pb[ID_PB_ANTISWAY_ON];
 	}
-	as_pb_last = pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON];
+	else {
+		if ((pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON]) && (as_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.antisway_mode == L_OFF)
+				CS_workbuf.antisway_mode = L_ON;
+			else
+				CS_workbuf.antisway_mode = L_OFF;
+		}
+		as_pb_last = pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON];
+	}
 
-	//自動モードセット
-	if ((pPLC_IO->ui.PB[ID_PB_AUTO_MODE]) && (auto_pb_last == 0)) { // PB入力立ち上がり
-		if (CS_workbuf.auto_mode == L_OFF)
-			CS_workbuf.auto_mode = L_ON;
-		else
-			CS_workbuf.auto_mode = L_OFF;
+
+	INT16* pUIpb;
+	INT16* pUIpb_semiauto;
+
+	if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {
+		pUIpb = pOTE_IO->rcv_msg_u.body.pb;
+		pUIpb_semiauto = pOTE_IO->ui.PBsemiauto;
 	}
+	else {
+		pUIpb = pPLC_IO->ui.PB;
+		pUIpb_semiauto = pPLC_IO->ui.PBsemiauto;
+	}
+
+#if 0
+		//自動モードセット
+		if ((pPLC_IO->ui.PB[ID_PB_AUTO_MODE]) && (auto_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.auto_mode == L_OFF)
+				CS_workbuf.auto_mode = L_ON;
+			else
+				CS_workbuf.auto_mode = L_OFF;
+		}
 	auto_pb_last = pPLC_IO->ui.PB[ID_PB_AUTO_MODE];
 
 
@@ -148,36 +176,43 @@ int CClientService::parce_onboard_input(int mode) {
 
 				//目標設定
 				if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_RESET_TIME) {//半自動目標位置設定値更新
-					CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST]	= pPLC_IO->status.pos[ID_HOIST];
-					CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H]	= pPLC_IO->status.pos[ID_BOOM_H];
-					CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW]		= pPLC_IO->status.pos[ID_SLEW];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
 
-					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
-					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
-					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
+					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
+					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
+					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
 
 					CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 				}
 				else if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_SELECT_TIME) {						//半自動目標設定
 					if (i == CS_workbuf.semi_auto_selected) {											//設定中のボタンを押したら解除
-						CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;	
-						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]	= pPLC_IO->status.pos[ID_HOIST];
+						CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
+						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
-						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]	= pPLC_IO->status.pos[ID_SLEW];
+						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
 
 						CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
 					}
 					else {
 						//半自動選択ボタン取り込み
 						CS_workbuf.semi_auto_selected = i;
-						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]	= CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
+						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
-						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]	= CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
+						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
 
 						CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 					}
 				}
 				else;
+			}
+			if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {//遠隔端末モード
+				if (CS_workbuf.semi_auto_selected == 5) {
+					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[2] / 1000.0;
+					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[1] / 1000.0;
+					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
+				}
 			}
 		}
 		//Z目標位置補正　対応軸目標未確定時のみ更新可能
@@ -249,7 +284,7 @@ int CClientService::parce_onboard_input(int mode) {
 
 		//半自動目標設定入力検出状態セット（画面クリック入力）
 		if (CS_workbuf.tg_sel_trigger_z) {
-			if(CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_DEFAULT) CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_ACTIVE;
+			if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_DEFAULT) CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_ACTIVE;
 		}
 		if (CS_workbuf.tg_sel_trigger_xy) {
 			if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_DEFAULT) CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_ACTIVE;
@@ -265,7 +300,7 @@ int CClientService::parce_onboard_input(int mode) {
 				CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_SEL_CLEAR;
 			}
 			else {
-				if(CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_ACTIVE) CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_FIXED;
+				if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_ACTIVE) CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_FIXED;
 
 				if (CS_workbuf.target_set_xy & CS_SEMIAUTO_TG_SEL_FIXED) {	//XY方向確定済
 					CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_STANDBY;
@@ -329,6 +364,269 @@ int CClientService::parce_onboard_input(int mode) {
 		if (pPLC_IO->ui.PB[ID_PB_AUTO_START])CS_workbuf.ui_pb[ID_PB_AUTO_START]++;
 		else CS_workbuf.ui_pb[ID_PB_AUTO_START] = 0;
 		//JOB起動処理
+
+		if (CS_workbuf.ui_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
+			//半自動がスタンバイ状態
+			if (pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status == STAT_STANDBY) {
+				pJob_IO->job_list[ID_JOBTYPE_SEMI].job[pJob_IO->job_list[ID_JOBTYPE_SEMI].i_job_hot].status = STAT_TRIGED;
+			}
+			//JOBがスタンバイ状態
+			else if (pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status == STAT_STANDBY) {
+				pJob_IO->job_list[ID_JOBTYPE_JOB].job[pJob_IO->job_list[ID_JOBTYPE_JOB].i_job_hot].status = STAT_TRIGED;
+			}
+			else;
+		}
+	}
+	else {
+		//自動モードでないときは半自動設定クリア
+		CS_workbuf.tg_sel_trigger_z = L_OFF;
+		CS_workbuf.tg_sel_trigger_xy = L_OFF;
+		CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
+		CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
+		CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
+
+		CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+		CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+		CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+
+		if ((semi_auto_selected_last != SEMI_AUTO_TG_CLR) && (CS_workbuf.semi_auto_selected == SEMI_AUTO_TG_CLR)) {
+			CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
+			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_SEL_CLEAR;
+		}
+	}
+
+
+	//前回値保持
+	set_z_pb_last = pPLC_IO->ui.PB[ID_PB_AUTO_SET_Z];
+	set_xy_pb_last = pPLC_IO->ui.PB[ID_PB_AUTO_SET_XY];
+	mhp1_pb_last = pPLC_IO->ui.PB[ID_PB_MH_P1];
+	mhp2_pb_last = pPLC_IO->ui.PB[ID_PB_MH_P2];
+	mhm1_pb_last = pPLC_IO->ui.PB[ID_PB_MH_M1];
+	mhm2_pb_last = pPLC_IO->ui.PB[ID_PB_MH_M2];
+	bhp1_pb_last = pPLC_IO->ui.PB[ID_PB_BH_P1];
+	bhp2_pb_last = pPLC_IO->ui.PB[ID_PB_BH_P2];
+	bhm1_pb_last = pPLC_IO->ui.PB[ID_PB_BH_M1];
+	bhm2_pb_last = pPLC_IO->ui.PB[ID_PB_BH_M2];
+	slp1_pb_last = pPLC_IO->ui.PB[ID_PB_SL_P1];
+	slp2_pb_last = pPLC_IO->ui.PB[ID_PB_SL_P2];
+	slm1_pb_last = pPLC_IO->ui.PB[ID_PB_SL_M1];
+	slm2_pb_last = pPLC_IO->ui.PB[ID_PB_SL_M2];
+	semi_auto_selected_last = CS_workbuf.semi_auto_selected;
+#endif
+	//自動モードセット
+	if ((pUIpb[ID_PB_AUTO_MODE]) && (auto_pb_last == 0)) { // PB入力立ち上がり
+		if (CS_workbuf.auto_mode == L_OFF)
+			CS_workbuf.auto_mode = L_ON;
+		else
+			CS_workbuf.auto_mode = L_OFF;
+	}
+	auto_pb_last = pUIpb[ID_PB_AUTO_MODE];
+
+
+	//半自動選択設定,目標位置設定
+	if (CS_workbuf.auto_mode == L_ON) {
+
+		//半自動目標設定
+		//目標位置未確定時のみ更新可能
+		if ((CS_workbuf.target_set_z != CS_SEMIAUTO_TG_SEL_FIXED) && (CS_workbuf.target_set_xy != CS_SEMIAUTO_TG_SEL_FIXED)) {
+			for (int i = 0; i < SEMI_AUTO_TARGET_MAX; i++) {
+				//PB ON時間カウント 半自動リセット時間まで
+				if (pUIpb_semiauto[i] <= 0) CS_workbuf.semiauto_pb[i] = 0;
+				else if (CS_workbuf.semiauto_pb[i] < SEMI_AUTO_TG_RESET_TIME) CS_workbuf.semiauto_pb[i]++;
+				else;
+
+				//目標設定
+				if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_RESET_TIME) {//半自動目標位置設定値更新
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST]	= pPLC_IO->status.pos[ID_HOIST];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H]	= pPLC_IO->status.pos[ID_BOOM_H];
+					CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW]		= pPLC_IO->status.pos[ID_SLEW];
+
+					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
+					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
+					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]		= CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
+
+					CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
+				}
+				else if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_SELECT_TIME) {						//半自動目標設定
+					if (i == CS_workbuf.semi_auto_selected) {											//設定中のボタンを押したら解除
+						CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;	
+						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]	= pPLC_IO->status.pos[ID_HOIST];
+						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]	= pPLC_IO->status.pos[ID_SLEW];
+
+						CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
+					}
+					else {
+						//半自動選択ボタン取り込み
+						CS_workbuf.semi_auto_selected = i;
+						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]	= CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
+						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
+						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]	= CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
+
+						CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
+					}
+				}
+				else;
+			}
+			if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {//遠隔端末モード
+				if (CS_workbuf.semi_auto_selected == 5) {
+					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[2]/1000.0;
+					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[1] / 1000.0;
+					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
+				}
+			}
+		}
+		//Z目標位置補正　対応軸目標未確定時のみ更新可能
+		if (CS_workbuf.target_set_z != CS_SEMIAUTO_TG_SEL_FIXED) {//目標確定設定OFF時補正可能
+			if ((pUIpb[ID_PB_MH_P1]) && (mhp1_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] += AUTO_TG_ADJUST_100mm;
+				CS_workbuf.tg_sel_trigger_z = L_ON;
+			}
+			if ((pUIpb[ID_PB_MH_P2]) && (mhp2_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] += AUTO_TG_ADJUST_1000mm;
+				CS_workbuf.tg_sel_trigger_z = L_ON;
+			}
+			if ((pUIpb[ID_PB_MH_M1]) && (mhm1_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] -= AUTO_TG_ADJUST_100mm;
+				CS_workbuf.tg_sel_trigger_z = L_ON;
+			}
+			if ((pUIpb[ID_PB_MH_M2]) && (mhm2_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] -= AUTO_TG_ADJUST_1000mm;
+				CS_workbuf.tg_sel_trigger_z = L_ON;
+			}
+		}
+		//XY目標位置補正　対応軸目標未確定時のみ更新可能
+		if (CS_workbuf.target_set_xy != CS_SEMIAUTO_TG_SEL_FIXED) {//目標確定設定OFF時補正可能
+			if ((pUIpb[ID_PB_BH_P1]) && (bhp1_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] += AUTO_TG_ADJUST_100mm;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+			if ((pUIpb[ID_PB_BH_P2]) && (bhp2_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] += AUTO_TG_ADJUST_1000mm;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+			if ((pUIpb[ID_PB_BH_M1]) && (bhm1_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] -= AUTO_TG_ADJUST_100mm;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+			if ((pUIpb[ID_PB_BH_M2]) && (bhm2_pb_last == 0)) {
+				CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] -= AUTO_TG_ADJUST_1000mm;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+
+			//旋回は角度に変換
+			if ((pUIpb[ID_PB_SL_P1]) && (slp1_pb_last == 0)) {
+				double rad = AUTO_TG_ADJUST_100mm / pCraneStat->R;
+				CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] += rad;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+			if ((pUIpb[ID_PB_SL_P2]) && (slp2_pb_last == 0)) {
+				double rad = AUTO_TG_ADJUST_1000mm / pCraneStat->R;
+				CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] += rad;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+			if ((pUIpb[ID_PB_SL_M1]) && (slm1_pb_last == 0)) {
+				double rad = AUTO_TG_ADJUST_100mm / pCraneStat->R;
+				CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] -= rad;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+			if ((pUIpb[ID_PB_SL_M2]) && (slm2_pb_last == 0)) {
+				double rad = AUTO_TG_ADJUST_1000mm / pCraneStat->R;
+				CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] -= rad;
+				CS_workbuf.tg_sel_trigger_xy = L_ON;
+			}
+		}
+
+		//半自動解除ボタン入力で設定クリア
+		if (pUIpb[ID_PB_AUTO_RESET]) {
+			CS_workbuf.semi_auto_selected = SEMI_AUTO_TG_CLR;
+		}
+
+
+		//半自動目標設定入力検出状態セット（画面クリック入力）
+		if (CS_workbuf.tg_sel_trigger_z) {
+			if(CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_DEFAULT) CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_ACTIVE;
+		}
+		if (CS_workbuf.tg_sel_trigger_xy) {
+			if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_DEFAULT) CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_ACTIVE;
+		}
+
+		//目標位置確定セット
+		//#### ジョブ登録イベントセット
+		job_set_event_last = CS_workbuf.job_set_event;
+
+		if ((pUIpb[ID_PB_AUTO_SET_Z]) && (set_z_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.target_set_z & CS_SEMIAUTO_TG_SEL_FIXED) {
+				CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
+				CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_SEL_CLEAR;
+			}
+			else {
+				if(CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_ACTIVE) CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_FIXED;
+
+				if (CS_workbuf.target_set_xy & CS_SEMIAUTO_TG_SEL_FIXED) {	//XY方向確定済
+					CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_STANDBY;
+				}
+			}
+		}
+		if ((pUIpb[ID_PB_AUTO_SET_XY]) && (set_xy_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.target_set_xy & CS_SEMIAUTO_TG_SEL_FIXED) {
+				CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
+				CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_SEL_CLEAR;
+			}
+			else {
+				if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_ACTIVE) CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;
+
+				if (CS_workbuf.target_set_z & CS_SEMIAUTO_TG_SEL_FIXED) {	//Z方向確定済
+					CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_STANDBY;
+				}
+			}
+		}
+
+		if ((semi_auto_selected_last != SEMI_AUTO_TG_CLR) && (CS_workbuf.semi_auto_selected == SEMI_AUTO_TG_CLR)) {
+			CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
+			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			CS_workbuf.job_set_event = CS_JOBSET_EVENT_SEMI_SEL_CLEAR;
+		}
+
+		//半自動JOB完了で目標確定クリア
+		if ((job_set_event_last == CS_JOBSET_EVENT_SEMI_STANDBY) && (CS_workbuf.job_set_event != CS_JOBSET_EVENT_SEMI_STANDBY)) {
+			CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
+			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
+			CS_workbuf.target_set_xy = CS_SEMIAUTO_TG_SEL_DEFAULT;
+		}
+
+		//自動コマンド選択設定
+		if ((pUIpb[ID_PB_PARK]) && (park_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.command_type == COM_TYPE_PARK)
+				CS_workbuf.command_type = COM_TYPE_NON;
+			else
+				CS_workbuf.command_type = COM_TYPE_PARK;
+		}
+		park_pb_last = pUIpb[ID_PB_PARK];
+
+		if ((pUIpb[ID_PB_PICK]) && (pick_pb_last == 0)) { // PB入力立ち上がり
+			if (CS_workbuf.command_type == COM_TYPE_PICK)
+				CS_workbuf.command_type = COM_TYPE_NON;
+			else
+				CS_workbuf.command_type = COM_TYPE_PICK;
+		}
+		pick_pb_last = pUIpb[ID_PB_PICK];
+
+		if ((pUIpb[ID_PB_GRND]) && (grnd_pb_last == 0)) { // PB入力立ち上がりK
+			if (CS_workbuf.command_type == COM_TYPE_GRND)
+				CS_workbuf.command_type = COM_TYPE_NON;
+			else
+				CS_workbuf.command_type = COM_TYPE_GRND;
+		}
+		grnd_pb_last = pUIpb[ID_PB_GRND];
+
+		//自動起動PB
+		if (pUIpb[ID_PB_AUTO_START])CS_workbuf.ui_pb[ID_PB_AUTO_START]++;
+		else CS_workbuf.ui_pb[ID_PB_AUTO_START] = 0;
+		//JOB起動処理
 			
 		if (CS_workbuf.ui_pb[ID_PB_AUTO_START] == AUTO_START_CHECK_TIME) {
 			//半自動がスタンバイ状態
@@ -364,20 +662,20 @@ int CClientService::parce_onboard_input(int mode) {
 
 
 	//前回値保持
-	set_z_pb_last	= pPLC_IO->ui.PB[ID_PB_AUTO_SET_Z];
-	set_xy_pb_last	= pPLC_IO->ui.PB[ID_PB_AUTO_SET_XY];
-	mhp1_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_P1];
-	mhp2_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_P2];
-	mhm1_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_M1];
-	mhm2_pb_last	= pPLC_IO->ui.PB[ID_PB_MH_M2];
-	bhp1_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_P1];
-	bhp2_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_P2];
-	bhm1_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_M1];
-	bhm2_pb_last	= pPLC_IO->ui.PB[ID_PB_BH_M2];
-	slp1_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_P1];
-	slp2_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_P2];
-	slm1_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_M1];
-	slm2_pb_last	= pPLC_IO->ui.PB[ID_PB_SL_M2];
+	set_z_pb_last	= pUIpb[ID_PB_AUTO_SET_Z];
+	set_xy_pb_last	= pUIpb[ID_PB_AUTO_SET_XY];
+	mhp1_pb_last	= pUIpb[ID_PB_MH_P1];
+	mhp2_pb_last	= pUIpb[ID_PB_MH_P2];
+	mhm1_pb_last	= pUIpb[ID_PB_MH_M1];
+	mhm2_pb_last	= pUIpb[ID_PB_MH_M2];
+	bhp1_pb_last	= pUIpb[ID_PB_BH_P1];
+	bhp2_pb_last	= pUIpb[ID_PB_BH_P2];
+	bhm1_pb_last	= pUIpb[ID_PB_BH_M1];
+	bhm2_pb_last	= pUIpb[ID_PB_BH_M2];
+	slp1_pb_last	= pUIpb[ID_PB_SL_P1];
+	slp2_pb_last	= pUIpb[ID_PB_SL_P2];
+	slm1_pb_last	= pUIpb[ID_PB_SL_M1];
+	slm2_pb_last	= pUIpb[ID_PB_SL_M2];
 	semi_auto_selected_last = CS_workbuf.semi_auto_selected;
 
 	return 0; 
@@ -595,31 +893,41 @@ void CClientService::output() {
 		CS_workbuf.ui_lamp[ID_PB_AUTO_START] = L_OFF;
 	}
 
-	//目標設定ランプ
+	//目標設定ランプ　目標設定確定ランプ
+
+
+
 	if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_FIXED) {
 		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z_FIXED] = L_ON;
 	}
 	else if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_ACTIVE) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
 			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_ON;
 		else
 			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
+
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z_FIXED] = L_OFF;
 	}
 	else {
 		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z_FIXED] = L_OFF;
 	}
 
 	if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_FIXED) {
 		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_ON;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY_FIXED] = L_ON;
 	}
 	else if (CS_workbuf.target_set_xy == CS_SEMIAUTO_TG_SEL_ACTIVE) {
 		if (inf.total_act % LAMP_FLICKER_BASE_COUNT > LAMP_FLICKER_CHANGE_COUNT)
 			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_ON;
 		else
 			CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY_FIXED] = L_OFF;
 	}
 	else {
 		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY] = L_OFF;
+		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_XY_FIXED] = L_OFF;
 	}
 	//自動コマンドランプ
 	if (CS_workbuf.command_type == COM_TYPE_PICK) {
@@ -664,6 +972,17 @@ void CClientService::output() {
 
 		CS_workbuf.ui_lamp[ID_PB_SEMI_AUTO_S1 + i] = CS_workbuf.semiauto_lamp[i];//表示ランプバッファへコピー
 	}
+
+
+
+
+	//ブレーキ状態
+	for (int i = 0;i < MOTION_ID_MAX;i++) {
+		CS_workbuf.ui_lamp[ID_LAMP_HST_BRK + i] = pPLC_IO->status.brk[i];
+	}
+
+
+
 
 	//共有メモリ出力
 	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CS_workbuf, sizeof(ST_CS_INFO));
