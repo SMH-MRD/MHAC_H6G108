@@ -541,11 +541,15 @@ int CAgent::init_comset(LPST_COMMAND_SET pcom) {
 			pcom->motion_status[i] = STAT_END;
 		pcom->motion_status[ID_BOOM_H]	= STAT_STANDBY;
 		pcom->motion_status[ID_SLEW]	= STAT_STANDBY;
+		pcom->recipe->i_hot_step = 0;
+		pcom->recipe->motion_act_count = 0;
 	}
 	else {
 		for (int i = 0; i < MOTION_ID_MAX;i++) {						//各軸の実行ステータスの初期化
 			if (pcom->active_motion[i] == L_ON) pcom->motion_status[i]	= STAT_STANDBY;
 			else								pcom->motion_status[i]	= STAT_END;
+			pcom->recipe->i_hot_step = 0;
+			pcom->recipe->motion_act_count = 0;
 		}
 	}
 	pcom->com_status = STAT_STANDBY;
@@ -624,35 +628,35 @@ int CAgent::cal_as_recipe(int motion) {
 
 	switch (motion) {
 	case ID_BOOM_H: {
-		pelement = &(precipe->steps[precipe->n_step++]);							//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_WAIT_TIME;										// 時間待ち
-		pelement->_t = 5.0;													// タイムオーバーリミット値
+		pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->type = CTR_TYPE_WAIT_TIME;														// 時間待ち
+		pelement->_t = 5.0;																			// タイムオーバーリミット値
 		pelement->time_count = (int)(pelement->_t * 1000.0 / (double)(st_as_work.agent_scan_ms));	// タイムオーバーリミット値
-		pelement->_v = 0.1;																		// 速度0
-		pelement->_p = st_as_work.pos[motion];													// 目標位置
-		pelement->status = STAT_STANDBY;														// ステータスセット
-		D = D;																					// 残り距離変更なし
+		pelement->_v = 0.1;																			// 速度0
+		pelement->_p = st_as_work.pos[motion];														// 目標位置
+		pelement->status = STAT_STANDBY;															// ステータスセット
+		D = D;																						// 残り距離変更なし
 
-		pelement = &(precipe->steps[precipe->n_step++]);							//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_VOUT_TIME;										// 時間待ち
+		pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->type = CTR_TYPE_VOUT_TIME;														// 時間待ち
 		pelement->_t = 5.0;																			// タイムオーバーリミット値
 		pelement->time_count = (int)(pelement->_t * 1000.0 / (double)(st_as_work.agent_scan_ms));	// タイムオーバーリミット値
 		pelement->_v = -0.1;																		// 速度0
-		pelement->_p = st_as_work.pos[motion];													// 目標位置
-		pelement->status = STAT_STANDBY;														// ステータスセット
-		D = D;																					// 残り距離変更なし
+		pelement->_p = st_as_work.pos[motion];														// 目標位置
+		pelement->status = STAT_STANDBY;															// ステータスセット
+		D = D;																						// 残り距離変更なし
 
 	}break;
 	case ID_SLEW: {
-		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_WAIT_TIME;													// 時間待ち
-		pelement->_t = 1.0;													// タイムオーバーリミット値
+		pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->type = CTR_TYPE_WAIT_TIME;														// 時間待ち
+		pelement->_t = 1.0;																			// タイムオーバーリミット値
 		pelement->time_count = (int)(pelement->_t * 1000.0 / (double)(st_as_work.agent_scan_ms));	// タイムオーバーリミット値
 		pelement->_v = 0.01;																		// 速度0
-//		pelement->_v = 0.0;																		// 速度0
-		pelement->_p = st_as_work.pos[motion];													// 目標位置
-		pelement->status = STAT_STANDBY;														// ステータスセット
-		D = D;																					// 残り距離変更なし
+//		pelement->_v = 0.0;																			// 速度0
+		pelement->_p = st_as_work.pos[motion];														// 目標位置
+		pelement->status = STAT_STANDBY;															// ステータスセット
+		D = D;																						// 残り距離変更なし
 	}break;
 	default: return L_OFF;
 	}
@@ -738,7 +742,8 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	case CTR_TYPE_WAIT_POS_BH: {
 		double d = pEnv->cal_dist4target(ID_BOOM_H, true);
 		if (motion == ID_SLEW) {
-			if (d < AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE)	pStep->status = STAT_END;
+			if (pCom->recipe[ID_BOOM_H].direction != ID_REV)	pStep->status = STAT_END;//引込でない時は待機無し
+			else if (d < AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE)	pStep->status = STAT_END;
 			else pStep->status = STAT_ACTIVE;
 		}
 		else if (motion == ID_HOIST){
@@ -753,7 +758,8 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	case CTR_TYPE_WAIT_POS_SLW: {
 		double d = pEnv->cal_dist4target(ID_SLEW, true);
 		if (motion == ID_BOOM_H) {
-			if (d < AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad)	pStep->status = STAT_END;
+			if(pCom->recipe[ID_BOOM_H].direction == ID_REV)			pStep->status = STAT_END;//引込時は待機無し
+			else if (d < AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad)	pStep->status = STAT_END;//旋回が目標位置付近到達で待機完了
 			else pStep->status = STAT_ACTIVE;
 		}
 		else if (motion == ID_HOIST) {
@@ -772,16 +778,25 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 
 	case CTR_TYPE_VOUT_V: {
 		pStep->status = STAT_ACTIVE;
-		if((pStep->_p - pPLC_IO->status.pos[motion]) < 0.0)	v_out = -pStep->_v;
-		else												v_out = pStep->_v;
+		v_out = pStep->_v;
 
-		double dv = v_out - pPLC_IO->status.v_fb[motion];
-		if ((v_out > 0.0) && (v_out - pPLC_IO->status.v_fb[motion] < 0.0)) {
+		double v1percent = pCraneStat->spec.notch_spd_f[motion][5] * 0.01; //1%速度
+		double dv = v_out - pPLC_IO->status.v_fb[motion],dv_abs;
+		if (dv < 0.0)dv_abs = -dv;
+		else dv_abs = dv;
+
+		if ((v_out > 0.0) && (dv < 0.0)) {
 			pStep->status = STAT_END;
 		}
-		else if ((v_out < 0.0) && (v_out - pPLC_IO->status.v_fb[motion] > 0.0)) {
+		else if ((v_out < 0.0) && (dv > 0.0)) {
+			pStep->status = STAT_END;
+
+			//巻き下げ時は位置もチェック
 			if (pPLC_IO->status.pos[ID_HOIST] < pStep->_p)
 				pStep->status = STAT_END;
+		}
+		else if (dv_abs < v1percent) {
+			pStep->status = STAT_END;
 		}
 		else;
 
@@ -806,6 +821,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pStep->status = STAT_END;
 		}
 	}break;
+
 	case CTR_TYPE_VOUT_PHASE: {
 		pStep->status = STAT_ACTIVE;
 		v_out = 0.0;
@@ -837,6 +853,11 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 	case CTR_TYPE_FINE_POS: {
 		pStep->status = STAT_ACTIVE;
 		double dx = pStep->_p - pPLC_IO->status.pos[motion];
+		if (motion == ID_SLEW) {
+			if (dx > PI180)dx -= PI360;
+			else if(dx < -PI180) dx += PI360;
+			else;
+		}
 
 		if ((dx < pCraneStat->spec.as_pos_level[motion][ID_LV_COMPLE]) && (dx > -pCraneStat->spec.as_pos_level[motion][ID_LV_COMPLE])) {
 			pStep->status = STAT_END;
