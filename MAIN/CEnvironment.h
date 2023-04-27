@@ -8,15 +8,11 @@
 #define SIM_HELTHY_NG_COUNT         8
 #define SWAY_HELTHY_NG_COUNT        8
 
-
-
 class CEnvironment :public CTaskObj
 {
 public:
     CEnvironment();
     ~CEnvironment();
-
-
 
     LRESULT CALLBACK PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
 

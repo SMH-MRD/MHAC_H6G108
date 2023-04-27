@@ -21,6 +21,11 @@
 #define AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE              2.0     //旋回開始可能な引込到達距離m
 #define AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad          0.17    //引込開始可能な旋回到達距離rad
 
+#define AGENT_AS_TYPE_HOLD                              0        //振れ止めパターンシングルインチング
+#define AGENT_AS_TYPE_SINGLE                            1        //振れ止めパターンシングルインチング
+#define AGENT_AS_TYPE_DOUBLE_ONEWAY                     2        //振れ止めパターン2回インチング一方向
+#define AGENT_AS_TYPE_DOUBLE_ROUND                      3        //振れ止めパターン2回インチング往復
+
 typedef struct stAgentWork {
     double T;	                                //振れ周期
     double w;	                                //振れ角周波数
@@ -34,10 +39,13 @@ typedef struct stAgentWork {
  
     double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
-    int motion_dir[MOTION_ID_MAX];              //移動方向
+    double dist_for_target_abs[MOTION_ID_MAX];  //目標までの距離
+    int    motion_dir[MOTION_ID_MAX];             //移動方向
 
     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム int ms
     double agent_scan;                          //AGENTタスクのスキャンタイム double s
+
+    int as_ptn_type[MOTION_ID_MAX];             //振れ止めパターン
 }ST_AGENT_WORK, * LPST_AGENT_WORK;
 
 
@@ -78,8 +86,9 @@ class CAgent:public CTaskObj
     int init_comset(LPST_COMMAND_SET pcom);               //コマンド初期化
 
     LPST_COMMAND_SET    pCom_as;                            //振れ止め用コマンドセットポインタ（実態は共有メモリ上へ）
-    void set_as_workbuf();                                  //振れ止めパターン作成用データ取り込み
+    void set_as_workbuf(int motion);                        //振れ止めパターン作成用データ取り込み
     int cal_as_recipe(int motion);                          //振れ止めパターン計算セット
+
   
     double cal_step(LPST_COMMAND_SET pCom, int motion);     //自動指令出力値の計算
 

@@ -558,65 +558,100 @@ int CAgent::init_comset(LPST_COMMAND_SET pcom) {
 /****************************************************************************/
 /*	振れ止め関連設定					*/
 /****************************************************************************/
-//振れ止めパターン計算用作業バッファセット
-void CAgent::set_as_workbuf() {
+	
 
-	st_as_work.agent_scan_ms = inf.cycle_ms;				//AGENTタスクのスキャンタイム
+//振れ止めパターン計算用作業バッファセット
+void CAgent::set_as_workbuf(int motion) {
+
+	st_as_work.agent_scan_ms = inf.cycle_ms;						//AGENTタスクのスキャンタイム
 
 	double temp_d;
-	for (int i = 0; i < MOTION_ID_MAX; i++) {
-		//現在位置
-		st_as_work.pos[i] = pPLC_IO->status.pos[i];
-		//現在速度
-		st_as_work.v[i] = pPLC_IO->status.v_fb[i];
-		//移動距離　方向
-		temp_d = AgentInf_workbuf.auto_pos_target.pos[i] - st_as_work.pos[i];
-		if (i == ID_SLEW) {		//旋回は、180を越えるときは逆方向が近い
-			if (temp_d > PI180)	temp_d -= PI360;
-			else if (temp_d < -PI180) temp_d += PI360;
-			else;
-		}
-		if (temp_d < 0.0) {
-			st_as_work.motion_dir[i] = ID_REV;											//移動方向
-			st_as_work.dist_for_target[i] = -1.0 * temp_d;								//移動距離
-		}
-		else if (temp_d > 0.0) {
-			st_as_work.motion_dir[i] = ID_FWD;											//移動方向
-			st_as_work.dist_for_target[i] = temp_d;										//移動距離
-		}
-		else {
-			st_as_work.motion_dir[i] = ID_STOP;											//移動方向
-			st_as_work.dist_for_target[i] = 0.0;										//移動距離
-		}
 
-		//動作軸加速度
-		st_as_work.a[i] = pCraneStat->spec.accdec[i][FWD][ACC];
-		//最大速度
-		st_as_work.vmax[i] = pCraneStat->spec.notch_spd_f[i][NOTCH_MAX - 1];
-		//最大加速時間
-		st_as_work.acc_time2Vmax[i] = st_as_work.vmax[i] / st_as_work.a[i];
+	//現在位置
+	st_as_work.pos[motion] = pPLC_IO->status.pos[motion];
+	//現在速度
+	st_as_work.v[motion] = pPLC_IO->status.v_fb[motion];
+	//移動距離　方向
+	temp_d = AgentInf_workbuf.auto_pos_target.pos[motion] - st_as_work.pos[motion];
+	if (motion == ID_SLEW) {									//旋回は、180を越えるときは逆方向が近い
+		if (temp_d > PI180)	temp_d -= PI360;
+		else if (temp_d < -PI180) temp_d += PI360;
+		else;
+	}
 
-		if ((i == ID_BOOM_H) || (i == ID_SLEW)) {
-			//吊点の加速度
-			st_as_work.a_hp[i] = pEnv->cal_hp_acc(i, st_as_work.motion_dir[i]);
-			//加速時振れ中心
-			st_as_work.pp_th0[i][ACC] = pEnv->cal_arad_acc(i, FWD);
-			//減速時振れ中心
-			st_as_work.pp_th0[i][DEC] = pEnv->cal_arad_dec(i, REV);
-		}
+	st_as_work.dist_for_target[motion] = temp_d;				//移動距離
+	if (temp_d < 0.0) {
+		st_as_work.motion_dir[motion] = ID_REV;					//移動方向
+		st_as_work.dist_for_target_abs[motion] = -1.0 * temp_d;	//移動距離絶対値
+	}
+	else if (temp_d > 0.0) {
+		st_as_work.motion_dir[motion] = ID_FWD;					//移動方向
+		st_as_work.dist_for_target_abs[motion] = temp_d;		//移動距離絶対値
+	}
+	else {
+		st_as_work.motion_dir[motion] = ID_STOP;				//移動方向
+		st_as_work.dist_for_target[motion] = 0.0;				//移動距離絶対値
+	}
+
+	//動作軸加速度
+	st_as_work.a[motion] = pCraneStat->spec.accdec[motion][FWD][ACC];
+	//最大速度
+	st_as_work.vmax[motion] = pCraneStat->spec.notch_spd_f[motion][NOTCH_MAX - 1];
+	//最大加速時間
+	st_as_work.acc_time2Vmax[motion] = st_as_work.vmax[motion] / st_as_work.a[motion];
+
+	if ((motion == ID_BOOM_H) || (motion == ID_SLEW)) {
+		//吊点の加速度
+		st_as_work.a_hp[motion] = pEnv->cal_hp_acc(motion, st_as_work.motion_dir[motion]);
+		//加速時振れ中心
+		st_as_work.pp_th0[motion][ACC] = pEnv->cal_arad_acc(motion, FWD);
+		//減速時振れ中心
+		st_as_work.pp_th0[motion][DEC] = pEnv->cal_arad_dec(motion, REV);
 	}
 
 	st_as_work.T = pCraneStat->T;															//振れ周期
 	st_as_work.w = pCraneStat->w;															//振れ角周波数
 	st_as_work.w2 = pCraneStat->w2;
 
+	double rs,ta,r0,ph,check_d;
+	ta = st_as_work.dist_for_target_abs[motion] / st_as_work.a_hp[motion];
+	r0 = st_as_work.a_hp[motion] / GA;
+	ph = ta * st_as_work.w;
+	check_d = r0 * (1 - cos(ph));
+
+	if (motion == ID_BOOM_H) {
+		rs = sqrt(pEnv->cal_sway_r_amp2_m());
+	}
+	else if (motion == ID_SLEW) {
+		rs = sqrt(pEnv->cal_sway_th_amp2_m());
+	}
+	else {
+		rs = 0.0;
+	}
+	st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_HOLD;
+	if (st_as_work.dist_for_target_abs[motion] > pCraneStat->spec.as_pos_level[motion][ID_LV_TRIGGER]) {
+		if(rs > check_d * check_d) st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_SINGLE;
+		else						st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_DOUBLE_ONEWAY;
+	}
+	else if(rs > pCraneStat->spec.as_m_level[motion][ID_LV_TRIGGER]){
+		st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_DOUBLE_ROUND;
+	}
+	else if ((st_as_work.dist_for_target_abs[motion] > pCraneStat->spec.as_pos_level[motion][ID_LV_TRIGGER])||
+		     (rs > pCraneStat->spec.as_m_level[motion][ID_LV_TRIGGER])) {
+		st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_SINGLE;
+	}
+	else st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_HOLD;
+
 	return;
 }
+
+
+
 
 //振れ止めパターンレシピセット
 int CAgent::cal_as_recipe(int motion) {
 
-	set_as_workbuf();
+	set_as_workbuf(motion);
 	AgentInf_workbuf.st_as_comset.com_code.i_list = ID_JOBTYPE_ANTISWAY;//コマンドコード　振れ止めタイプセット
 	double D = pEnv->cal_dist4target(motion, false);	//残り移動距離　符号あり
 

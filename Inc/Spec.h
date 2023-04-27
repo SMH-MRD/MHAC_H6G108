@@ -44,7 +44,7 @@ typedef struct StSpec {
 #define NOTCH_4	  4
 #define NOTCH_5	  5
 
-	double notch_spd_f[MOTION_ID_MAX][NOTCH_MAX] = {			//# ノッチ指令速度（機上）
+	double notch_spd_f[MOTION_ID_MAX][NOTCH_MAX] = {		//# ノッチ指令速度（機上）
 	{ 0.0,	0.083,	0.25,	0.417,	0.583,	1.666 },		//[ID_HOIST]	m/s
 	{ 0.0,	0.04,	0.125,	0.25,	0.416,	0.416 },		//[ID_GANTRY]	m/s
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },			//[ID_TROLLY]	m/s
