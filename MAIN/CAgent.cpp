@@ -646,8 +646,6 @@ void CAgent::set_as_workbuf(int motion) {
 }
 
 
-
-
 //振れ止めパターンレシピセット
 int CAgent::cal_as_recipe(int motion) {
 
