@@ -21,10 +21,10 @@
 #define AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE              2.0     //旋回開始可能な引込到達距離m
 #define AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad          0.17    //引込開始可能な旋回到達距離rad
 
-#define AGENT_AS_TYPE_HOLD                              0        //振れ止めパターンシングルインチング
-#define AGENT_AS_TYPE_SINGLE                            1        //振れ止めパターンシングルインチング
-#define AGENT_AS_TYPE_DOUBLE_ONEWAY                     2        //振れ止めパターン2回インチング一方向
-#define AGENT_AS_TYPE_DOUBLE_ROUND                      3        //振れ止めパターン2回インチング往復
+#define AGENT_AS_PTN_PAUSE                              0        //保留
+#define AGENT_AS_PTN_FINE_POS                           1        //微小位置決め
+#define AGENT_AS_PTN_POS_IN                             2        //振れ止め
+#define AGENT_AS_PTN_POS_OUT                            3        //振り出し
 
 typedef struct stAgentWork {
     double T;	                                //振れ周期
@@ -40,12 +40,14 @@ typedef struct stAgentWork {
     double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
     double dist_for_target[MOTION_ID_MAX];      //目標までの距離
     double dist_for_target_abs[MOTION_ID_MAX];  //目標までの距離
-    int    motion_dir[MOTION_ID_MAX];             //移動方向
+    int    motion_dir[MOTION_ID_MAX];           //移動方向
 
     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム int ms
     double agent_scan;                          //AGENTタスクのスキャンタイム double s
 
     int as_ptn_type[MOTION_ID_MAX];             //振れ止めパターン
+    double as_gain_ta[MOTION_ID_MAX];           //振れ止めゲイン（加速時間）
+    double as_ph[MOTION_ID_MAX];                //振れ止め開始位相
 }ST_AGENT_WORK, * LPST_AGENT_WORK;
 
 

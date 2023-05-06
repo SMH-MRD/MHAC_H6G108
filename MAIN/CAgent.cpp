@@ -288,8 +288,11 @@ void CAgent::main_proc() {
 	}
 	else {//FB振れ止め
 		if (AgentInf_workbuf.auto_on_going & AUTO_TYPE_FB_ANTI_SWAY) {
-			AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_on_going;
-			AgentInf_workbuf.auto_active[ID_SLEW] = AgentInf_workbuf.auto_on_going;
+			if(pCraneStat->notch0 & BIT_SEL_BH)	AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_FB_ANTI_SWAY;
+			else								AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
+			
+			if (pCraneStat->notch0 & BIT_SEL_SLW)	AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_FB_ANTI_SWAY;
+			else									AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
 		}
 		else {
 			AgentInf_workbuf.auto_active[ID_BOOM_H] = AUTO_TYPE_MANUAL;
@@ -514,8 +517,11 @@ int CAgent::set_ref_bh(){
 		}
 		//FB振れ止め
 		else if (AgentInf_workbuf.auto_active[ID_BOOM_H] & AUTO_TYPE_FB_ANTI_SWAY) {	//振れ止め中
-			if (AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_COMPLETE) {			//振れ止め完了
-				AgentInf_workbuf.v_ref[ID_BOOM_H] = 0.0;
+			if (!(AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_ACTIVE) || (AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_PAUSED)) {
+				AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
+			}
+			else if (AgentInf_workbuf.antisway_on_going & ANTISWAY_BH_COMPLETE) {			//振れ止め完了
+				AgentInf_workbuf.v_ref[ID_BOOM_H] = pCraneStat->notch_spd_ref[ID_BOOM_H];
 			}
 			else { 																		//振れ止め未完
 				AgentInf_workbuf.v_ref[ID_BOOM_H] = cal_step(&AgentInf_workbuf.st_as_comset,ID_BOOM_H);
@@ -571,27 +577,16 @@ void CAgent::set_as_workbuf(int motion) {
 	st_as_work.pos[motion] = pPLC_IO->status.pos[motion];
 	//現在速度
 	st_as_work.v[motion] = pPLC_IO->status.v_fb[motion];
-	//移動距離　方向
+	//移動距離
 	temp_d = AgentInf_workbuf.auto_pos_target.pos[motion] - st_as_work.pos[motion];
 	if (motion == ID_SLEW) {									//旋回は、180を越えるときは逆方向が近い
 		if (temp_d > PI180)	temp_d -= PI360;
 		else if (temp_d < -PI180) temp_d += PI360;
 		else;
 	}
-
 	st_as_work.dist_for_target[motion] = temp_d;				//移動距離
-	if (temp_d < 0.0) {
-		st_as_work.motion_dir[motion] = ID_REV;					//移動方向
-		st_as_work.dist_for_target_abs[motion] = -1.0 * temp_d;	//移動距離絶対値
-	}
-	else if (temp_d > 0.0) {
-		st_as_work.motion_dir[motion] = ID_FWD;					//移動方向
-		st_as_work.dist_for_target_abs[motion] = temp_d;		//移動距離絶対値
-	}
-	else {
-		st_as_work.motion_dir[motion] = ID_STOP;				//移動方向
-		st_as_work.dist_for_target[motion] = 0.0;				//移動距離絶対値
-	}
+	if (temp_d < 0.0)	st_as_work.dist_for_target_abs[motion] = -1.0 * temp_d;	//移動距離絶対値
+	else				st_as_work.dist_for_target_abs[motion] = temp_d;
 
 	//動作軸加速度
 	st_as_work.a[motion] = pCraneStat->spec.accdec[motion][FWD][ACC];
@@ -613,12 +608,9 @@ void CAgent::set_as_workbuf(int motion) {
 	st_as_work.w = pCraneStat->w;															//振れ角周波数
 	st_as_work.w2 = pCraneStat->w2;
 
-	double rs,ta,r0,ph,check_d;
-	ta = st_as_work.dist_for_target_abs[motion] / st_as_work.a_hp[motion];
-	r0 = st_as_work.a_hp[motion] / GA;
-	ph = ta * st_as_work.w;
-	check_d = r0 * (1 - cos(ph));
-
+	 double ta = st_as_work.dist_for_target_abs[motion] / st_as_work.a_hp[motion];
+	 double r0 = st_as_work.a_hp[motion] / GA;
+	 double rs;
 	if (motion == ID_BOOM_H) {
 		rs = sqrt(pEnv->cal_sway_r_amp2_m());
 	}
@@ -628,19 +620,53 @@ void CAgent::set_as_workbuf(int motion) {
 	else {
 		rs = 0.0;
 	}
-	st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_HOLD;
+
+	st_as_work.as_ptn_type[motion] = AGENT_AS_PTN_PAUSE;
 	if (st_as_work.dist_for_target_abs[motion] > pCraneStat->spec.as_pos_level[motion][ID_LV_TRIGGER]) {
-		if(rs > check_d * check_d) st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_SINGLE;
-		else						st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_DOUBLE_ONEWAY;
+		st_as_work.as_ptn_type[motion] = AGENT_AS_PTN_POS_IN;
+		st_as_work.as_gain_ta[motion] = sqrt(st_as_work.dist_for_target_abs[motion] / st_as_work.a_hp[motion]);
 	}
-	else if(rs > pCraneStat->spec.as_m_level[motion][ID_LV_TRIGGER]){
-		st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_DOUBLE_ROUND;
+	else if(rs < pCraneStat->spec.as_m_level[motion][ID_LV_TRIGGER]){
+		st_as_work.as_ptn_type[motion] = AGENT_AS_PTN_POS_IN;
+		st_as_work.as_gain_ta[motion] = sqrt(st_as_work.dist_for_target_abs[motion] / st_as_work.a_hp[motion]);
 	}
-	else if ((st_as_work.dist_for_target_abs[motion] > pCraneStat->spec.as_pos_level[motion][ID_LV_TRIGGER])||
-		     (rs > pCraneStat->spec.as_m_level[motion][ID_LV_TRIGGER])) {
-		st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_SINGLE;
+	else if (rs > pCraneStat->spec.as_m_level[motion][ID_LV_COMPLE]) {
+		st_as_work.as_ptn_type[motion] = AGENT_AS_PTN_POS_OUT;
+
+		double cos_ph = 1 - rs / (2.0 * r0);
+		if (cos_ph < -1.0) {
+			st_as_work.as_gain_ta[motion] = st_as_work.T = pCraneStat->T / 2.0;
+		}
+		else {
+			st_as_work.as_gain_ta[motion] = acos(cos_ph) / st_as_work.a_hp[motion];
+		}
+
+		st_as_work.as_gain_ta[motion] = sqrt(st_as_work.dist_for_target_abs[motion] / st_as_work.a_hp[motion]);
 	}
-	else st_as_work.as_ptn_type[motion] = AGENT_AS_TYPE_HOLD;
+	else {
+		st_as_work.as_ptn_type[motion] = AGENT_AS_PTN_FINE_POS;//微小位置合わせは1ノッチ速度
+		st_as_work.as_gain_ta[motion] = pCraneStat->spec.notch_spd_f[motion][1] / st_as_work.a[motion];
+	}
+
+
+	if (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_OUT) {
+		st_as_work.motion_dir[motion] = ID_STOP;				//振り出しの移動方向は先に来た位相で決める
+	}
+	else if (st_as_work.dist_for_target[motion] < 0.0) {
+		st_as_work.motion_dir[motion] = ID_REV;					//移動方向
+	}
+	else if (temp_d > 0.0) {
+		st_as_work.motion_dir[motion] = ID_FWD;					//移動方向
+	}
+	else {
+		st_as_work.motion_dir[motion] = ID_STOP;				//移動方向
+	}
+
+	//インチングの加速時間は振れ周期を上限とする。
+	if (st_as_work.as_gain_ta[motion] < 0.0) st_as_work.as_gain_ta[motion] *= -1.0;
+	if (st_as_work.as_gain_ta[motion] > st_as_work.T) st_as_work.as_gain_ta[motion] = st_as_work.T;
+	//振れ止め起動位相
+	st_as_work.as_ph[motion] = st_as_work.as_gain_ta[motion]* st_as_work.w;// 起動位相は　移動方向によって　th0 - ph = nπ(n=0 or -π）
 
 	return;
 }
@@ -651,47 +677,92 @@ int CAgent::cal_as_recipe(int motion) {
 
 	set_as_workbuf(motion);
 	AgentInf_workbuf.st_as_comset.com_code.i_list = ID_JOBTYPE_ANTISWAY;//コマンドコード　振れ止めタイプセット
-	double D = pEnv->cal_dist4target(motion, false);	//残り移動距離　符号あり
 
 	/*### パターン作成 ###*/
 	LPST_MOTION_RECIPE precipe = &AgentInf_workbuf.st_as_comset.recipe[motion];
 	precipe->n_step = 0;		// ステップクリア
-
 	LPST_MOTION_STEP pelement = &precipe->steps[0];
 
-	switch (motion) {
-	case ID_BOOM_H: {
-		pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_WAIT_TIME;														// 時間待ち
-		pelement->_t = 5.0;																			// タイムオーバーリミット値
-		pelement->time_count = (int)(pelement->_t * 1000.0 / (double)(st_as_work.agent_scan_ms));	// タイムオーバーリミット値
-		pelement->_v = 0.1;																			// 速度0
-		pelement->_p = st_as_work.pos[motion];														// 目標位置
-		pelement->status = STAT_STANDBY;															// ステータスセット
-		D = D;																						// 残り距離変更なし
+	//#### STEP 0 起動待機
+	pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
+	pelement->_v = 0.0;																			// 速度0
+	pelement->_p = st_as_work.pos[motion];														// 目標位置
+	pelement->status = STAT_STANDBY;															// ステータスセット
 
-		pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_VOUT_TIME;														// 時間待ち
-		pelement->_t = 5.0;																			// タイムオーバーリミット値
-		pelement->time_count = (int)(pelement->_t * 1000.0 / (double)(st_as_work.agent_scan_ms));	// タイムオーバーリミット値
-		pelement->_v = -0.1;																		// 速度0
-		pelement->_p = st_as_work.pos[motion];														// 目標位置
-		pelement->status = STAT_STANDBY;															// ステータスセット
-		D = D;																						// 残り距離変更なし
+	switch (st_as_work.as_ptn_type[motion]) {
+	case AGENT_AS_PTN_POS_IN: {
+		pelement->type = CTR_TYPE_WAIT_PH_SINGLE;
+		pelement->_t = st_as_work.T * 2.0;														// タイムオーバーリミット値
+	}break;
+	case AGENT_AS_PTN_POS_OUT: {
+		pelement->type = CTR_TYPE_WAIT_PH_DOUBLE;
+		pelement->_t = st_as_work.T * 2.0;														// タイムオーバーリミット値
+	}break;
+	case AGENT_AS_PTN_FINE_POS: {
+		pelement->type = CTR_TYPE_WAIT_TIME;
+		pelement->_t = 0.1;
+	}break;																						// 調整時間
+	default: {
+		pelement->type = CTR_TYPE_WAIT_TIME;
+		pelement->_t = 0.1;																		// 調整時間														// タイムオーバーリミット値
+	}break;
+	}
 
-	}break;
-	case ID_SLEW: {
-		pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
-		pelement->type = CTR_TYPE_WAIT_TIME;														// 時間待ち
-		pelement->_t = 1.0;																			// タイムオーバーリミット値
-		pelement->time_count = (int)(pelement->_t * 1000.0 / (double)(st_as_work.agent_scan_ms));	// タイムオーバーリミット値
-		pelement->_v = 0.01;																		// 速度0
-//		pelement->_v = 0.0;																			// 速度0
-		pelement->_p = st_as_work.pos[motion];														// 目標位置
-		pelement->status = STAT_STANDBY;															// ステータスセット
-		D = D;																						// 残り距離変更なし
-	}break;
-	default: return L_OFF;
+	//#### STEP 1 加速
+	
+	double d;
+
+	if ((st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_IN)
+		|| (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_OUT)
+		|| (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_FINE_POS)) {
+
+		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->status = STAT_STANDBY;														// ステータスセット
+		pelement->type = CTR_TYPE_VOUT_TIME;
+		pelement->_t = st_as_work.as_gain_ta[motion];
+		pelement->_v = pelement->_t * st_as_work.a[motion];										//加速時間 * ノッチ速度加速度
+		for (int i = (NOTCH_MAX - 1);i > 1;i--) {												//真近のノッチ速度を求める
+			if (pelement->_v > pCraneStat->spec.notch_spd_f[motion][i - 1]) {
+				pelement->_v = pCraneStat->spec.notch_spd_f[motion][i];
+				break;
+			}
+			else continue;			//次のノッチへ
+		}
+		d = 0.5 * pelement->_v * pelement->_t;
+		pelement->_p = (pelement - 1)->_p - (double)st_as_work.motion_dir[motion] * d;
+	}
+
+	//#### STEP 2 定速
+
+	if (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_IN){
+		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->status = STAT_STANDBY;														// ステータスセット
+		pelement->type = CTR_TYPE_VOUT_V;
+		pelement->_t = st_as_work.as_gain_ta[motion];
+		pelement->_v = 0.0;																		//加速時間 * ノッチ速度加速度
+		pelement->_p = AgentInf_workbuf.auto_pos_target.pos[motion];							//振れ止め目標位置
+	}
+	else if (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_POS_OUT){
+		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->status = STAT_STANDBY;														// ステータスセット
+		pelement->type = CTR_TYPE_VOUT_V;
+		pelement->_t = st_as_work.as_gain_ta[motion];
+		pelement->_v = 0.0;																		//加速時間 * ノッチ速度加速度
+		pelement->_p = (pelement-1)->_p;														//移動方向が不定→前ステップから変更なし
+	}
+	else if (st_as_work.as_ptn_type[motion] == AGENT_AS_PTN_FINE_POS) {
+		pelement = &(precipe->steps[precipe->n_step++]);										//ステップのポインタセットして次ステップ用にカウントアップ
+		pelement->status = STAT_STANDBY;														// ステータスセット
+		pelement->type = CTR_TYPE_VOUT_POS;
+		pelement->_t = st_as_work.as_gain_ta[motion];
+		pelement->_v = pCraneStat->spec.notch_spd_f[motion][1];									//加速時間 * ノッチ速度加速度
+		pelement->_p = AgentInf_workbuf.auto_pos_target.pos[motion];							//移動方向が不定のものがあるので目標位置は異常検知用にターゲット位置にする
+	}
+	else;
+
+	//時間条件のスキャンカウント値セット
+	for (int i = 0;i < precipe->n_step;i++) {
+		precipe->steps[i].time_count = (int)(precipe->steps[i]._t * 1000.0 / st_as_work.agent_scan_ms);
 	}
 
 	return L_ON;
