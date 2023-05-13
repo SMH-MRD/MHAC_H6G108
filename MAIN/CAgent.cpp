@@ -131,7 +131,7 @@ void CAgent::input() {
 					pCom_hot = NULL;
 				}
 			}
-			else {
+			else {//
 				if (pCom_hot != NULL) {	//ジョブ実行中でコマンド実行中
 					int com_complete = STAT_END;
 					for (int i = 0;i < MOTION_ID_MAX;i++) {
@@ -430,8 +430,9 @@ int CAgent::set_ref_mh(){
 	if (AgentInf_workbuf.pc_ctrl_mode & BIT_SEL_HST) {
 		if (AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_MANUAL)
 			AgentInf_workbuf.v_ref[ID_HOIST] = pCraneStat->notch_spd_ref[ID_HOIST];
-		else if ((AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_JOB) ||
-			(AgentInf_workbuf.auto_active[ID_HOIST] == AUTO_TYPE_SEMIAUTO)) {
+		//JOB実行時
+		else if ((AgentInf_workbuf.auto_active[ID_HOIST] & AUTO_TYPE_JOB) ||
+			(AgentInf_workbuf.auto_active[ID_HOIST] & AUTO_TYPE_SEMIAUTO)) {
 			if (pCom_hot == NULL)	AgentInf_workbuf.v_ref[ID_HOIST] = 0.0;
 			else				AgentInf_workbuf.v_ref[ID_HOIST] = cal_step(pCom_hot, ID_HOIST);
 		}
