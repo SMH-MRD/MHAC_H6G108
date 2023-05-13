@@ -417,7 +417,7 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 			pelement->_p = (pelement - 1)->_p + d_dec;			// 目標位置
 		}
 		pelement->_v = 0.0;								// 出力速度
-		CHelper::fit_slew_axis(&(pelement->_p));					//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));					//目標位置の校正
 		D_abs = D_abs - d_move_abs - d_move_abs2;						// 残り距離更新
 																			
 	}break;
@@ -600,8 +600,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置現在位置
-		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
-		CHelper::fit_slew_axis(&(pelement->_p));							//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));							//目標位置の校正（-180°～180°の表現にする
 		D_abs = D_abs;															// 残り距離変更なし
 
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
@@ -609,7 +608,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置現在位置
-		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
 		D_abs = D_abs;																	// 残り距離変更なし
 
 	}break;
@@ -623,7 +622,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置現在位置
-		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
 		D_abs = D_abs;															// 残り距離変更なし
 
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
@@ -631,7 +630,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置現在位置
-		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								//目標位置の校正（-180°～180°の表現にする
 		D_abs = D_abs;															// 残り距離変更なし
 		
 		pelement = &(precipe->steps[precipe->n_step++]);						// ステップのポインタセットして次ステップ用にカウントアップ
@@ -639,7 +638,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = TIME_LIMIT_ERROR_DETECT;									// タイムオーバーリミット値
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置
-		CHelper::fit_slew_axis(&(pelement->_p));								// 目標位置の校正（-180°～180°の表現にする
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								// 目標位置の校正（-180°～180°の表現にする
 		D_abs = D_abs;																	// 残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
@@ -681,7 +680,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 				pelement->_p = (pelement - 1)->_p + d_move_abs - 0.5 * d_accdec;// 目標位置
 				pelement->_v = v_top_abs;										// 出力速度
 			}
-			CHelper::fit_slew_axis(&(pelement->_p));							//目標位置の校正
+			CHelper::fit_ph_range_upto_pi(&(pelement->_p));							//目標位置の校正
 			break;
 		}
 
@@ -714,7 +713,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 					pelement->_p = (pelement - 1)->_p + d_move_abs2 + temp_d_abs;		// 目標位置
 					pelement->_v = v_second_abs;										// 出力速度
 				}
-				CHelper::fit_slew_axis(&(pelement->_p));					//目標位置の校正
+				CHelper::fit_ph_range_upto_pi(&(pelement->_p));					//目標位置の校正
 				break;
 			}
 		}
@@ -737,7 +736,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement->_p = (pelement - 1)->_p + d_dec;			// 目標位置
 		}
 		pelement->_v = 0.0;								// 出力速度
-		CHelper::fit_slew_axis(&(pelement->_p));					//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));					//目標位置の校正
 		D_abs = D_abs - d_move_abs - d_move_abs2;						// 残り距離更新
 	}break;
 
@@ -769,7 +768,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 				pelement->_p = (pelement - 1)->_p + d_move_abs - 0.5 * d_accdec;// 目標位置
 				pelement->_v = v_top_abs;										// 出力速度
 			}
-			CHelper::fit_slew_axis(&(pelement->_p));							//目標位置の校正
+			CHelper::fit_ph_range_upto_pi(&(pelement->_p));							//目標位置の校正
 			break;
 		}
 
@@ -790,7 +789,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement->_p = (pelement - 1)->_p + d_dec;			// 目標位置
 		}
 		pelement->_v = 0.0;										// 出力速度
-		CHelper::fit_slew_axis(&(pelement->_p));				//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));				//目標位置の校正
 		D_abs = D_abs - d_move_abs ;							// 残り距離更新
 
 	}break;
@@ -831,7 +830,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement->_v = v_top_abs;										// 出力速度
 		}
 			
-		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));										//目標位置の校正
 		D_abs -= d_move_abs;
 
 		//STEP4
@@ -851,7 +850,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		else {
 			pelement->_p = (pelement - 1)->_p + d_move_abs;					// 目標位置
 		}
-		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));										//目標位置の校正
 		D_abs -= d_move_abs;
 
 		//STEP5
@@ -867,7 +866,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 			pelement->_v = v_top_abs;										// 出力速度
 		}
 
-		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));										//目標位置の校正
 		D_abs -= d_move_abs;
 
 		//STEP6
@@ -876,7 +875,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = ta;														// 位相待ち停止時間
 		pelement->_v = 0.0;														// ノッチ速度
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								//目標位置の校正
 		D_abs = 0.0;
 
 	}break;
@@ -899,7 +898,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = FINE_POS_TIMELIMIT;										// 位置合わせ最大継続時間
 		pelement->_v = pCraneStat->spec.notch_spd_f[id][NOTCH_1];				// １ノッチ速度
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		CHelper::fit_slew_axis(&(pelement->_p));										//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));										//目標位置の校正
 		D_abs = 0;																	// 残り距離変更なし
 
 	}break;
@@ -912,7 +911,7 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_t = st_com_work.T * 4.0;										// 振れ4周期分
 		pelement->_v = 0.0;														// 振れ止めロジックで決定
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		CHelper::fit_slew_axis(&(pelement->_p));								//目標位置の校正
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								//目標位置の校正
 		D_abs = 0;																	// 残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;

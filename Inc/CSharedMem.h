@@ -381,6 +381,11 @@ typedef struct StCraneStatus {
 #define TIME_LIMIT_ERROR_DETECT				120		//異常検出時間
 #define N_STEP_OPTION_MAX					8
 
+#define STEP_OPT_PHASE_SINGLE				0		//起動位相の配列インデックス　SINGLE
+#define STEP_OPT_PHASE_FWD					0		//起動位相の配列インデックス　DOUBLE　正方向用
+#define STEP_OPT_PHASE_REV					1		//起動位相の配列インデックス　DOUBLE　逆方向用
+
+
 typedef struct stMotionElement {	//運動要素
 	//recipe
 	int type;								//制御種別
@@ -450,6 +455,7 @@ typedef struct stMotionRecipe {					//移動パターン
 #define STAT_ACK				0x1001		//正常受付
 #define STAT_NAK				0x8000		//NG
 #define STAT_ABNORMAL			0x8000		//失敗
+#define STAT_TIME_OVER			0x8010		//タイムオーバー
 #define STAT_ABNORMAL_END       0x8020      //異常完了
 #define STAT_LOGICAL_ERROR		0x8004      //整合性異常
 #define STAT_CODE_ERROR			0x8008      //適合コード無し

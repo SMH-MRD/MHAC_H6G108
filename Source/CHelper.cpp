@@ -85,7 +85,7 @@ UINT	CHelper::bits_count(UINT64 x) { int ret = 0; while (x) { x &= x - 1; ret++;
 - 引数　double* 　
 - 戻り値　NA
 *****************************************************************************/
-void CHelper::fit_slew_axis(double* pd) {
+void CHelper::fit_ph_range_upto_pi(double* pd) {
 
 	int n;
 	double pi2 = 6.2832;

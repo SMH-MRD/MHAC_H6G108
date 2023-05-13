@@ -8,10 +8,6 @@
 
 
 #define PHASE_CHECK_RANGE           0.02  // レシピ出力　位相到達判定範囲　rad :1deg = 0.017 rad
-#define AGENT_FWD                   1
-#define AGENT_REW                   -1
-#define AGENT_STOP                  0
-#define AGENT_NA                    0
 
 #define AGENT_AUTO_TRIG_ACK_COUNT                       10
 #define AGENT_CHECK_LARGE_SWAY_m2                       1.0     //起動時に初期振れ大とみなす振れ量mの2乗
@@ -26,14 +22,16 @@
 #define AGENT_AS_PTN_POS_IN                             2        //振れ止め
 #define AGENT_AS_PTN_POS_OUT                            3        //振り出し
 
+#define AGENT_AS_PH_CHECK_RANGE                         0.05   //1°= 0.0175rad
+
 typedef struct stAgentWork {
     double T;	                                //振れ周期
     double w;	                                //振れ角周波数
     double w2;	                                //振れ角周波数2乗
     double pos[MOTION_ID_MAX];	                //現在位置
     double v[MOTION_ID_MAX];	                //モータの速度
-    double a[MOTION_ID_MAX];	                //モータの加速度
-    double a_hp[MOTION_ID_MAX];	                //モータの加速度
+    double a_abs[MOTION_ID_MAX];	                //モータの加速度
+    double a_hp_abs[MOTION_ID_MAX];	                //モータの加速度
     double vmax[MOTION_ID_MAX];                 //吊点の加速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
  
@@ -47,7 +45,8 @@ typedef struct stAgentWork {
 
     int as_ptn_type[MOTION_ID_MAX];             //振れ止めパターン
     double as_gain_ta[MOTION_ID_MAX];           //振れ止めゲイン（加速時間）
-    double as_ph[MOTION_ID_MAX];                //振れ止め開始位相
+    double as_ph[MOTION_ID_MAX];                //振れ止めゲイン（位相）
+    double as_ph_chk_range[MOTION_ID_MAX];      //振れ止め起動位相到達判定レンジ
 }ST_AGENT_WORK, * LPST_AGENT_WORK;
 
 

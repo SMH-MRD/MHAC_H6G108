@@ -33,6 +33,6 @@ public:
 	static UINT	bits_count(UINT16 x);
 	static UINT	bits_count(UINT32 x);
 	static UINT	bits_count(UINT64 x);
-	static void fit_slew_axis(double* th); //　旋回座標に校正する
+	static void fit_ph_range_upto_pi(double* th); //　位相座標を±πのレンジに校正する
 
 };

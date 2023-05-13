@@ -96,6 +96,7 @@
 #define ID_STOP         0   //í‚é~
 #define ID_LEFT         0   //ç∂ë§
 #define ID_RIGHT        1   //âEë§
+#define ID_SELECT       2   //ëIë
 
 #define ID_ACC          0   //â¡ë¨
 #define ID_DEC          1   //å∏ë¨
