@@ -115,6 +115,9 @@ typedef struct StSpec {
 	{{ 0.0,0.0,0.0,0.0},	{ 0.0,0.0,0.0,0.0}},				//[ID_MOTION1]
 	};
 
+#define PARAM_PHASE_CHK_RANGE_BH						0.05	//位相到達判定範囲
+#define PARAM_PHASE_CHK_RANGE_SLW						0.05	//位相到達判定範囲
+
 #define ID_LV_COMPLE			0	//完了
 #define ID_LV_TRIGGER			1	//トリガ
 #define ID_LV_LIMIT				2	//制限
@@ -169,19 +172,19 @@ typedef struct StSpec {
 	{ 0.0, 0.0, 0.0 },											//
 	};
 
-#define NUM_OF_DELAY_PTN		5	//加減速時FB時間遅れ評価パターン数
-#define ID_DELAY_0START			0	//停止からの加速
-#define ID_DELAY_ACC_DEC		1	//加速中の減速切替時
-#define ID_DELAY_DEC_ACC		2	//減速中の加速切替時
-#define ID_DELAY_CNT_ACC		3	//定速からの加速時
-#define ID_DELAY_CNT_DEC		4	//定速からの減速時	
+#define NUM_OF_DELAY_PTN		5								//加減速時FB時間遅れ評価パターン数
+#define ID_DELAY_0START			0								//停止からの加速
+#define ID_DELAY_ACC_DEC		1								//加速中の減速切替時
+#define ID_DELAY_DEC_ACC		2								//減速中の加速切替時
+#define ID_DELAY_CNT_ACC		3								//定速からの加速時
+#define ID_DELAY_CNT_DEC		4								//定速からの減速時	
 
 	double delay_time[NUM_OF_AS_AXIS][NUM_OF_DELAY_PTN] = {		// 加減速時のFB一時遅れ時定数
-	{ 0.3,0.3,0.3,0.3,0.3},											//[ID_HOIST]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_GANTRY]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_TROLLY]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_BOOM_H]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_SLEW]
+	{ 0.3,0.3,0.3,0.3,0.3},										//[ID_HOIST]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_GANTRY]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_TROLLY]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_BOOM_H]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_SLEW]
 	};
 	
 	//構造寸法
@@ -222,10 +225,12 @@ typedef struct StSpec {
 
 #define CTRL_PC_IP_ADDR_SWAY	"192.168.1.6"
 #define SWAY_SENSOR_IP_ADDR		"192.168.1.102"
-//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.31"
-#define OTE_DEFAULT_IP_ADDR		"127.0.0.1"
+
+
 #define OTE_MULTI_IP_ADDR		"239.1.0.1"
 #define CTRL_PC_IP_ADDR_OTE		"192.168.1.201"
+//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.31"
+#define OTE_DEFAULT_IP_ADDR		"127.0.0.1"
 //#define OTE_DEFAULT_IP_ADDR		"192.168.1.200"
 
 

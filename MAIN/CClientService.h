@@ -36,6 +36,9 @@
 
 #define CS_N_MSG_HOLD                       10
 
+#define CS_ID_OTE_TARGET1_POS               8
+#define CS_ID_OTE_TARGET1_DIST              9
+
 
 class CClientService :public CTaskObj
 {

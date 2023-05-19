@@ -321,7 +321,7 @@ void CAgent::main_proc() {
 			//巻は現在位置
 			AgentInf_workbuf.auto_pos_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
 
-			//引込、旋回はノッチ入りまたは振れ止めOFFで現在位置　0ノッチトリガで現在位置＋減速距離位置
+			//引込はノッチ入りまたは振れ止めOFFで現在位置　0ノッチトリガで現在位置＋減速距離位置
 			//0ノッチトリガで現在位置＋減速距離位置に設定
 			if (!(notch0_last & BIT_SEL_BH) && (pCraneStat->notch0 & BIT_SEL_BH)) {
 				AgentInf_workbuf.auto_pos_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + pEnv->cal_dist4stop(ID_BOOM_H, false);
@@ -332,7 +332,7 @@ void CAgent::main_proc() {
 			}
 			else;
 
-			//0ノッチトリガで現在位置＋減速距離位置に設定
+			//旋回はノッチ入りまたは振れ止めOFFで現在位置　0ノッチトリガで現在位置＋減速距離位置
 			if (!(notch0_last & BIT_SEL_SLW) && (pCraneStat->notch0 & BIT_SEL_SLW)) { //0ノッチトリガ
 				AgentInf_workbuf.auto_pos_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + pEnv->cal_dist4stop(ID_SLEW, false);
 			}
@@ -586,13 +586,13 @@ void CAgent::set_as_workbuf(int motion) {
 	st_as_work.v[motion] = pPLC_IO->status.v_fb[motion];
 	//移動距離
 	temp_d = AgentInf_workbuf.auto_pos_target.pos[motion] - st_as_work.pos[motion];
-	if (motion == ID_SLEW) {									//旋回は、180を越えるときは逆方向が近い
+	if (motion == ID_SLEW) {																//旋回は、180を越えるときは逆方向が近い
 		if (temp_d > PI180)	temp_d -= PI360;
 		else if (temp_d < -PI180) temp_d += PI360;
 		else;
 	}
-	st_as_work.dist_for_target[motion] = temp_d;				//移動距離
-	if (temp_d < 0.0)	st_as_work.dist_for_target_abs[motion] = -1.0 * temp_d;	//移動距離絶対値
+	st_as_work.dist_for_target[motion] = temp_d;											//移動距離
+	if (temp_d < 0.0)	st_as_work.dist_for_target_abs[motion] = -1.0 * temp_d;				//移動距離絶対値
 	else				st_as_work.dist_for_target_abs[motion] = temp_d;
 
 	//動作軸加速度
@@ -645,6 +645,12 @@ void CAgent::set_as_workbuf(int motion) {
 		else {
 			//			st_as_work.as_gain_ta[motion] = acos(cos_ph) / st_as_work.a_hp_abs[motion];
 			st_as_work.as_gain_ta[motion] = acos(cos_ph) / st_as_work.w;
+			//振れが小さくて移動量が小さくなる時は、中間距離まで接近
+			double half_ta = sqrt(0.5 * st_as_work.dist_for_target_abs[motion] / st_as_work.a_abs[motion]);
+			if (st_as_work.as_gain_ta[motion] < half_ta) {
+				st_as_work.as_gain_ta[motion] = half_ta;
+			}
+
 		}
 	}
 	else if(rs_m < pCraneStat->spec.as_m_level[motion][ID_LV_TRIGGER]){												//目標までの距離小で振れが小さい→位置合わせ
@@ -657,6 +663,7 @@ void CAgent::set_as_workbuf(int motion) {
 		else {
 //			st_as_work.as_gain_ta[motion] = acos(cos_ph) / st_as_work.a_hp_abs[motion];
 			st_as_work.as_gain_ta[motion] = acos(cos_ph) / st_as_work.w;
+
 		}
 	}
 	else if (rs_m > pCraneStat->spec.as_m_level[motion][ID_LV_COMPLE]) {
@@ -700,8 +707,6 @@ void CAgent::set_as_workbuf(int motion) {
 	//振れ止め起動位相
 	st_as_work.as_ph[motion] = st_as_work.as_gain_ta[motion]* st_as_work.w;// 起動位相は　移動方向によって　th0 - ph = nπ(n=0 or -π）
 
-	st_as_work.as_ph_chk_range[motion] = AGENT_AS_PH_CHECK_RANGE;
-
 	return;
 }
 
@@ -728,7 +733,10 @@ int CAgent::cal_as_recipe(int motion) {
 	pelement = &(precipe->steps[precipe->n_step++]);											//ステップのポインタセットして次ステップ用にカウントアップ
 	pelement->_v = 0.0;																			// 速度0
 	pelement->_p = st_as_work.pos[motion];														// 目標位置
-	pelement->status = STAT_STANDBY;															// ステータスセット
+	pelement->status = STAT_STANDBY;
+																								// ステータスセット
+	if (motion == ID_BOOM_H)	pelement->opt_d[STEP_OPT_PHASE_CHK_RANGE] = PARAM_PHASE_CHK_RANGE_BH;
+	else 						pelement->opt_d[STEP_OPT_PHASE_CHK_RANGE] = PARAM_PHASE_CHK_RANGE_SLW;
 
 	switch (st_as_work.as_ptn_type[motion]) {
 	case AGENT_AS_PTN_POS_IN: {
@@ -752,6 +760,7 @@ int CAgent::cal_as_recipe(int motion) {
 			}
 		}
 		CHelper::fit_ph_range_upto_pi(&(pelement->opt_d[STEP_OPT_PHASE_SINGLE]));			  //レンジを-π～πに
+
 	}break;
 	case AGENT_AS_PTN_POS_OUT: {
 		pelement->type = CTR_TYPE_WAIT_PH_DOUBLE;
@@ -910,7 +919,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			chk_ph = ph_io - trig_point_ph;
 		}
 
-		if (chk_ph < st_as_work.as_ph_chk_range[motion]) {	//目標位相に到達
+		if (chk_ph < pStep->opt_d[STEP_OPT_PHASE_CHK_RANGE]) {	//目標位相に到達
 			pStep->status = STAT_END;
 			break;
 		}
@@ -932,7 +941,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			pStep->status = STAT_LOGICAL_ERROR;is_step_end = true;
 		}
 		if (pStep->act_count > pStep->time_count) {
-			pStep->status = STAT_TIME_OVER;is_step_end = true;
+	//		pStep->status = STAT_TIME_OVER;is_step_end = true;
 		}
 		if (pSway_IO->rad_amp2[motion] < pCraneStat->spec.as_rad2_level[motion][ID_LV_COMPLE]) {//振れ振幅完了レベル
 			pStep->status = STAT_END;is_step_end = true;
@@ -963,7 +972,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 			chk_ph = ph_io - trig_point_ph;
 		}
 
-		if (chk_ph < st_as_work.as_ph_chk_range[motion]) {	//目標位相に到達
+		if (chk_ph < pStep->opt_d[STEP_OPT_PHASE_CHK_RANGE]) {	//目標位相に到達
 			pStep->status = STAT_END;
 			precipe->direction = ID_REV;
 			break;
@@ -986,7 +995,7 @@ double CAgent::cal_step(LPST_COMMAND_SET pCom,int motion) {
 		else {
 			chk_ph = ph_io - trig_point_ph;
 		}
-		if (chk_ph < st_as_work.as_ph_chk_range[motion]) {	//目標位相に到達
+		if (chk_ph < pStep->opt_d[STEP_OPT_PHASE_CHK_RANGE]) {	//目標位相に到達
 			pStep->status = STAT_END;
 			precipe->direction = ID_FWD;
 			break;

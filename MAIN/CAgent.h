@@ -14,8 +14,8 @@
 #define AGENT_CHECK_HST_POS_CLEAR_RANGE                 2.0     //自動巻上時に引込、旋回開始可能な巻上到達距離
 #define AGENT_CHECK_BH_POS_CLEAR_HST_DOWN_RANGE         2.0     //自動巻下可能な引込到達距離m
 #define AGENT_CHECK_SLW_POS_CLEAR_HST_DOWN_RANGE_rad    0.17    //自動巻下可能な旋回到達距離m
-#define AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE              2.0     //旋回開始可能な引込到達距離m
-#define AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad          0.17    //引込開始可能な旋回到達距離rad
+#define AGENT_CHECK_BH_POS_CLEAR_SLW_RANGE              3.0     //旋回開始可能な引込到達距離m
+#define AGENT_CHECK_SLW_POS_CLEAR_BH_RANGE_rad          0.5    //引込開始可能な旋回到達距離rad
 
 #define AGENT_AS_PTN_PAUSE                              0        //保留
 #define AGENT_AS_PTN_FINE_POS                           1        //微小位置決め
@@ -46,8 +46,7 @@ typedef struct stAgentWork {
     int as_ptn_type[MOTION_ID_MAX];             //振れ止めパターン
     double as_gain_ta[MOTION_ID_MAX];           //振れ止めゲイン（加速時間）
     double as_ph[MOTION_ID_MAX];                //振れ止めゲイン（位相）
-    double as_ph_chk_range[MOTION_ID_MAX];      //振れ止め起動位相到達判定レンジ
-}ST_AGENT_WORK, * LPST_AGENT_WORK;
+ }ST_AGENT_WORK, * LPST_AGENT_WORK;
 
 
 class CAgent:public CTaskObj

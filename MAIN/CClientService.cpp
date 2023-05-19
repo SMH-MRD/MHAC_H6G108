@@ -114,9 +114,6 @@ static int semi_auto_selected_last = SEMI_AUTO_TG_CLR,job_set_event_last;
 
 int CClientService::parce_onboard_input(int mode) { 
 
-
-
-
 	/*### モード管理 ###*/
 	//振れ止めモードセット
 	if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {
@@ -471,10 +468,13 @@ int CClientService::parce_onboard_input(int mode) {
 				else;
 			}
 			if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {//遠隔端末モード
-				if (CS_workbuf.semi_auto_selected == 5) {
-					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[2]/1000.0;
-					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[1] / 1000.0;
-					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
+				if (CS_workbuf.semi_auto_selected == SEMI_AUTO_TG_CLR) {
+					CS_workbuf.semi_auto_selected = CS_ID_OTE_TARGET1_POS;
+					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_POS].pos[ID_HOIST];
+					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_POS].pos[ID_BOOM_H];
+					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_POS].pos[ID_SLEW];
+
+					CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 				}
 			}
 		}
@@ -683,6 +683,31 @@ int CClientService::parce_onboard_input(int mode) {
 
 //# 操作端末入力取り込み処理
 int CClientService::parce_ote_imput(int mode) {
+
+	//OTE表示画面用カメラ視点高さ
+	CS_workbuf.ote_camera_height = (double)pOTE_IO->rcv_msg_u.body.pb[ID_OTE_CAMERA_HEIGHT] / 1000.0;
+	if (CS_workbuf.ote_camera_height < pCraneStat->spec.hoist_pos_max)CS_workbuf.ote_camera_height = pCraneStat->spec.hoist_pos_max + 0.1;
+
+	//OTE タッチ目標位置
+	CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_POS].pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
+	double d_z = CS_workbuf.ote_camera_height - pPLC_IO->status.pos[ID_HOIST];
+	double d_x = d_z * (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
+	double d_y = d_z * (double)pOTE_IO->rcv_msg_u.body.tg_pos1[1] / 1000.0;
+
+	CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_POS].pos[ID_BOOM_H] = sqrt(d_x * d_x + d_y * d_y);
+	if (d_x > 0.0) {
+		CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_POS].pos[ID_SLEW] = atan(d_y / d_x);
+	}
+	else
+	{
+		CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_POS].pos[ID_SLEW] = atan(d_y / d_x) + PI180;
+	}
+
+	//OTE タッチ目標移動距離
+	CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_DIST].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST]+(double)pOTE_IO->rcv_msg_u.body.tg_dist1[0] / 1000.0;
+	CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_DIST].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[1] / 1000.0;
+	CS_workbuf.semi_auto_setting_target[CS_ID_OTE_TARGET1_DIST].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[2] / 1000.0;
+		
 	return 0;
 }
 
@@ -895,8 +920,6 @@ void CClientService::output() {
 
 	//目標設定ランプ　目標設定確定ランプ
 
-
-
 	if (CS_workbuf.target_set_z == CS_SEMIAUTO_TG_SEL_FIXED) {
 		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z] = L_ON;
 		CS_workbuf.ui_lamp[ID_PB_AUTO_SET_Z_FIXED] = L_ON;
@@ -981,12 +1004,16 @@ void CClientService::output() {
 		CS_workbuf.ui_lamp[ID_LAMP_HST_BRK + i] = pPLC_IO->status.brk[i];
 	}
 
-
-
+	//主幹ランプ　遠隔モード
+	CS_workbuf.ui_lamp[ID_PB_CRANE_MODE]		= pPLC_IO->ui.LAMP[ID_PB_CRANE_MODE];
+	CS_workbuf.ui_lamp[ID_PB_REMOTE_MODE]		= pPLC_IO->ui.LAMP[ID_PB_REMOTE_MODE];
+	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE_ON]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE_ON];
+	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE_OFF]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE_OFF];
+	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE2_ON]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE2_ON];
+	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE2_OFF]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE2_OFF];
 
 	//共有メモリ出力
 	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CS_workbuf, sizeof(ST_CS_INFO));
-
 
 
 	//タスクパネル表示出力

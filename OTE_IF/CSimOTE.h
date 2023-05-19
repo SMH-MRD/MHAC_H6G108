@@ -55,6 +55,20 @@
 #define ID_STATIC_MON_OTE_M_LABEL            10723
 #define ID_STATIC_MON_CR_M_LABEL             10724
 
+#define ID_STATIC_TG1_POS_HST_LABEL          10730
+#define ID_STATIC_TG1_POS_BH_LABEL           10731
+#define ID_STATIC_TG1_POS_SLW_LABEL          10732
+#define ID_STATIC_TG1_DIST_HST_LABEL         10733
+#define ID_STATIC_TG1_DIST_BH_LABEL          10734
+#define ID_STATIC_TG1_DIST_SLW_LABEL         10735
+#define ID_STATIC_TG1_POS_HST_EDIT           10740
+#define ID_STATIC_TG1_POS_BH_EDIT            10741
+#define ID_STATIC_TG1_POS_SLW_EDIT           10742
+#define ID_STATIC_TG1_DIST_HST_EDIT          10743
+#define ID_STATIC_TG1_DIST_BH_EDIT           10744
+#define ID_STATIC_TG1_DIST_SLW_EDIT          10745
+
+
 #define ID_RADIO_HST_NOTCH_5                 10750
 #define ID_RADIO_GNT_NOTCH_5                 10770
 #define ID_RADIO_BH_NOTCH_5                  10810
@@ -109,6 +123,8 @@ private:
     static HWND h_radio_disp_monSIM;
 
     static HWND hwndMON_U_OTE,hwndMON_U_CR,hwndMON_M_OTE,hwndMON_M_CR,hwndMON_U_OTE_LABEL,hwndMON_U_CR_LABEL,hwndMON_M_OTE_LABEL,hwndMON_M_CR_LABEL;
+
+    static HWND hwndEdit[6], hwndEditLabel[6];
  
     static HWND hwnd_notch_radio[MOTION_ID_MAX][12];
     static HWND hwnd_pb_chk[N_UI_PB];
@@ -134,6 +150,8 @@ private:
 
     static std::wostringstream woMSG;
     static std::wstring wsMSG;
+
+    static int pos_tg1_hst, pos_tg1_bh, pos_tg1_slw, dist_tg1_hst, dist_tg1_bh, dist_tg1_slw;
 
 public:
     CSimOTE();

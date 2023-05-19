@@ -195,7 +195,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-// #Touch タッチポイント
+// #Touch タッチポイント　テスト中
 // This function is used to return an index given an ID
 int GetContactIndex(int dwID) {
     for (int i = 0; i < MAXPOINTS; i++) {
@@ -256,16 +256,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //  pProcObj->set_debug_mode(L_OFF);
         //メインウィンドウにコントロール追加
         if (pProcObj->is_debug_mode()) {
-            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"DEBUG MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"DEBUG MODE NOW!", WS_CHILD | WS_VISIBLE | SS_LEFT,
                 100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
-            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"NORMAL->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"NORMALへ", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                 5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
 
         }
         else {
-            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE!", WS_CHILD | WS_VISIBLE | SS_LEFT,
+            stMainWnd.h_static0 = CreateWindowW(TEXT("STATIC"), L"PRODUCT MODE NOW!", WS_CHILD | WS_VISIBLE | SS_LEFT,
                 100, 5, 140, 20, hWnd, (HMENU)IDC_STATIC_0, hInst, NULL);
-            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUG->", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            stMainWnd.h_pb_debug = CreateWindow(L"BUTTON", L"DEBUGへ", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
                 5, 2, 90, 25, hWnd, (HMENU)IDC_PB_DEBUG, hInst, NULL);
 
         }
@@ -281,43 +281,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"OTE_SIM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             20, 85, 80, 25, hWnd, (HMENU)IDC_PB_SIM_OTE, hInst, NULL);
 
-#if 0
-        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"NO OFF", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
-            115, 85, 80, 25, hWnd, (HMENU)ID_CHECK_SWAY_CAL_NO_OFFSET, hInst, NULL);
-
-        stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"NO TIL", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
-            200, 85, 80, 25, hWnd, (HMENU)ID_CHECK_SWAY_CAL_NO_TILT, hInst, NULL);
-
-        //振れセンサ調整用
-        stMainWnd.h_pb_pc_reset = CreateWindow(L"BUTTON", L"PC RESET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            260, 2, 90, 25, hWnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
-
-        stMainWnd.h_static1 = CreateWindowW(TEXT("STATIC"), L"  SENSOR      0SET        RESET", WS_CHILD | WS_VISIBLE | SS_LEFT,
-            10, 32, 260, 20, hWnd, (HMENU)IDC_STATIC_1, hInst, NULL);
-
-        stMainWnd.h_pb_sel_sensor1 = CreateWindow(L"BUTTON", L"1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            30, 55, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_1, hInst, NULL);
-
-        stMainWnd.h_pb_sel_sensor2 = CreateWindow(L"BUTTON", L"2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
-            50, 55, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_2, hInst, NULL);
-
-        SendMessage(stMainWnd.h_pb_sel_sensor1, BM_SETCHECK, BST_CHECKED, 0L);
-
-        stMainWnd.h_pb_reset_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            90, 55, 40, 25, hWnd, (HMENU)IDC_PB_0SET_CAMERA, hInst, NULL);
-
-        stMainWnd.h_pb_reset_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            135, 55, 30, 25, hWnd, (HMENU)IDC_PB_0SET_TILT, hInst, NULL);
-
-        stMainWnd.h_pb_0set_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            180, 55, 40, 25, hWnd, (HMENU)IDC_PB_RESET_CAMERA, hInst, NULL);
-
-        stMainWnd.h_pb_0set_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            225, 55, 30, 25, hWnd, (HMENU)IDC_PB_RESET_TILT, hInst, NULL);
-
-        stMainWnd.h_pb_img_save = CreateWindow(L"BUTTON", L"SSHOT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            280, 38, 55, 40, hWnd, (HMENU)IDC_PB_SCREEN_SHOT, hInst, NULL);
-#endif
         //表示更新タイマ起動
         SetTimer(hWnd, ID_MAIN_WINDOW_UPDATE_TIMER, ID_MAIN_WINDOW_UPDATE_TICK_ms, NULL);
 
@@ -326,7 +289,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
 
-    case WM_TOUCH:
+    case WM_TOUCH://タッチ入力　テスト中
         cInputs = LOWORD(wParam);
         pInputs = new TOUCHINPUT[cInputs];
         if (pInputs) {

@@ -246,7 +246,7 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	double D_abs = pwork->dist_for_target_abs[id];										//残り移動距離
 	
 	int ptn = 0;
-	if (is_fbtype) {															//インチング最大距離の計算 移動距離がインチング最大距離より小さいとき,FB有はFB振れ止め、FB無しは2回インチング移動
+	if (is_fbtype) {																	//インチング最大距離の計算 移動距離がインチング最大距離より小さいとき,FB有はFB振れ止め、FB無しは2回インチング移動
 		if (D_abs > dist_inch_max) ptn = PTN_FBSWAY_FULL;
 		else ptn = PTN_FBSWAY_AS;
 	}
@@ -320,6 +320,9 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_v = 0.0;														// 速度0
 		pelement->_p = pwork->pos[id];											// 目標位置
 		D_abs = D_abs;															// 残り距離変更なし
+
+		pelement->opt_d[STEP_OPT_PHASE_CHK_RANGE] = PARAM_PHASE_CHK_RANGE_BH;	// 位相到達判定値セット
+
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -331,10 +334,9 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 	//台形パターン部 減速を２段階にして距離を調整
 	{																			// 出力するノッチ速度を計算して設定
 		
-		double v_top_abs = 0.0;									//ステップ速度用
+		double v_top_abs = 0.0;													//ステップ速度用
 		double d_move_abs = 0.0, d_accdec, ta, tcmax;
 		int n = 0, i;
-
 
 		// #Step1-1 ２段構成になるときの１段目
 		// まずは、移動距離が1周期振れ止めと出来るTop速度を求める
@@ -342,20 +344,20 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		for (i = (NOTCH_MAX - 1);i > 0;i--) {
 			v_top_abs = pCraneStat->spec.notch_spd_f[id][i];
 			ta = v_top_abs / st_com_work.a_abs[id];
-			d_accdec = v_top_abs * ta;									//加速距離
+			d_accdec = v_top_abs * ta;											//加速距離
 			tcmax = (D_abs - d_accdec) / v_top_abs;
 			n = (int)((ta + tcmax) / st_com_work.T);
 
 			if ((tcmax < 0.0) || (n < 1)) continue;
 
-			pelement = &(precipe->steps[precipe->n_step++]);		//ステップのポインタセットして次ステップ用にカウントアップ
-			pelement->type = CTR_TYPE_VOUT_POS;						//位置到達待ちステップ出力
-			pelement->_t = (double)n * st_com_work.T;				// n x 振れ周期
+			pelement = &(precipe->steps[precipe->n_step++]);					//ステップのポインタセットして次ステップ用にカウントアップ
+			pelement->type = CTR_TYPE_VOUT_POS;									//位置到達待ちステップ出力
+			pelement->_t = (double)n * st_com_work.T;							// n x 振れ周期
 
-			d_move_abs = (double)n * v_top_abs * st_com_work.T;	// 台形移動距離 
+			d_move_abs = (double)n * v_top_abs * st_com_work.T;					// 台形移動距離 
 
 			if (precipe->direction == ID_REV) {
-				pelement->_p = (pelement - 1)->_p - d_move_abs + 0.5 * d_accdec;	// 目標位置
+				pelement->_p = (pelement - 1)->_p - d_move_abs + 0.5 * d_accdec;// 目標位置
 				pelement->_v = -v_top_abs;										// 出力速度
 			}
 			else {
@@ -523,7 +525,6 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
 		D_abs = 0.0;															// 残り距離変更なし
 	}break;
-
 	case PTN_FBSWAY_AS:			//FB振止パターン	
 	case PTN_FBSWAY_FULL:		//FB有のフルパターン	
 	{
@@ -532,7 +533,7 @@ int CPolicy::set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, boo
 		pelement->_t = st_com_work.T * 4.0;										// 振れ4周期分
 		pelement->_v = 0.0;														// 振れ止めロジックで決定
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		D_abs = 0;																	// 残り距離変更なし
+		D_abs = 0;																// 残り距離変更なし
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -640,6 +641,8 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 		pelement->_p = pwork->pos[id];											// 目標位置
 		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								// 目標位置の校正（-180°～180°の表現にする
 		D_abs = D_abs;																	// 残り距離変更なし
+
+		pelement->opt_d[STEP_OPT_PHASE_CHK_RANGE] = PARAM_PHASE_CHK_RANGE_SLW;
 	}break;
 	default:return POLICY_PTN_NG;
 	}
@@ -906,14 +909,16 @@ int CPolicy::set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bo
 	case PTN_FBSWAY_AS:
 	case PTN_FBSWAY_FULL:														//巻、旋回,位置位相待ち　巻き位置：巻目標高さ-Xm　以上になったら  旋回：引き出し時は目標までの距離がX度以下、引き込み時は条件無し、減衰位相到達
 	{
+
 		pelement = &(precipe->steps[precipe->n_step++]);						//ステップのポインタセットして次ステップ用にカウントアップ
 		pelement->type = CTR_TYPE_FB_SWAY_POS;									// FB振れ止め/位置決め
 		pelement->_t = st_com_work.T * 4.0;										// 振れ4周期分
 		pelement->_v = 0.0;														// 振れ止めロジックで決定
 		pelement->_p = st_com_work.target.pos[id];								// 目標位置
-		CHelper::fit_ph_range_upto_pi(&(pelement->_p));								//目標位置の校正
-		D_abs = 0;																	// 残り距離変更なし
-	}break;
+		CHelper::fit_ph_range_upto_pi(&(pelement->_p));							//目標位置の校正
+		D_abs = 0;																// 残り距離変更なし
+
+		}break;
 	default:return POLICY_PTN_NG;
 	}
 

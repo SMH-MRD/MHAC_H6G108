@@ -120,6 +120,15 @@ using namespace std;
 #define ID_LAMP_BH_BRK			48
 #define ID_LAMP_SLW_BRK			49
 
+#define ID_LAMP_OTE_NOTCH_MODE	53
+
+#define ID_LAMP_NOTCH_POS_HST   56
+#define ID_LAMP_NOTCH_POS_GNT   57
+#define ID_LAMP_NOTCH_POS_TRY   58
+#define ID_LAMP_NOTCH_POS_BH	59
+#define ID_LAMP_NOTCH_POS_SLW	60
+
+#define ID_OTE_CAMERA_HEIGHT	63
 
 #define SEMI_AUTO_REGIST_MAX	8
 
@@ -384,6 +393,7 @@ typedef struct StCraneStatus {
 #define STEP_OPT_PHASE_SINGLE				0		//起動位相の配列インデックス　SINGLE
 #define STEP_OPT_PHASE_FWD					0		//起動位相の配列インデックス　DOUBLE　正方向用
 #define STEP_OPT_PHASE_REV					1		//起動位相の配列インデックス　DOUBLE　逆方向用
+#define STEP_OPT_PHASE_CHK_RANGE			2		//起動位相の配列インデックス　DOUBLE　逆方向用
 
 
 typedef struct stMotionElement {	//運動要素
@@ -590,6 +600,8 @@ typedef struct stCSInfo {
 	//自動,遠隔設定（モード）
 	int auto_mode;														//自動モード
 	int antisway_mode;													//振れ止めモード
+
+	double ote_camera_height;											//操作端末VIEWのカメラ設置高さ
 
 }ST_CS_INFO, * LPST_CS_INFO;
 

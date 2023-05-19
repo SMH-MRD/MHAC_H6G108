@@ -872,7 +872,7 @@ int CPLC_IF::parse_ope_com() {
 
 //*********************************************************************************************
 // parse_brk_status()
-// ブレーキ状態読み込み
+// ブレーキ状態読み込み （仮）OTEチェック用
 //*********************************************************************************************
 int CPLC_IF::parce_brk_status() {
 
@@ -891,6 +891,7 @@ int CPLC_IF::parce_brk_status() {
 
 //*********************************************************************************************
 // set_sim_status()
+// 速度FB,位置FB,ランプ類
 //*********************************************************************************************
 int CPLC_IF::set_sim_status() {
 
@@ -903,6 +904,26 @@ int CPLC_IF::set_sim_status() {
     plc_io_workbuf.status.pos[ID_GANTRY] = pSim->status.pos[ID_GANTRY];
     plc_io_workbuf.status.pos[ID_BOOM_H] = pSim->status.pos[ID_BOOM_H];
     plc_io_workbuf.status.pos[ID_SLEW] = pSim->status.pos[ID_SLEW];
+
+    //主幹ランプ　遠隔モード
+    if (plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE]) {
+        plc_io_workbuf.ui.LAMP[ID_PB_CRANE_MODE] = L_ON;
+        plc_io_workbuf.ui.LAMP[ID_PB_REMOTE_MODE] = L_OFF;
+    }
+    else {
+        plc_io_workbuf.ui.LAMP[ID_PB_CRANE_MODE] = L_OFF;
+        plc_io_workbuf.ui.LAMP[ID_PB_REMOTE_MODE] = L_ON;
+    }
+    plc_io_workbuf.ui.LAMP[ID_PB_CTRL_SOURCE_ON] = L_ON;
+    plc_io_workbuf.ui.LAMP[ID_PB_CTRL_SOURCE_OFF] = L_OFF;
+    plc_io_workbuf.ui.LAMP[ID_PB_CTRL_SOURCE2_ON] = L_ON;
+    plc_io_workbuf.ui.LAMP[ID_PB_CTRL_SOURCE2_OFF] = L_OFF;
+
+    plc_io_workbuf.ui.LAMP[ID_LAMP_NOTCH_POS_HST] = plc_io_workbuf.ui.notch_pos[ID_HOIST];
+    plc_io_workbuf.ui.LAMP[ID_LAMP_NOTCH_POS_GNT] = plc_io_workbuf.ui.notch_pos[ID_GANTRY];
+    plc_io_workbuf.ui.LAMP[ID_LAMP_NOTCH_POS_TRY] = plc_io_workbuf.ui.notch_pos[ID_TROLLY];
+    plc_io_workbuf.ui.LAMP[ID_LAMP_NOTCH_POS_BH] = plc_io_workbuf.ui.notch_pos[ID_BOOM_H];
+    plc_io_workbuf.ui.LAMP[ID_LAMP_NOTCH_POS_SLW] = plc_io_workbuf.ui.notch_pos[ID_SLEW];
 
     return 0;
 }

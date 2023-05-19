@@ -33,6 +33,8 @@ HWND CSimOTE::hwndMON_U_OTE,CSimOTE::hwndMON_U_CR,CSimOTE::hwndMON_M_OTE,CSimOTE
 HWND CSimOTE::hwnd_monbuf[32],CSimOTE::hwnd_simbuf[128];
 HWND CSimOTE::hwnd_lamp[N_UI_LAMP];
 
+HWND CSimOTE::hwndEdit[6], CSimOTE::hwndEditLabel[6];
+
 HWND CSimOTE::hwnd_notch_radio[MOTION_ID_MAX][12], CSimOTE::hwnd_pb_chk[N_UI_PB];
 INT16 CSimOTE::sim_pb[N_UI_PB];
 
@@ -40,6 +42,8 @@ ST_OTE_IO CSimOTE::ote_io_workbuf;
 
 int CSimOTE::is_ote_msg_snd = L_OFF;
 int CSimOTE::panel_disp_mode = OTE_SIM_CODE_MON_OTE;
+
+int CSimOTE::pos_tg1_hst, CSimOTE::pos_tg1_bh, CSimOTE::pos_tg1_slw, CSimOTE::dist_tg1_hst, CSimOTE::dist_tg1_bh, CSimOTE::dist_tg1_slw;
 
 
 //IF用ソケット
@@ -100,8 +104,6 @@ int CSimOTE::init_proc() {
 
    return 0;
 }
-
-
 
 int CSimOTE::input() { return 0; }               //入力処理
 int CSimOTE::parse() { return 0; }               //メイン処理
@@ -418,7 +420,15 @@ int CSimOTE::set_msg_u(int mode, INT32 code, INT32 status) {
         }
         for (int i = 0;i < N_UI_PB;i++) {
             ote_io_workbuf.rcv_msg_u.body.pb[i] = sim_pb[i];
+            ote_io_workbuf.rcv_msg_u.body.tg_pos1[0] = pos_tg1_hst;
+            ote_io_workbuf.rcv_msg_u.body.tg_pos1[1] = pos_tg1_bh;
+            ote_io_workbuf.rcv_msg_u.body.tg_pos1[2] = pos_tg1_slw;
+            ote_io_workbuf.rcv_msg_u.body.tg_dist1[0] = dist_tg1_hst;
+            ote_io_workbuf.rcv_msg_u.body.tg_dist1[1] = dist_tg1_bh;
+            ote_io_workbuf.rcv_msg_u.body.tg_dist1[2] = dist_tg1_slw;
         }
+
+
 
     return 0;
 }
@@ -616,6 +626,35 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             }
         }
         
+        //自動目標位置入力用　エディットボックス
+        {
+            CreateWindowW(TEXT("STATIC"), L"TG1 POS :  HST",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 200, 130, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_HST_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"BH",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 230, 200, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_BH_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"SLW",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 350, 200, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_SLW_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"TG1 DIST:  HST",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 225, 130, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_HST_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"BH",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 230, 225, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_BH_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"SLW",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 350, 225, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_SLW_LABEL, hInst, NULL);
+            
+            hwndEdit[0] = CreateWindowEx(0, L"EDIT",L"10000", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+                160, 200, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_HST_EDIT, hInst, NULL);
+            hwndEdit[1] = CreateWindowEx(0, L"EDIT", L"10000", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+                280, 200, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_BH_EDIT, hInst, NULL);
+            hwndEdit[2] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+                400, 200, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_SLW_EDIT, hInst, NULL);
+            hwndEdit[3] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+                160, 225, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_HST_EDIT, hInst, NULL);
+            hwndEdit[4] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+                280, 225, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_BH_EDIT, hInst, NULL);
+            hwndEdit[5] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+                400, 225, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_SLW_EDIT, hInst, NULL);
+         }
+
         //ソケット初期化処理
          if (init_sock_u(hwnd) == 0) {
             woMSG << L"UNI SOCK OK";
@@ -664,6 +703,18 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
     }break;
     case WM_TIMER: {
         timer_count++;
+
+        //任意半自動目標位置設定内容読み込み
+        wstring wstr;
+        int dat;
+
+        if(GetDlgItemText(hwnd, ID_STATIC_TG1_POS_HST_EDIT, (LPTSTR)wstr.c_str(), 32))    pos_tg1_hst =stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_POS_BH_EDIT, (LPTSTR)wstr.c_str(), 32))   pos_tg1_bh = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_POS_SLW_EDIT, (LPTSTR)wstr.c_str(), 32))   pos_tg1_slw = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_HST_EDIT, (LPTSTR)wstr.c_str(), 32))   dist_tg1_hst = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_BH_EDIT, (LPTSTR)wstr.c_str(), 32))   dist_tg1_bh = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_SLW_EDIT, (LPTSTR)wstr.c_str(), 32))   dist_tg1_slw = stoi(wstr);
+
         if (is_ote_msg_snd) {
             set_msg_m_te(1,1,1);
             send_msg_m_te();
