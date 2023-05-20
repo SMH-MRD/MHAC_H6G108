@@ -459,15 +459,25 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
     ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[2] = 0;
 
     //Ž©“®–Ú•WˆÊ’u
-    double tg_x_rad, tg_y_rad;
+    double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m;
+
     if (pCSInf->auto_mode == L_ON){
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(pAgentInf->auto_pos_target.pos[ID_BOOM_H] * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(pAgentInf->auto_pos_target.pos[ID_SLEW] * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pAgentInf->auto_pos_target.pos[ID_HOIST] * 1000.0);
+        tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
+        tg_x_rad = tg_x_m / pCSInf->ote_camera_height_m;
+        tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
+        tg_y_rad = tg_y_m / pCSInf->ote_camera_height_m;
+
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(tg_x_rad * 1000.0);
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(tg_y_rad * 1000.0);
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pCSInf->semi_auto_selected_target.pos[ID_HOIST] * 1000.0);
     }
     else {
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(pAgentInf->auto_pos_target.pos[ID_BOOM_H] * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(pAgentInf->auto_pos_target.pos[ID_SLEW] * 1000.0);
+        tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
+        tg_x_rad = tg_x_m / pCSInf->ote_camera_height_m;
+        tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
+        tg_y_rad = tg_y_m / pCSInf->ote_camera_height_m;
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(tg_x_rad * 1000.0);
+        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(tg_y_rad * 1000.0);
         ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pAgentInf->auto_pos_target.pos[ID_HOIST] * 1000.0);
     }
 

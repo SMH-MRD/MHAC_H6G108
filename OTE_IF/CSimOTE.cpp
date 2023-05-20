@@ -603,7 +603,7 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_CTRL_SOURCE2_ON), hInst, NULL); pos_x_offset+=105;
 
             hwnd_lamp[ID_PB_AUTO_RESET] = CreateWindowW(TEXT("STATIC"), L"-",
-                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_ESTOP), hInst, NULL);
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_AUTO_RESET), hInst, NULL);
             hwnd_pb_chk[ID_PB_AUTO_RESET] = CreateWindow(L"BUTTON", pb_text[ID_PB_AUTO_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_AUTO_RESET), hInst, NULL); pos_x_offset+=105;
 
@@ -611,6 +611,13 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
                 WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_PB_FAULT_RESET), hInst, NULL);
             hwnd_pb_chk[ID_PB_FAULT_RESET] = CreateWindow(L"BUTTON", pb_text[ID_PB_FAULT_RESET], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
                 20+ pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_PB_FAULT_RESET), hInst, NULL); pos_x_offset+=105;
+
+
+            hwnd_lamp[ID_LAMP_OTE_NOTCH_MODE] = CreateWindowW(TEXT("STATIC"), L"-",
+                WS_CHILD | WS_VISIBLE | SS_CENTER, 20 + pos_x_offset, 410, 100, 20, hwnd, (HMENU)(ID_STATIC_LAMP_0 + ID_LAMP_OTE_NOTCH_MODE), hInst, NULL);
+            hwnd_pb_chk[ID_LAMP_OTE_NOTCH_MODE] = CreateWindow(L"BUTTON", pb_text[ID_LAMP_OTE_NOTCH_MODE], WS_CHILD | WS_VISIBLE | BS_PUSHLIKE | BS_AUTOCHECKBOX,
+                20 + pos_x_offset, 435, 100, 25, hwnd, (HMENU)(ID_CHECK_PB_0 + ID_LAMP_OTE_NOTCH_MODE), hInst, NULL); pos_x_offset += 105;
+
 
             for (int i = 0;i < 6;i++) {
                 hwnd_lamp[ID_PB_SEMI_AUTO_S1 + i] = CreateWindowW(TEXT("STATIC"), L"-",
@@ -1137,6 +1144,10 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         case (ID_CHECK_PB_0 + ID_PB_FAULT_RESET): {
             if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_FAULT_RESET), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_FAULT_RESET] = L_ON;
             else sim_pb[ID_PB_FAULT_RESET] = L_OFF;
+        }break;
+        case (ID_CHECK_PB_0 + ID_LAMP_OTE_NOTCH_MODE): {
+            if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_LAMP_OTE_NOTCH_MODE), BM_GETCHECK, 0, 0)) sim_pb[ID_LAMP_OTE_NOTCH_MODE] = L_ON;
+            else sim_pb[ID_LAMP_OTE_NOTCH_MODE] = L_OFF;
         }break;
         case (ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S1): {
             if (BST_CHECKED == SendMessage(GetDlgItem(hwnd, ID_CHECK_PB_0 + ID_PB_SEMI_AUTO_S1), BM_GETCHECK, 0, 0)) sim_pb[ID_PB_SEMI_AUTO_S1] = L_ON;

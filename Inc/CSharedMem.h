@@ -130,18 +130,18 @@ using namespace std;
 
 #define ID_OTE_CAMERA_HEIGHT	63
 
-#define SEMI_AUTO_REGIST_MAX	8
 
-#define SEMI_AUTO_TG_CLR		6
-#define SEMI_AUTO_S1			0
-#define SEMI_AUTO_S2			1
-#define SEMI_AUTO_S3			2
+#define SEMI_AUTO_S1					0
+#define SEMI_AUTO_S2					1
+#define SEMI_AUTO_S3					2
 
-#define SEMI_AUTO_L1			3
-#define SEMI_AUTO_L2			4
-#define SEMI_AUTO_L3			5
+#define SEMI_AUTO_L1					3
+#define SEMI_AUTO_L2					4
+#define SEMI_AUTO_L3					5
 
-#define SEMI_AUTO_TOUCH_SEL		7
+#define SEMI_AUTO_TG_CLR				6
+#define SEMI_AUTO_TOUCH_POS				7
+#define SEMI_AUTO_TOUCH_DIST			8
 
 #define PLC_IO_OFF_DELAY_COUNT	 4	//PB操作オフディレイカウント値
 
@@ -301,13 +301,13 @@ typedef struct stEnvSubproc {
 #define BITSEL_H_ASSY       0x0040		//吊具        ビット
 #define BITSEL_COMMON       0x0080		//共通        ビット
 */
-#define BITSEL_SEMIAUTO     0x0001
-#define BITSEL_AUTO			0x0002
+#define BITSEL_SEMIAUTO			0x0001
+#define BITSEL_AUTO				0x0002
 
-#define SPD0_CHECK_RETIO	0.1
+#define SPD0_CHECK_RETIO		0.1
 
-#define STAT_ACC			0
-#define STAT_DEC			1
+#define STAT_ACC				0
+#define STAT_DEC				1
 
 #define OTE_REQ_CODE_NA			0
 #define OTE_REQ_CODE_ONBOAD		1
@@ -601,7 +601,7 @@ typedef struct stCSInfo {
 	int auto_mode;														//自動モード
 	int antisway_mode;													//振れ止めモード
 
-	double ote_camera_height;											//操作端末VIEWのカメラ設置高さ
+	double ote_camera_height_m;											//操作端末VIEWのカメラ設置高さ
 
 }ST_CS_INFO, * LPST_CS_INFO;
 

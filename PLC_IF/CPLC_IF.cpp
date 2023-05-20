@@ -907,12 +907,12 @@ int CPLC_IF::set_sim_status() {
 
     //主幹ランプ　遠隔モード
     if (plc_io_workbuf.ui.PB[ID_PB_REMOTE_MODE]) {
-        plc_io_workbuf.ui.LAMP[ID_PB_CRANE_MODE] = L_ON;
-        plc_io_workbuf.ui.LAMP[ID_PB_REMOTE_MODE] = L_OFF;
-    }
-    else {
         plc_io_workbuf.ui.LAMP[ID_PB_CRANE_MODE] = L_OFF;
         plc_io_workbuf.ui.LAMP[ID_PB_REMOTE_MODE] = L_ON;
+    }
+    else {
+        plc_io_workbuf.ui.LAMP[ID_PB_CRANE_MODE] = L_ON;
+        plc_io_workbuf.ui.LAMP[ID_PB_REMOTE_MODE] = L_OFF;
     }
     plc_io_workbuf.ui.LAMP[ID_PB_CTRL_SOURCE_ON] = L_ON;
     plc_io_workbuf.ui.LAMP[ID_PB_CTRL_SOURCE_OFF] = L_OFF;

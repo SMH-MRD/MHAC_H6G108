@@ -42,6 +42,9 @@ L"BH--",        // ID_PB_BH_M2          41
 L"PARK",        // ID_PB_PARK           42
 L"GRND",        // ID_PB_GRND           43
 L"PICK",        // ID_PB_PICK           44
+L"",L"",L"",L"",L"",L"",L"",L"",
+L"DIST_MODE",  //ID_LAMP_OTE_NOTCH_MODE 53
+
 };
 
 WCHAR motion_text[MOTION_ID_MAX][128] = {

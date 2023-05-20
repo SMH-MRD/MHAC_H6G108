@@ -36,10 +36,6 @@
 
 #define CS_N_MSG_HOLD                       10
 
-#define CS_ID_OTE_TARGET1_POS               8
-#define CS_ID_OTE_TARGET1_DIST              9
-
-
 class CClientService :public CTaskObj
 {
 public:
@@ -66,6 +62,12 @@ private:
     int parce_onboard_input(int mode);
     int parce_ote_imput(int mode);
     int can_ote_activate();
+
+    int ote_notch_dist_mode;  //タブレット目標入力　移動距離指定
+    bool chk_trig_ote_touch_pos_target();
+    bool chk_trig_ote_touch_dist_target();
+
+
    
     //クライアントからのメッセージ解析
     int perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg);
