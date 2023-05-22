@@ -85,12 +85,14 @@ private:
   CSharedMem* pPLCioObj;
   CSharedMem* pCSInfObj;
   CSharedMem* pAgentInfObj;
+  CSharedMem* pSwayIO_Obj;
 
     static LPST_OTE_IO pOTEio;
     static LPST_CRANE_STATUS pCraneStat;
     static LPST_PLC_IO pPLCio;
     static LPST_CS_INFO pCSInf;
     static LPST_AGENT_INFO pAgentInf;
+    static LPST_SWAY_IO pSway_IO;
 
     HINSTANCE hInst;
 

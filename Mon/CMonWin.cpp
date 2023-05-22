@@ -201,7 +201,6 @@ static wostringstream wos;
 VOID CMonWin::draw_inf_ui(){
 	PatBlt(stGraphic.hdc_mem_inf, 0, 0, INF_AREA_W, INF_AREA_H, WHITENESS);
 
-	TCHAR tbuf[32];
 	wstring ws;
 	
 	ws = L"PLC UI";

@@ -428,6 +428,9 @@ int CSimOTE::set_msg_u(int mode, INT32 code, INT32 status) {
             ote_io_workbuf.rcv_msg_u.body.tg_dist1[2] = dist_tg1_slw;
         }
 
+        ote_io_workbuf.rcv_msg_u.body.pb[ID_OTE_CAMERA_HEIGHT] = 25000;
+
+        ote_io_workbuf.rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE] = sim_pb[ID_LAMP_OTE_NOTCH_MODE];
 
 
     return 0;
@@ -635,30 +638,30 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         
         //自動目標位置入力用　エディットボックス
         {
-            CreateWindowW(TEXT("STATIC"), L"TG1 POS :  HST",
+            CreateWindowW(TEXT("STATIC"), L"TG1 POS :Xmrad",
                 WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 200, 130, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_HST_LABEL, hInst, NULL);
-            CreateWindowW(TEXT("STATIC"), L"BH",
-                WS_CHILD | WS_VISIBLE | SS_LEFT, 230, 200, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_BH_LABEL, hInst, NULL);
-            CreateWindowW(TEXT("STATIC"), L"SLW",
-                WS_CHILD | WS_VISIBLE | SS_LEFT, 350, 200, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_SLW_LABEL, hInst, NULL);
-            CreateWindowW(TEXT("STATIC"), L"TG1 DIST:  HST",
+            CreateWindowW(TEXT("STATIC"), L"Ymrad",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 230, 200, 40, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_BH_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"Zmm",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 350, 200, 40, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_SLW_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"TG1 DIST: HSTmm",
                 WS_CHILD | WS_VISIBLE | SS_LEFT, 10, 225, 130, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_HST_LABEL, hInst, NULL);
-            CreateWindowW(TEXT("STATIC"), L"BH",
-                WS_CHILD | WS_VISIBLE | SS_LEFT, 230, 225, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_BH_LABEL, hInst, NULL);
-            CreateWindowW(TEXT("STATIC"), L"SLW",
-                WS_CHILD | WS_VISIBLE | SS_LEFT, 350, 225, 30, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_SLW_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"BHmm",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 230, 225, 40, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_BH_LABEL, hInst, NULL);
+            CreateWindowW(TEXT("STATIC"), L"SLWmrad",
+                WS_CHILD | WS_VISIBLE | SS_LEFT, 350, 225, 40, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_SLW_LABEL, hInst, NULL);
             
-            hwndEdit[0] = CreateWindowEx(0, L"EDIT",L"10000", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+            hwndEdit[0] = CreateWindowEx(0, L"EDIT",L"628", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
                 160, 200, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_HST_EDIT, hInst, NULL);
-            hwndEdit[1] = CreateWindowEx(0, L"EDIT", L"10000", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+            hwndEdit[1] = CreateWindowEx(0, L"EDIT", L"-628", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
                 280, 200, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_BH_EDIT, hInst, NULL);
-            hwndEdit[2] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+            hwndEdit[2] = CreateWindowEx(0, L"EDIT", L"5000", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
                 400, 200, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_POS_SLW_EDIT, hInst, NULL);
-            hwndEdit[3] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+            hwndEdit[3] = CreateWindowEx(0, L"EDIT", L"-1000", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
                 160, 225, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_HST_EDIT, hInst, NULL);
-            hwndEdit[4] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+            hwndEdit[4] = CreateWindowEx(0, L"EDIT", L"3000", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
                 280, 225, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_BH_EDIT, hInst, NULL);
-            hwndEdit[5] = CreateWindowEx(0, L"EDIT", L"0", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+            hwndEdit[5] = CreateWindowEx(0, L"EDIT", L"340", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
                 400, 225, 50, 20, hwnd, (HMENU)ID_STATIC_TG1_DIST_SLW_EDIT, hInst, NULL);
          }
 
@@ -715,12 +718,12 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
         wstring wstr;
         int dat;
 
-        if(GetDlgItemText(hwnd, ID_STATIC_TG1_POS_HST_EDIT, (LPTSTR)wstr.c_str(), 32))    pos_tg1_hst =stoi(wstr);
-        if (GetDlgItemText(hwnd, ID_STATIC_TG1_POS_BH_EDIT, (LPTSTR)wstr.c_str(), 32))   pos_tg1_bh = stoi(wstr);
-        if (GetDlgItemText(hwnd, ID_STATIC_TG1_POS_SLW_EDIT, (LPTSTR)wstr.c_str(), 32))   pos_tg1_slw = stoi(wstr);
-        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_HST_EDIT, (LPTSTR)wstr.c_str(), 32))   dist_tg1_hst = stoi(wstr);
-        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_BH_EDIT, (LPTSTR)wstr.c_str(), 32))   dist_tg1_bh = stoi(wstr);
-        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_SLW_EDIT, (LPTSTR)wstr.c_str(), 32))   dist_tg1_slw = stoi(wstr);
+        if(GetDlgItemText(hwnd, ID_STATIC_TG1_POS_HST_EDIT, (LPTSTR)wstr.c_str(), 128))    pos_tg1_hst =stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_POS_BH_EDIT, (LPTSTR)wstr.c_str(), 128))   pos_tg1_bh = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_POS_SLW_EDIT, (LPTSTR)wstr.c_str(), 128))   pos_tg1_slw = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_HST_EDIT, (LPTSTR)wstr.c_str(), 128))   dist_tg1_hst = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_BH_EDIT, (LPTSTR)wstr.c_str(), 128))   dist_tg1_bh = stoi(wstr);
+        if (GetDlgItemText(hwnd, ID_STATIC_TG1_DIST_SLW_EDIT, (LPTSTR)wstr.c_str(), 128))   dist_tg1_slw = stoi(wstr);
 
         if (is_ote_msg_snd) {
             set_msg_m_te(1,1,1);

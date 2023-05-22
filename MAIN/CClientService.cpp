@@ -179,7 +179,8 @@ int CClientService::parce_onboard_input(int mode) {
 					CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
 					CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
 					CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
-
+					//OTE用変換座標セット
+					set_selected_target_for_view();
 					CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 				}
 				else if (CS_workbuf.semiauto_pb[i] == SEMI_AUTO_TG_SELECT_TIME) {						//半自動目標設定
@@ -188,7 +189,8 @@ int CClientService::parce_onboard_input(int mode) {
 						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
 						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
-
+						//OTE用変換座標セット
+						set_selected_target_for_view();
 						CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
 					}
 					else {																				//半自動選択ボタン取り込み
@@ -196,7 +198,8 @@ int CClientService::parce_onboard_input(int mode) {
 						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[i].pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[i].pos[ID_BOOM_H];
 						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[i].pos[ID_SLEW];
-
+						//OTE用変換座標セット
+						set_selected_target_for_view();
 						CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 					}
 				}
@@ -206,17 +209,31 @@ int CClientService::parce_onboard_input(int mode) {
 			if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {//遠隔端末モード
 				if (CS_workbuf.semi_auto_selected >= SEMI_AUTO_TG_CLR) { //登録設定ボタン選択以外の時
 					if (chk_trig_ote_touch_pos_target()) {
+						update_ote_touch_pos_tg();
 						CS_workbuf.semi_auto_selected = SEMI_AUTO_TOUCH_POS;
 						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H];
 						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW];
+						//OTE用変換座標セット
+						set_selected_target_for_view();
 						CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 					}
 					else if (chk_trig_ote_touch_dist_target()) {
+	
+						//OTE タッチ目標移動距離モード
+						ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
+						//OTE タッチ目標移動距離
+						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[0] / 1000.0;
+						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[1] / 1000.0;
+						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[2] / 1000.0;
+
 						CS_workbuf.semi_auto_selected = SEMI_AUTO_TOUCH_DIST;
+
 						CS_workbuf.semi_auto_selected_target.pos[ID_HOIST] = CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_HOIST];
 						CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_BOOM_H];
 						CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_SLEW];
+						//OTE用変換座標セット
+						set_selected_target_for_view();
 						CS_workbuf.tg_sel_trigger_z = L_ON, CS_workbuf.tg_sel_trigger_xy = L_ON;
 					}
 					else;
@@ -431,22 +448,36 @@ int CClientService::parce_onboard_input(int mode) {
 	return 0;
 }
 
+int CClientService::set_selected_target_for_view() {
 
+	double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m;
 
-//# 操作端末入力取り込み処理
-int CClientService::parce_ote_imput(int mode) {
+	tg_x_m = CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] * cos(CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]);
+	tg_x_rad = tg_x_m / CS_workbuf.ote_camera_height_m;
+	tg_y_m = CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] * sin(CS_workbuf.semi_auto_selected_target.pos[ID_SLEW]);
+	tg_y_rad = tg_y_m / CS_workbuf.ote_camera_height_m;
+
+	CS_workbuf.semi_auto_selected_target_for_view[0] = (INT32)(tg_x_rad * 1000.0);
+	CS_workbuf.semi_auto_selected_target_for_view[1] = (INT32)(tg_y_rad * 1000.0);
+	CS_workbuf.semi_auto_selected_target_for_view[2] = (INT32)(CS_workbuf.semi_auto_selected_target.pos[ID_HOIST]*1000.0);
+
+	return 0;
+}
+//# タッチ目標位置を半自動設定目標にセット
+int CClientService::update_ote_touch_pos_tg() {
 
 	//OTE表示画面用カメラ視点高さ
 	CS_workbuf.ote_camera_height_m = (double)pOTE_IO->rcv_msg_u.body.pb[ID_OTE_CAMERA_HEIGHT] / 1000.0;
 	if (CS_workbuf.ote_camera_height_m < pCraneStat->spec.hoist_pos_max)CS_workbuf.ote_camera_height_m = pCraneStat->spec.hoist_pos_max + 0.1;
 
 	//OTE タッチ目標位置
-	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
+	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[2] / 1000.0;
 	double d_z = CS_workbuf.ote_camera_height_m - pPLC_IO->status.pos[ID_HOIST];
 	double d_x = d_z * (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
 	double d_y = d_z * (double)pOTE_IO->rcv_msg_u.body.tg_pos1[1] / 1000.0;
 
 	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H] = sqrt(d_x * d_x + d_y * d_y);
+
 	if (d_x > 0.0) {
 		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = atan(d_y / d_x);
 	}
@@ -455,13 +486,31 @@ int CClientService::parce_ote_imput(int mode) {
 		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = atan(d_y / d_x) + PI180;
 	}
 
-	//OTE タッチ目標移動距離モード
+
+	if ((CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H] < 8.2) || (CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H] > 30.0))
+	{
+		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+	}
+
+	if ((CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] < -15.0) || (CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] > 25.0))
+	{
+		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
+		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
+		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST];
+	}
+
+
+
+	return 0;
+}
+
+//# 操作端末入力取り込み処理
+int CClientService::parce_ote_imput(int mode) {
+
 	ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
-	//OTE タッチ目標移動距離
-	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST]+(double)pOTE_IO->rcv_msg_u.body.tg_dist1[0] / 1000.0;
-	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[1] / 1000.0;
-	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[2] / 1000.0;
-	
+
 	//OTE ノッチ入力前回値
 	for (int i = 0;i < 5;i++) notch_pos_last[i] = pOTE_IO->rcv_msg_u.body.notch_pos[i];
 	for (int i = 0;i < 3;i++)tg_pos_last[i] = pOTE_IO->rcv_msg_u.body.tg_pos1[i];
@@ -481,12 +530,6 @@ int CClientService::can_ote_activate() {
 
 
 bool CClientService::chk_trig_ote_touch_pos_target() {
-
-	if ((CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H] < 8.2) || (CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_BOOM_H] > 20.0))
-		return false;
-
-	if ((CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] < -15.0) || (CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] > 20.0))
-		return false;
 
 	for (int i = 0;i < 3;i++) {
 		if (tg_pos_last[i] != pOTE_IO->rcv_msg_u.body.tg_pos1[i])return true;

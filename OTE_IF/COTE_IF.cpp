@@ -30,6 +30,7 @@ LPST_CRANE_STATUS COteIF::pCraneStat;
 LPST_PLC_IO COteIF::pPLCio;
 LPST_CS_INFO COteIF::pCSInf;
 LPST_AGENT_INFO COteIF::pAgentInf;
+LPST_SWAY_IO COteIF::pSway_IO;
 
 ST_OTE_IO_WORK COteIF::ote_io_workbuf;
 
@@ -59,6 +60,7 @@ COteIF::COteIF() {
     pPLCioObj = new CSharedMem;
     pCSInfObj = new CSharedMem;
     pAgentInfObj = new CSharedMem;
+    pSwayIO_Obj = new CSharedMem;
 
   };
 COteIF::~COteIF() {
@@ -69,6 +71,7 @@ COteIF::~COteIF() {
     delete pPLCioObj;
     delete pCSInfObj;
     delete pAgentInfObj;
+    delete pSwayIO_Obj;
 };
 
 int COteIF::set_outbuf(LPVOID pbuf) { 
@@ -116,6 +119,7 @@ int COteIF::init_proc() {
     pOTEio = (LPST_OTE_IO)pOteIOObj->get_pMap();
     pCSInf = (LPST_CS_INFO )pCSInfObj->get_pMap();
     pAgentInf = (LPST_AGENT_INFO)pAgentInfObj->get_pMap();
+    pSway_IO = (LPST_SWAY_IO)(pSwayIO_Obj->get_pMap());
     
     
     pOTEio->OTEsim_status = L_OFF;          //’[––ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“ƒ‚[ƒhOFF
@@ -448,45 +452,40 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
     //Še²‘¬“xw—ß
     for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_ref[i] = (INT32)(pPLCio->status.v_ref[i] * 1000.0);
 
-    //’İ‰×ˆÊ’u
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[0] = (INT32)(pCraneStat->rl.x * 1000.0);
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[1] = (INT32)(pCraneStat->rl.y * 1000.0);
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[2] = (INT32)(pCraneStat->rl.z * 1000.0);
+    //’İ‰×ˆÊ’u(’İ“_‚Æ‚Ì‘Š‘ÎˆÊ’uj
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[0] = (INT32)(pSway_IO->th[ID_SLEW]* 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[1] = (INT32)(pSway_IO->th[ID_BOOM_H] * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[2] = (INT32)(pCraneStat->mh_l*1000.0);
 
     //’İ‰×‘¬“x
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[0] = 0;
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[1] = 0;
-    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[2] = 0;
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[0] = (INT32)(pSway_IO->dth[ID_SLEW] * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[1] = (INT32)(pSway_IO->dth[ID_BOOM_H] * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.ld_v_fb[2] = (INT32)(pPLCio->status.v_fb[ID_HOIST] * 1000.0);
 
     //©“®–Ú•WˆÊ’u
-    double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m;
+    double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m,h;
 
-    if (pCSInf->auto_mode == L_ON){
-        tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
-        tg_x_rad = tg_x_m / pCSInf->ote_camera_height_m;
-        tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
-        tg_y_rad = tg_y_m / pCSInf->ote_camera_height_m;
+        h = (pCSInf->ote_camera_height_m - pPLCio->status.pos[ID_HOIST]);
+        tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
+        tg_x_rad = tg_x_m / h;
+        tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
+        tg_y_rad = tg_y_m / h;
 
         ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(tg_x_rad * 1000.0);
         ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(tg_y_rad * 1000.0);
         ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pCSInf->semi_auto_selected_target.pos[ID_HOIST] * 1000.0);
-    }
-    else {
-        tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
-        tg_x_rad = tg_x_m / pCSInf->ote_camera_height_m;
-        tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_BOOM_H]);
-        tg_y_rad = tg_y_m / pCSInf->ote_camera_height_m;
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[0] = (INT32)(tg_x_rad * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[1] = (INT32)(tg_y_rad * 1000.0);
-        ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos[2] = (INT32)(pAgentInf->auto_pos_target.pos[ID_HOIST] * 1000.0);
-    }
-
+  
     //”¼©“®–Ú•WˆÊ’u
     for (int i = 0;i < 6;i++) {
         ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][0] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_BOOM_H] * 1000.0);
         ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][1] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_SLEW] * 1000.0);
         ote_io_workbuf.ote_io.snd_msg_u.body.tg_pos_semi[i][2] = (INT32)(pCSInf->semi_auto_setting_target[i].pos[ID_HOIST] * 1000.0);
     }
+
+    //VIEWƒJƒƒ‰ƒZƒbƒg‚‚³
+    ote_io_workbuf.ote_io.snd_msg_u.body.lamp[ID_OTE_CAMERA_HEIGHT] = (INT16)(pCraneStat->spec.boom_high * 1000.0);
+
+    ote_io_workbuf.ote_io.snd_msg_u.body.lamp[ID_LAMP_OTE_NOTCH_MODE] = ote_io_workbuf.ote_io.rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
 
     //PLCƒf[ƒ^
     for (int i = 0;i < PLC_IO_MONT_WORD_NUM;i++) ote_io_workbuf.ote_io.snd_msg_u.body.plc_data[i] = pPLCio->plc_data[i];
@@ -867,7 +866,7 @@ LRESULT CALLBACK COteIF::WorkWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
         // ‘I‘ğ‚³‚ê‚½ƒƒjƒ…[‚Ì‰ğÍ:
         switch (wmId)
         {
-
+        case 0: break;
         default: break;
 
         }

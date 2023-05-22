@@ -589,7 +589,8 @@ typedef struct stCSInfo {
 	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];							//半自動ランプ表示出力用
 	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
 	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
-	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置		
+	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置
+	INT32 semi_auto_selected_target_for_view[MOTION_ID_MAX];			//半自動選択目標位置(カメラ座標）	
 	int	semi_auto_selected;												//選択中の半自動ID
 	int command_type;													//PARK,PICK,GRND
 	int tg_sel_trigger_z = L_OFF, tg_sel_trigger_xy = L_OFF;			//目標位置の設定入力（半自動PB、モニタタッチ）があったかどうかの判定値

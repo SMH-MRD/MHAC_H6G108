@@ -66,9 +66,10 @@ private:
     int ote_notch_dist_mode;  //タブレット目標入力　移動距離指定
     bool chk_trig_ote_touch_pos_target();
     bool chk_trig_ote_touch_dist_target();
+    int update_ote_touch_pos_tg(); 
 
+    int set_selected_target_for_view();
 
-   
     //クライアントからのメッセージ解析
     int perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg);
     
