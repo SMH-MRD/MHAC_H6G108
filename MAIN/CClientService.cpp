@@ -26,8 +26,6 @@ CClientService::CClientService() {
 CClientService::~CClientService() {
 
 }
-
-
 /****************************************************************************/
 /*   タスク初期化処理                                                       */
 /* 　メインスレッドでインスタンス化した後に呼びます。                       */
@@ -63,7 +61,7 @@ void CClientService::init_task(void* pobj) {
 
 	inf.is_init_complete = true;
 	CS_workbuf.job_set_event = CS_JOBSET_EVENT_CLEAR;
-
+	CS_workbuf.ote_camera_height_m = 30.0;
 	return;
 };
 
@@ -113,8 +111,9 @@ static int bhp1_pb_last = 0, bhp2_pb_last = 0, bhm1_pb_last = 0, bhm2_pb_last = 
 static int semi_auto_selected_last = SEMI_AUTO_TG_CLR,job_set_event_last;
 static INT16 notch_pos_last[8];
 static INT32 tg_pos_last[8];
+static INT32 tg_dist_last[8];
 
-
+//モードセット　自動目標位置
 int CClientService::parce_onboard_input(int mode) {
 
 	/*### モード管理 ###*/
@@ -221,7 +220,7 @@ int CClientService::parce_onboard_input(int mode) {
 					else if (chk_trig_ote_touch_dist_target()) {
 	
 						//OTE タッチ目標移動距離モード
-						ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
+						CS_workbuf.ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
 						//OTE タッチ目標移動距離
 						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_HOIST] = pPLC_IO->status.pos[ID_HOIST] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[0] / 1000.0;
 						CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_DIST].pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H] + (double)pOTE_IO->rcv_msg_u.body.tg_dist1[1] / 1000.0;
@@ -419,6 +418,10 @@ int CClientService::parce_onboard_input(int mode) {
 		CS_workbuf.semi_auto_selected_target.pos[ID_BOOM_H] = pPLC_IO->status.pos[ID_BOOM_H];
 		CS_workbuf.semi_auto_selected_target.pos[ID_SLEW] = pPLC_IO->status.pos[ID_SLEW];
 
+		//OTE用変換座標セット
+		set_selected_target_for_view();
+
+
 		if ((semi_auto_selected_last != SEMI_AUTO_TG_CLR) && (CS_workbuf.semi_auto_selected == SEMI_AUTO_TG_CLR)) {
 			CS_workbuf.tg_sel_trigger_z = L_OFF, CS_workbuf.tg_sel_trigger_xy = L_OFF;
 			CS_workbuf.target_set_z = CS_SEMIAUTO_TG_SEL_DEFAULT;
@@ -463,16 +466,30 @@ int CClientService::set_selected_target_for_view() {
 
 	return 0;
 }
+
+int CClientService::set_hp_pos_for_view() {
+
+	double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m;
+
+	tg_x_m = pPLC_IO->status.pos[ID_BOOM_H] * cos(pPLC_IO->status.pos[ID_SLEW]);
+	tg_x_rad = tg_x_m / CS_workbuf.ote_camera_height_m;
+	tg_y_m = pPLC_IO->status.pos[ID_BOOM_H] * sin(pPLC_IO->status.pos[ID_SLEW]);
+	tg_y_rad = tg_y_m / CS_workbuf.ote_camera_height_m;
+
+	CS_workbuf.hunging_point_for_view[0] = (INT32)(tg_x_rad * 1000.0);
+	CS_workbuf.hunging_point_for_view[1] = (INT32)(tg_y_rad * 1000.0);
+	CS_workbuf.hunging_point_for_view[2] = (INT32)(pCraneStat->spec.boom_high * 1000.0);
+
+	return 0;
+}
+
+
 //# タッチ目標位置を半自動設定目標にセット
 int CClientService::update_ote_touch_pos_tg() {
 
-	//OTE表示画面用カメラ視点高さ
-	CS_workbuf.ote_camera_height_m = (double)pOTE_IO->rcv_msg_u.body.pb[ID_OTE_CAMERA_HEIGHT] / 1000.0;
-	if (CS_workbuf.ote_camera_height_m < pCraneStat->spec.hoist_pos_max)CS_workbuf.ote_camera_height_m = pCraneStat->spec.hoist_pos_max + 0.1;
-
 	//OTE タッチ目標位置
 	CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_HOIST] = (double)pOTE_IO->rcv_msg_u.body.tg_pos1[2] / 1000.0;
-	double d_z = CS_workbuf.ote_camera_height_m - pPLC_IO->status.pos[ID_HOIST];
+	double d_z = CS_workbuf.ote_camera_height_m;
 	double d_x = d_z * (double)pOTE_IO->rcv_msg_u.body.tg_pos1[0] / 1000.0;
 	double d_y = d_z * (double)pOTE_IO->rcv_msg_u.body.tg_pos1[1] / 1000.0;
 
@@ -509,11 +526,16 @@ int CClientService::update_ote_touch_pos_tg() {
 //# 操作端末入力取り込み処理
 int CClientService::parce_ote_imput(int mode) {
 
-	ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
+	CS_workbuf.ote_notch_dist_mode = pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
+
+	//OTE表示画面用カメラ視点高さ
+	CS_workbuf.ote_camera_height_m = (double)pOTE_IO->rcv_msg_u.body.cam_inf[ID_OTE_CAMERA_HEIGHT] / 1000.0;
+	if (CS_workbuf.ote_camera_height_m < pCraneStat->spec.hoist_pos_max)CS_workbuf.ote_camera_height_m = pCraneStat->spec.hoist_pos_max + 0.1;
 
 	//OTE ノッチ入力前回値
 	for (int i = 0;i < 5;i++) notch_pos_last[i] = pOTE_IO->rcv_msg_u.body.notch_pos[i];
-	for (int i = 0;i < 3;i++)tg_pos_last[i] = pOTE_IO->rcv_msg_u.body.tg_pos1[i];
+	for (int i = 0;i < 4;i++)tg_pos_last[i] = pOTE_IO->rcv_msg_u.body.tg_pos1[i];
+	for (int i = 0;i < 4;i++)tg_dist_last[i] = pOTE_IO->rcv_msg_u.body.tg_dist1[i];
 
 	return 0;
 }
@@ -528,17 +550,17 @@ int CClientService::can_ote_activate() {
 	}
 }
 
-
 bool CClientService::chk_trig_ote_touch_pos_target() {
-
+/*
 	for (int i = 0;i < 3;i++) {
 		if (tg_pos_last[i] != pOTE_IO->rcv_msg_u.body.tg_pos1[i])return true;
 	}
-
+*/
+	if (!(tg_pos_last[3]) && (pOTE_IO->rcv_msg_u.body.tg_pos1[3]))return true;
 	return false;
 }
 bool CClientService::chk_trig_ote_touch_dist_target() {
-	
+/*
 	//移動距離モードでノッチ入力変化あればtrue
 	if (ote_notch_dist_mode) {
 		for (int i = 0;i < 5;i++) {
@@ -546,6 +568,15 @@ bool CClientService::chk_trig_ote_touch_dist_target() {
 				return true;
 		}
 	}
+
+	for (int i = 0;i < 3;i++) {
+		if (tg_dist_last[i] != pOTE_IO->rcv_msg_u.body.tg_dist1[i])return true;
+	}
+		*/
+	if (CS_workbuf.ote_notch_dist_mode) {
+		if (!(tg_dist_last[3]) && (pOTE_IO->rcv_msg_u.body.tg_dist1[3]))return true;
+	}
+
 	return false;
 }
 
@@ -554,8 +585,7 @@ bool CClientService::chk_trig_ote_touch_dist_target() {
 /*  メイン処理																*/
 /****************************************************************************/
 void CClientService::main_proc() {
-
-	
+		
 	//＃＃＃ジョブイベント処理
 	//半自動登録処理
 
@@ -826,8 +856,6 @@ void CClientService::output() {
 	}
 
 
-
-
 	//ブレーキ状態
 	for (int i = 0;i < MOTION_ID_MAX;i++) {
 		CS_workbuf.ui_lamp[ID_LAMP_HST_BRK + i] = pPLC_IO->status.brk[i];
@@ -841,9 +869,9 @@ void CClientService::output() {
 	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE2_ON]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE2_ON];
 	CS_workbuf.ui_lamp[ID_PB_CTRL_SOURCE2_OFF]	= pPLC_IO->ui.LAMP[ID_PB_CTRL_SOURCE2_OFF];
 
-	CS_workbuf.ui_lamp[ID_LAMP_OTE_NOTCH_MODE] = ote_notch_dist_mode;
-
-
+	//操作端末表示用情報セット
+	CS_workbuf.ui_lamp[ID_LAMP_OTE_NOTCH_MODE] = CS_workbuf.ote_notch_dist_mode;		//移動目標設定モード
+	set_hp_pos_for_view();																//吊点位置座標セット
 
 	//共有メモリ出力
 	memcpy_s(pCSinf, sizeof(ST_CS_INFO), &CS_workbuf, sizeof(ST_CS_INFO));

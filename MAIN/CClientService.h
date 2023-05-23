@@ -63,12 +63,12 @@ private:
     int parce_ote_imput(int mode);
     int can_ote_activate();
 
-    int ote_notch_dist_mode;  //タブレット目標入力　移動距離指定
     bool chk_trig_ote_touch_pos_target();
     bool chk_trig_ote_touch_dist_target();
     int update_ote_touch_pos_tg(); 
 
     int set_selected_target_for_view();
+    int set_hp_pos_for_view();
 
     //クライアントからのメッセージ解析
     int perce_client_message(LPST_CLIENT_COM_RCV_MSG pmsg);

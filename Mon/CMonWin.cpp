@@ -521,7 +521,7 @@ VOID CMonWin::draw_graphic() {
 	LineTo(stGraphic.hdc_mem_gr, tg_xy.x - 2, tg_xy.y + 2);
 
 	//半自動ターゲット描画
-	if (pCSinf->semi_auto_selected != SEMI_AUTO_TG_CLR) {
+	//if (pCSinf->semi_auto_selected != SEMI_AUTO_TG_CLR) {
 		sin_slew = sin(pCSinf->semi_auto_selected_target.pos[ID_SLEW]);
 		cos_slew = cos(pCSinf->semi_auto_selected_target.pos[ID_SLEW]);
 		x = pCSinf->semi_auto_selected_target.pos[ID_BOOM_H] * cos_slew;
@@ -532,7 +532,7 @@ VOID CMonWin::draw_graphic() {
 
 		SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_MAZENDA_PEN]);
 		Ellipse(stGraphic.hdc_mem_gr,tg_xy.x - 6,tg_xy.y - 6,tg_xy.x + 6,tg_xy.y + 6);
-	}
+	//}
 
 
 	//ペン、ブラシセット

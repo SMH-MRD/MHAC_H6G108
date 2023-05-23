@@ -444,13 +444,18 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
     //ƒ‰ƒ“ƒv
     for (int i = 0;i < N_UI_LAMP;i++) ote_io_workbuf.ote_io.snd_msg_u.body.lamp[i] = pCSInf->ui_lamp[i];
     //ƒmƒbƒ`Žw—ß
-    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[i] = pPLCio->ui.notch_pos[i];
+    for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.notch_pos[i] = pPLCio->status.notch_ref[i];
     //ŠeŽ²ˆÊ’u
     for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.pos[i] = (INT32)(pPLCio->status.pos[i] * 1000.0);
     //ŠeŽ²‘¬“xFB
     for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_fb[i] = (INT32)(pPLCio->status.v_fb[i] * 1000.0);
     //ŠeŽ²‘¬“xŽw—ß
     for (int i = 0;i < MOTION_ID_MAX;i++) ote_io_workbuf.ote_io.snd_msg_u.body.v_ref[i] = (INT32)(pPLCio->status.v_ref[i] * 1000.0);
+
+    //’Ý“_ˆÊ’u
+    ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[0] = pCSInf->hunging_point_for_view[0];
+    ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[1] = pCSInf->hunging_point_for_view[1];
+    ote_io_workbuf.ote_io.snd_msg_u.body.hp_pos[2] = pCSInf->hunging_point_for_view[2];
 
     //’Ý‰×ˆÊ’u(’Ý“_‚Æ‚Ì‘Š‘ÎˆÊ’uj
     ote_io_workbuf.ote_io.snd_msg_u.body.ld_pos[0] = (INT32)(pSway_IO->th[ID_SLEW]* 1000.0);
@@ -465,7 +470,7 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
     //Ž©“®–Ú•WˆÊ’u
     double tg_x_rad, tg_x_m, tg_y_rad, tg_y_m,h;
 
-        h = (pCSInf->ote_camera_height_m - pPLCio->status.pos[ID_HOIST]);
+        h = pCSInf->ote_camera_height_m;
         tg_x_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * cos(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
         tg_x_rad = tg_x_m / h;
         tg_y_m = pCSInf->semi_auto_selected_target.pos[ID_BOOM_H] * sin(pCSInf->semi_auto_selected_target.pos[ID_SLEW]);
@@ -483,7 +488,7 @@ int COteIF::set_msg_u(int mode, INT32 code) {                                //ƒ
     }
 
     //VIEWƒJƒƒ‰ƒZƒbƒg‚‚³
-    ote_io_workbuf.ote_io.snd_msg_u.body.lamp[ID_OTE_CAMERA_HEIGHT] = (INT16)(pCraneStat->spec.boom_high * 1000.0);
+    ote_io_workbuf.ote_io.snd_msg_u.body.cam_inf[ID_OTE_CAMERA_HEIGHT] = (INT16)(pCraneStat->spec.boom_high * 1000.0);
 
     ote_io_workbuf.ote_io.snd_msg_u.body.lamp[ID_LAMP_OTE_NOTCH_MODE] = ote_io_workbuf.ote_io.rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE];
 

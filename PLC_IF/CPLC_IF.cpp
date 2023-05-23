@@ -318,7 +318,7 @@ int CPLC_IF::set_notch_ref() {
     //巻ノッチ
     //ノッチクリア
     melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_0[ID_WPOS]] &= NOTCH_PTN0_CLR;
-
+        
     if ((pAgentInf->v_ref[ID_HOIST] < (def_spec.notch_spd_r[ID_HOIST][NOTCH_1]))             //指令が-1ノッチより小
         || (pAgentInf->v_ref[ID_HOIST] > (def_spec.notch_spd_f[ID_HOIST][NOTCH_1]))) {       //指令が+1ノッチより大
         //ノッチセット
@@ -326,47 +326,58 @@ int CPLC_IF::set_notch_ref() {
 
             if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][NOTCH_4]) {         //-5ノッチ未満
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_r5[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_r5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = -5;
             }
             else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_r4[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_r4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = -4;
             }
             else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_r3[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_r3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = -3;
             }
             else if (pAgentInf->v_ref[ID_HOIST] < def_spec.notch_spd_r[ID_HOIST][NOTCH_1]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_r2[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_r2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = -2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_r1[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_r1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = -1;
             }
         }
         else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][NOTCH_1]) { //正転1ノッチ以上
 
             if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][NOTCH_4]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_f5[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_f5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = 5;
             }
             else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_f4[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_f4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = 4;
             }
             else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_f3[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_f3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = 3;
             }
             else if (pAgentInf->v_ref[ID_HOIST] > def_spec.notch_spd_f[ID_HOIST][NOTCH_1]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_f2[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_f2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = 2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_f1[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_f1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_HOIST] = 1;
             }
         }
     }
     else {//0ノッチ
         melnet.pc_b_out[melnet.pc_b_map.com_hst_notch_0[ID_WPOS]] |= melnet.pc_b_map.com_hst_notch_0[ID_BPOS];
+        plc_io_workbuf.status.notch_ref[ID_HOIST] = 0;
     }
  
     //走行ノッチ
    //ノッチクリア
     melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_0[ID_WPOS]] &= NOTCH_PTN1_CLR;
-
+ 
     if ((pAgentInf->v_ref[ID_GANTRY] < (def_spec.notch_spd_r[ID_GANTRY][NOTCH_1]))             //指令が-1ノッチより小
         || (pAgentInf->v_ref[ID_GANTRY] > (def_spec.notch_spd_f[ID_GANTRY][NOTCH_1]))) {       //指令が+1ノッチより大
         //ノッチセット
@@ -374,46 +385,58 @@ int CPLC_IF::set_notch_ref() {
 
             if (pAgentInf->v_ref[ID_GANTRY] < def_spec.notch_spd_r[ID_GANTRY][NOTCH_5]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_r5[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_r5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = -5;
             }
             else if (pAgentInf->v_ref[ID_GANTRY] < def_spec.notch_spd_r[ID_GANTRY][NOTCH_4]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_r4[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_r4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = -4;
             }
             else if (pAgentInf->v_ref[ID_GANTRY] < def_spec.notch_spd_r[ID_GANTRY][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_r3[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_r3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = -3;
             }
             else if (pAgentInf->v_ref[ID_GANTRY] < def_spec.notch_spd_r[ID_GANTRY][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_r2[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_r2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = -2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_r1[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_r1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = -1;
             }
         }
         else if (pAgentInf->v_ref[ID_GANTRY] > def_spec.notch_spd_f[ID_GANTRY][NOTCH_1]) { //正転1ノッチ以上
 
             if (pAgentInf->v_ref[ID_GANTRY] > def_spec.notch_spd_f[ID_GANTRY][NOTCH_5]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_f5[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_f5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = 5;
             }
             else if (pAgentInf->v_ref[ID_GANTRY] > def_spec.notch_spd_f[ID_GANTRY][NOTCH_4]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_f4[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_f4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = 4;
             }
             else if (pAgentInf->v_ref[ID_GANTRY] > def_spec.notch_spd_f[ID_GANTRY][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_f3[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_f3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = 3;
             }
             else if (pAgentInf->v_ref[ID_GANTRY] > def_spec.notch_spd_f[ID_GANTRY][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_f2[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_f2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = 2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_f1[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_f1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_GANTRY] = 1;
             }
         }
     }
     else {//0ノッチ
         melnet.pc_b_out[melnet.pc_b_map.com_gnt_notch_0[ID_WPOS]] |= melnet.pc_b_map.com_gnt_notch_0[ID_BPOS];
+        plc_io_workbuf.status.notch_ref[ID_GANTRY] = 0;
     }
  
     //引込ノッチ
     //ノッチクリア
     melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_0[ID_WPOS]] &= NOTCH_PTN0_CLR;
+    
 
     if ((pAgentInf->v_ref[ID_BOOM_H] < (def_spec.notch_spd_r[ID_BOOM_H][NOTCH_1]))             //指令が-1ノッチより小
         || (pAgentInf->v_ref[ID_BOOM_H] > (def_spec.notch_spd_f[ID_BOOM_H][NOTCH_1]))) {       //指令が+1ノッチより大
@@ -425,47 +448,58 @@ int CPLC_IF::set_notch_ref() {
 
             if (pAgentInf->v_ref[ID_BOOM_H] < def_spec.notch_spd_r[ID_BOOM_H][NOTCH_4]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_r5[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_f5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = -5;
             }
             else if (pAgentInf->v_ref[ID_BOOM_H] < def_spec.notch_spd_r[ID_BOOM_H][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_r4[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_f4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = -4;
             }
             else if (pAgentInf->v_ref[ID_BOOM_H] < def_spec.notch_spd_r[ID_BOOM_H][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_r3[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_f3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = -3;
             }
             else if (pAgentInf->v_ref[ID_BOOM_H] < def_spec.notch_spd_r[ID_BOOM_H][NOTCH_1]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_r2[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_f2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = -2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_r1[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_f1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = -1;
             }
         }
         else if (pAgentInf->v_ref[ID_BOOM_H] > def_spec.notch_spd_f[ID_BOOM_H][NOTCH_1]) { //正転1ノッチ以上
 
             if (pAgentInf->v_ref[ID_BOOM_H] > def_spec.notch_spd_f[ID_BOOM_H][NOTCH_4]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_f5[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_r5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = 5;
             }
             else if (pAgentInf->v_ref[ID_BOOM_H] > def_spec.notch_spd_f[ID_BOOM_H][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_f4[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_r4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = 4;
             }
             else if (pAgentInf->v_ref[ID_BOOM_H] > def_spec.notch_spd_f[ID_BOOM_H][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_f3[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_r3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = 3;
             }
             else if (pAgentInf->v_ref[ID_BOOM_H] > def_spec.notch_spd_f[ID_BOOM_H][NOTCH_1]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_f2[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_r2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = 2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_f1[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_r1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_BOOM_H] = 1;
             }
         }
     }
     else {//0ノッチ
         melnet.pc_b_out[melnet.pc_b_map.com_bh_notch_0[ID_WPOS]] |= melnet.pc_b_map.com_bh_notch_0[ID_BPOS];
+        plc_io_workbuf.status.notch_ref[ID_BOOM_H] = 0;
     }
 
     //旋回ノッチ
     //ノッチクリア
     melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_0[ID_WPOS]] &= NOTCH_PTN1_CLR;
-
+  
     //!!旋回は制御PC（右回＋）速度が逆転になるのでノッチのセットパターンが逆になる
     if ((pAgentInf->v_ref[ID_SLEW] < (def_spec.notch_spd_r[ID_SLEW][NOTCH_1]))             //指令が-1ノッチより小
         || (pAgentInf->v_ref[ID_SLEW] > (def_spec.notch_spd_f[ID_SLEW][NOTCH_1]))) {       //指令が+1ノッチより大
@@ -475,41 +509,52 @@ int CPLC_IF::set_notch_ref() {
 
             if (pAgentInf->v_ref[ID_SLEW] < def_spec.notch_spd_r[ID_SLEW][NOTCH_4]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_r5[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_f5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = -5;
             }
             else if (pAgentInf->v_ref[ID_SLEW] < def_spec.notch_spd_r[ID_SLEW][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_r4[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_f4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = -4;
             }
             else if (pAgentInf->v_ref[ID_SLEW] < def_spec.notch_spd_r[ID_SLEW][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_r3[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_f3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = -3;
             }
             else if (pAgentInf->v_ref[ID_SLEW] < def_spec.notch_spd_r[ID_SLEW][NOTCH_1]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_r2[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_f2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = -2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_r1[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_f1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = -1;
             }
         }
         else if (pAgentInf->v_ref[ID_SLEW] > def_spec.notch_spd_f[ID_SLEW][NOTCH_1]) { //正転1ノッチ以上
 
             if (pAgentInf->v_ref[ID_SLEW] > def_spec.notch_spd_f[ID_SLEW][NOTCH_4]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_f5[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_r5[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = 5;
             }
             else if (pAgentInf->v_ref[ID_SLEW] > def_spec.notch_spd_f[ID_SLEW][NOTCH_3]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_f4[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_r4[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = 4;
             }
             else if (pAgentInf->v_ref[ID_SLEW] > def_spec.notch_spd_f[ID_SLEW][NOTCH_2]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_f3[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_r3[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = 3;
             }
             else if (pAgentInf->v_ref[ID_SLEW] > def_spec.notch_spd_f[ID_SLEW][NOTCH_1]) {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_f2[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_r2[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = 2;
             }
             else {
                 melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_f1[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_r1[ID_BPOS];
+                plc_io_workbuf.status.notch_ref[ID_SLEW] = 1;
             }
         }
     }
     else {//0ノッチ
         melnet.pc_b_out[melnet.pc_b_map.com_slw_notch_0[ID_WPOS]] |= melnet.pc_b_map.com_slw_notch_0[ID_BPOS];
+        plc_io_workbuf.status.notch_ref[ID_SLEW] = 0;
     }
      
     return 0;

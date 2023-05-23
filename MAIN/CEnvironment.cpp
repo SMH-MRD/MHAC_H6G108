@@ -156,35 +156,6 @@ void CEnvironment::output() {
 /****************************************************************************/
 void CEnvironment::tweet_update() {
 
-#if 0
-	//PLC
-	if (stWorkCraneStat.subproc_stat.is_plcio_join == true) {
-		if (pPLC_IO->mode & PLC_IF_PC_DBG_MODE) wostrs << L" #PLC:DBG";
-		else wostrs << L" #PLC:PLC";
-		/*
-				if (pPLC_IO->status.ctrl[ID_WORD_CTRL_SOURCE_ON] == L_ON) wostrs << L" ,! PW:ON";
-				else wostrs << L",! PW:OFF";
-
-				if (pPLC_IO->status.ctrl[ID_WORD_CTRL_REMOTE] == L_ON) wostrs << L",@ RMT";
-				else wostrs << L",@CRANE";
-		*/
-	}
-	else wostrs << L" # PLC:NG";
-
-	//SWAY
-	if (stWorkCraneStat.subproc_stat.is_sway_join == true) {
-		if (pSway_IO->proc_mode & SWAY_IF_SIM_DBG_MODE) wostrs << L" #SWY:SIM";
-		else wostrs << L" #SWY:CAM";
-	}
-	else wostrs << L" #SWY:NG";
-
-	//SIM
-	if (stWorkCraneStat.subproc_stat.is_sim_join == true) {
-		if (pSimStat->mode & SIM_ACTIVE_MODE) wostrs << L" #SIM:ACT";
-		else wostrs << L" #SIM:STP";
-	}
-	else wostrs << L" #SIM:OUT";
-#endif
 	TCHAR tbuf[32];
 	_stprintf_s(tbuf, L"%08x", stWorkCraneStat.operation_mode);
 
@@ -224,7 +195,7 @@ int CEnvironment::parse_notch_com() {
 	//端末ノッチ
 	if (stWorkCraneStat.operation_mode & OPERATION_MODE_REMOTE) {
 
-		if (stWorkCraneStat.notch0_crane & BIT_SEL_ALL_0NOTCH) {//機上全0ノッチ
+		if ((stWorkCraneStat.notch0_crane & BIT_SEL_ALL_0NOTCH) && !(pOTE_IO->rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE])) {//機上全0ノッチ
 			p_notch = pOTE_IO->rcv_msg_u.body.notch_pos;				//端末受信内容
 			for (int i = 0;i < MOTION_ID_MAX;i++) {
 				if (!(stWorkCraneStat.notch0_crane & motion_bit[i])) {//機上0ノッチでない

@@ -128,7 +128,8 @@ using namespace std;
 #define ID_LAMP_NOTCH_POS_BH	59
 #define ID_LAMP_NOTCH_POS_SLW	60
 
-#define ID_OTE_CAMERA_HEIGHT	63
+#define ID_OTE_CAMERA_HEIGHT	0
+#define ID_RMT_CAMERA_HEIGHT	0
 
 
 #define SEMI_AUTO_S1					0
@@ -164,6 +165,7 @@ typedef struct StPLCStatus {
 	double pos[MOTION_ID_MAX];
 	double weight;
 	INT16 brk[MOTION_ID_MAX];
+	INT16 notch_ref[MOTION_ID_MAX];
 }ST_PLC_STATUS, * LPST_PLC_STATUS;
 
 // PLC_IO構造体
@@ -590,7 +592,8 @@ typedef struct stCSInfo {
 	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
 	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
 	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置
-	INT32 semi_auto_selected_target_for_view[MOTION_ID_MAX];			//半自動選択目標位置(カメラ座標）	
+	INT32 semi_auto_selected_target_for_view[MOTION_ID_MAX];			//半自動選択目標位置(カメラ座標）
+	INT32 hunging_point_for_view[MOTION_ID_MAX];						//半自動選択目標位置(カメラ座標）	
 	int	semi_auto_selected;												//選択中の半自動ID
 	int command_type;													//PARK,PICK,GRND
 	int tg_sel_trigger_z = L_OFF, tg_sel_trigger_xy = L_OFF;			//目標位置の設定入力（半自動PB、モニタタッチ）があったかどうかの判定値
@@ -601,6 +604,8 @@ typedef struct stCSInfo {
 	//自動,遠隔設定（モード）
 	int auto_mode;														//自動モード
 	int antisway_mode;													//振れ止めモード
+	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
+
 
 	double ote_camera_height_m;											//操作端末VIEWのカメラ設置高さ
 

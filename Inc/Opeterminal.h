@@ -50,12 +50,14 @@ typedef struct UOteSndBody {
     INT32      pos[8];                         //位置FB
     INT32      v_fb[8];                        //速度FB
     INT32      v_ref[8];                       //速度指令
+    INT32      hp_pos[4];                      //吊点位置FB
     INT32      ld_pos[4];                      //吊荷位置FB
     INT32      ld_v_fb[4];                     //吊荷速度FB
     INT32      tg_pos[4];                      //目標位置座標1
     INT32      tg_pos_semi[6][4];              //半自動目標位置座標S1-L3
     INT16      lamp[64];                       //ランプ表示
     INT16      notch_pos[8];                   //ノッチランプ表示
+    INT16      cam_inf[8];                     //遠隔操作カメラ情報
     INT16	   plc_data[PLC_IO_MONT_WORD_NUM]; //PLCモニタリングデータ
 }ST_UOTE_SND_BODY, * LPST_OTE_SND_BODY;
 
@@ -72,6 +74,7 @@ typedef struct UOteRcvBody {
     INT32     tg_dist2[4];        //目標までの距離2
     INT16     pb[64];             //ランプ表示
     INT16     notch_pos[8];       //ノッチ入力位置
+    INT16     cam_inf[8];         //操作端カメラ情報
 }ST_UOTE_RCV_BODY, * LPST_UOTE_RCV_BODY;
 
 typedef struct UOteRcvdMsg {

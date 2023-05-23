@@ -762,10 +762,17 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             for (int i = 0;i < 4;i++) {
                 woMSG << pOTEio->rcv_msg_u.body.tg_pos2[i]; woMSG << L",";
             }
-            woMSG << L" TG2d :";
-            for (int i = 0;i < 4;i++) {
-                woMSG << pOTEio->rcv_msg_u.body.tg_dist2[i]; woMSG << L",";
+
+            woMSG << L"  NOTCH :";
+            for (int i = 0;i < 5;i++) {
+                woMSG << pOTEio->rcv_msg_u.body.notch_pos[i]; woMSG << L",";
             }
+            woMSG << L" CamInf :";
+            for (int i = 0;i < 3;i++) {
+                woMSG << pOTEio->rcv_msg_u.body.cam_inf[i]; woMSG << L",";
+            }
+
+
             SetWindowText(hwndMON_U_OTE, woMSG.str().c_str());woMSG.str(L""); woMSG.clear();
         }
         //モニタ表示　MULTI　OTE-＞CR
@@ -810,6 +817,10 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             for (int i = 0;i < 8;i++) {
                 woMSG << pOTEio->snd_msg_u.body.v_ref[i]; woMSG << L",";
             }
+            woMSG << L"  HP POS :";
+            for (int i = 0;i < 4;i++) {
+                woMSG << pOTEio->snd_msg_u.body.hp_pos[i]; woMSG << L",";
+            }
             woMSG << L"\nLPOS :";
             for (int i = 0;i < 4;i++) {
                 woMSG << pOTEio->snd_msg_u.body.ld_pos[i]; woMSG << L",";
@@ -818,6 +829,7 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             for (int i = 0;i < 4;i++) {
                 woMSG << pOTEio->snd_msg_u.body.ld_v_fb[i]; woMSG << L",";
             }
+ 
             woMSG << L"  AUTO TG :";
             for (int i = 0;i < 4;i++) {
                 woMSG << pOTEio->snd_msg_u.body.tg_pos[i]; woMSG << L",";
@@ -865,6 +877,11 @@ LRESULT CALLBACK CSimOTE::OteSimWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
             woMSG << L"  \nNOTCH :";
             for (int i = 0;i < 5;i++) {
                 woMSG << pOTEio->snd_msg_u.body.notch_pos[i]; woMSG << L",";
+            }
+
+            woMSG << L"  HP CAM INF :";
+            for (int i = 0;i < 3;i++) {
+                woMSG << pOTEio->snd_msg_u.body.cam_inf[i]; woMSG << L",";
             }
             SetWindowText(hwndMON_U_CR, woMSG.str().c_str());woMSG.str(L""); woMSG.clear();
         }
