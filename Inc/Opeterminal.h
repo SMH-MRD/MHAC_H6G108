@@ -82,3 +82,4 @@ typedef struct UOteRcvdMsg {
     ST_UOTE_RCV_BODY    body;
 }ST_UOTE_RCV_MSG, * LPST_UOTE_RCV_MSG;
 
+
