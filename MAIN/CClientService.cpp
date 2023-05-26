@@ -498,9 +498,17 @@ int CClientService::update_ote_touch_pos_tg() {
 	if (d_x > 0.0) {
 		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = atan(d_y / d_x);
 	}
-	else
+	else if(d_x < 0.0)
 	{
 		CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = atan(d_y / d_x) + PI180;
+	}
+	else {
+		if (d_y > 0.0)
+			CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = PI90;
+		else if(d_y < 0.0)
+			CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = -PI90;
+		else
+			CS_workbuf.semi_auto_setting_target[SEMI_AUTO_TOUCH_POS].pos[ID_SLEW] = 0.0;
 	}
 
 
