@@ -46,6 +46,11 @@ CSharedMem*  pPolicyInfObj;
 CSharedMem*  pAgentInfObj;
 CSharedMem*  pClientIO_Obj;
 CSharedMem*  pJobIO_Obj;
+
+// サブプロセスの情報
+STARTUPINFO si;
+PROCESS_INFORMATION pi_plc, pi_mon, pi_sway, pi_ote;
+INT32 g_flg_auto_sub_start = 1;
                                                 
  //-スタティック変数:
 static HWND                 hWnd_status_bar;    //ステータスバーのウィンドウのハンドル
@@ -61,6 +66,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+BOOL CALLBACK       EnumWindowsProc(HWND hWnd, LPARAM lParam);//
 
 //-アプリケーション専用の関数
 
@@ -219,8 +225,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    //タスクオブジェクト個別設定
    Init_tasks(hWnd);
    
-   InvalidateRect(hWnd, NULL, FALSE); //WM_PAINTを発生させてアイコンを描画させる
+   InvalidateRect(hWnd, NULL, FALSE);            //WM_PAINTを発生させてアイコンを描画させる
    UpdateWindow(hWnd);
+   INT32    g_flg_auto_sub_startup = 1;         //サブプロセス自動起動フラグ
 
    // タスクオブジェクトスレッド起動	
    knlTaskStartUp();		
@@ -249,6 +256,51 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        }
    }
 
+
+   // サブプロセス起動
+
+   //iniファイル設定取り込み
+   WCHAR wflg[32];
+   DWORD	str_num = GetPrivateProfileString(SYSTEM_SECT_OF_INIFILE, PRODUCT_MODE_KEY_OF_INIFILE, L"0", wflg, sizeof(wflg) / 2, PATH_OF_INIFILE);
+  
+   if (wflg[0] == L'0') {                   //デバッグモード
+       g_flg_auto_sub_start = 0;
+   }
+   else {                                   //プロダクトモード
+       g_flg_auto_sub_start = 1;
+
+       memset(&si, 0, sizeof(si));
+       si.cb = sizeof(si);
+
+
+       std::wstring wstr = L"mon.exe";
+       if (!CreateProcess(NULL,(LPWSTR)wstr.c_str(),NULL,NULL,FALSE,0,NULL,NULL,&si, &pi_mon))
+       {
+           printf("CreateProcess failed :mon.exe →　(%d).\n", GetLastError());
+           return -1;
+       }
+
+       wstr = L"PLC_IF.exe";
+       if (!CreateProcess(NULL, (LPWSTR)wstr.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi_plc))
+       {
+           printf("CreateProcess failed :PLC_IF.exe →　(%d).\n", GetLastError());
+           return -1;
+       }
+ 
+       wstr = L"SWAY_IF.exe";
+       if (!CreateProcess(NULL, (LPWSTR)wstr.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi_sway))
+       {
+           printf("CreateProcess failed :SWAY_IF.exe →　(%d).\n", GetLastError());
+           return -1;
+       }
+
+       wstr = L"OTE_IF.exe";
+       if (!CreateProcess(NULL, (LPWSTR)wstr.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi_ote))
+       {
+           printf("CreateProcess failed :OTE_IF.exe →　(%d).\n", GetLastError());
+           return -1;
+       }
+   }
 
    return TRUE;
 }
@@ -386,7 +438,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
          pPolicyInfObj->delete_smem();
          pAgentInfObj->delete_smem();
          pJobIO_Obj->delete_smem();
-  
+
+         //サブプロセスの終了
+         if (g_flg_auto_sub_start) {
+
+             // コールバック関数の呼び出し（起動したプロセスのウィンドウにWM＿QUITを投げる）。
+             EnumWindows(EnumWindowsProc, (LPARAM)&pi_plc);
+             EnumWindows(EnumWindowsProc, (LPARAM)&pi_ote);
+             EnumWindows(EnumWindowsProc, (LPARAM)&pi_sway);
+             EnumWindows(EnumWindowsProc, (LPARAM)&pi_mon);
+
+             EnumWindows(EnumWindowsProc, (LPARAM)&pi_ote);
+             EnumWindows(EnumWindowsProc, (LPARAM)&pi_sway);
+
+             CloseHandle(pi_mon.hProcess);CloseHandle(pi_mon.hThread);
+             CloseHandle(pi_ote.hProcess);CloseHandle(pi_ote.hThread);
+             CloseHandle(pi_sway.hProcess);CloseHandle(pi_sway.hThread);
+             CloseHandle(pi_plc.hProcess);CloseHandle(pi_plc.hThread);
+         }
+
          PostQuitMessage(0);
          }
         break;
@@ -394,6 +464,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
+}
+
+
+// ウィンドウハンドルを取得しアプリケーションを終了させる。
+BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam)
+{
+    // CreateProcess()で取得したPROCESS_INFORMATION構造体のポインタを取得
+    PROCESS_INFORMATION* pi = (PROCESS_INFORMATION*)lParam;
+
+    // ウインドウを作成したプロセスIDを取得。
+    DWORD lpdwProcessId = 0;
+    ::GetWindowThreadProcessId(hWnd, &lpdwProcessId);
+
+    // CreateProcessで起動したアプリのプロセスIDとメインウィンドウを
+    // 作成したプロセスIDが同じ場合、起動したアプリを終了させる。
+    if (pi->dwProcessId == lpdwProcessId)
+    {
+        ::PostMessage(hWnd, WM_CLOSE, 0, 0);
+        return FALSE;
+    }
+    return TRUE;
 }
 
 // バージョン情報ボックスのメッセージ ハンドラーです。

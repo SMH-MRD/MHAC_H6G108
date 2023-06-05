@@ -18,10 +18,10 @@
 #define TASK_NUM					5		//このアプリケーションのタスク数
 
 //タスクスキャンタイムmsec
-#define AGENT_SCAN_MS				50
-#define ENV_SCAN_MS					50
+#define AGENT_SCAN_MS				25
+#define ENV_SCAN_MS					25
 #define POLICY_SCAN_MS				50
-#define SCADA_SCAN_MS				200
+#define SCADA_SCAN_MS				25
 #define CS_SCAN_MS					200
 
 //-Main Windowの
@@ -70,6 +70,8 @@
 #define OBJ_SNAME_SECT_OF_INIFILE		L"OBJECT_SNAME"	//タスクオブジェクト略称セクション
 #define NETWORK_SECT_OF_INIFILE			L"NW_PARAM"		//Communicatorタスクセクション
 #define SMEM_SECT_OF_INIFILE			L"SMEM"			//共有メモリセクション
+#define SYSTEM_SECT_OF_INIFILE			L"SYSTEM"		//システム設定セクション
+
 
 //各セクションの各タスク用の情報を参照するためのキー
 #define MAIN_KEY_OF_INIFILE				L"MAIN"
@@ -81,6 +83,7 @@
 #define DEFAULT_KEY_OF_INIFILE			L"DEFAULT"
 #define HELPER_KEY_OF_INIFILE			L"HELPER"
 #define DUMMY_KEY_OF_INIFILE			L"DUMMY"
+#define PRODUCT_MODE_KEY_OF_INIFILE		L"PRODUCT_MODE"
 
 ///# タスクスレッド起動管理用構造体
 typedef struct stKnlManageSetTag {

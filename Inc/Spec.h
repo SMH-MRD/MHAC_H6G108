@@ -228,8 +228,8 @@ typedef struct StSpec {
 
 
 #define OTE_MULTI_IP_ADDR		"239.1.0.1"
-#define CTRL_PC_IP_ADDR_OTE		"192.168.1.201"
-//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.31"
+//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.201"
+#define CTRL_PC_IP_ADDR_OTE		"192.168.1.6"
 #define OTE_DEFAULT_IP_ADDR		"127.0.0.1"
 //#define OTE_DEFAULT_IP_ADDR		"192.168.1.200"
 
