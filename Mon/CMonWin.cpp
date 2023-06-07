@@ -102,6 +102,8 @@ int CMonWin::init_main_window() {
 	stGraphic.hpen[CMON_GLAY_PEN] = CreatePen(PS_DOT, 2, RGB(200, 200, 200));
 	stGraphic.hpen[CMON_YELLOW_PEN] = CreatePen(PS_DOT, 2, RGB(255, 255, 0));
 	stGraphic.hpen[CMON_MAZENDA_PEN] = CreatePen(PS_DOT, 2, RGB(255, 0, 255));
+	stGraphic.hpen[CMON_MAZENDA_PEN2] = CreatePen(PS_DOT, 2, RGB(255, 0, 255));
+
 	stGraphic.hbrush[CMON_BG_BRUSH] = CreateSolidBrush(RGB(240, 240, 240));
 	stGraphic.hbrush[CMON_RED_BRUSH] = CreateSolidBrush(RGB(255, 0, 0));
 	stGraphic.hbrush[CMON_GREEN_BRUSH] = CreateSolidBrush(RGB(0, 255, 0));
@@ -435,11 +437,11 @@ VOID CMonWin::draw_inf_main() {
 	TextOutW(stGraphic.hdc_mem_bg, 530, 35, ws.c_str(), (int)ws.length());
 	ws = L"R_W";
 	TextOutW(stGraphic.hdc_mem_bg, 595, 35, ws.c_str(), (int)ws.length());
+
+
+	//シミュレータ振れ計算値
 	ws = L"SIM_SW";
 	TextOutW(stGraphic.hdc_mem_bg, 330, 55, ws.c_str(), (int)ws.length());
-	ws = L"CTR_SW";
-	TextOutW(stGraphic.hdc_mem_bg, 330, 75, ws.c_str(), (int)ws.length());
-
 	_stprintf_s(tbuf, L":%.4f", pSimStat->sway_io.th[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 385, 25, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pSimStat->sway_io.th[ID_BOOM_H]); ws = tbuf;
@@ -449,6 +451,9 @@ VOID CMonWin::draw_inf_main() {
 	_stprintf_s(tbuf, L"%.4f", pSimStat->sway_io.dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 580, 25, ws.c_str(), (int)ws.length());
 
+	//制御取り込み振れ値（傾斜計、カメラ取付補正後）
+	ws = L"CTR_SW";
+	TextOutW(stGraphic.hdc_mem_bg, 330, 75, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L":%.4f", pSway_IO->th[ID_SLEW]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 385, 45, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pSway_IO->th[ID_BOOM_H]); ws = tbuf;
@@ -457,6 +462,24 @@ VOID CMonWin::draw_inf_main() {
 	TextOutW(stGraphic.hdc_mem_inf, 515, 45, ws.c_str(), (int)ws.length());
 	_stprintf_s(tbuf, L"%.4f", pSway_IO->dth[ID_BOOM_H]); ws = tbuf;
 	TextOutW(stGraphic.hdc_mem_inf, 580, 45, ws.c_str(), (int)ws.length());
+
+
+
+	//振れ振幅評価値ｍ）
+	ws = L"AMP SLW";
+	TextOutW(stGraphic.hdc_mem_bg, 500, 350, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L":%.4f", pCraneStat->mh_l *sqrt( pSway_IO->rad_amp2[ID_SLEW])); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 560, 320, ws.c_str(), (int)ws.length());
+
+	ws = L"AMP BH ";
+	TextOutW(stGraphic.hdc_mem_bg, 500, 370, ws.c_str(), (int)ws.length());
+	_stprintf_s(tbuf, L":%.4f", pCraneStat->mh_l * sqrt(pSway_IO->rad_amp2[ID_BOOM_H])); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 560, 340, ws.c_str(), (int)ws.length());
+
+
+	//振れ止め評価ライン幅
+	_stprintf_s(tbuf, L"circle ±%4d mm", LOAD_GRAPHIC_MARKLINE_MM); ws = tbuf;
+	TextOutW(stGraphic.hdc_mem_inf, 500, 200, ws.c_str(), (int)ws.length());
 
 	wos.str(L"                                                     ");
 	TextOutW(stGraphic.hdc_mem_bg, 10, 35, wos.str().c_str(), (int)wos.str().length());
@@ -573,20 +596,31 @@ VOID CMonWin::draw_graphic() {
 
 //# 吊荷振れ描画
 
-	LONG r=6;
+	//吊荷振れ範囲ライン描画
+	double darc_rad = pCraneStat->spec.as_m_level[ID_BOOM_H][ID_LV_TRIGGER] / pCraneStat->mh_l;//振れ止め起動角度
+	LONG r = darc_rad * LOAD_GRAPHIC_PIX_1RAD;
+	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hpen[CMON_MAZENDA_PEN2]);
+	MoveToEx(stGraphic.hdc_mem_gr, LOAD_GRAPHIC_CENTER_X + r, LOAD_GRAPHIC_CENTER_Y, NULL);
+	AngleArc(stGraphic.hdc_mem_gr, LOAD_GRAPHIC_CENTER_X, LOAD_GRAPHIC_CENTER_Y, r, 0.0, 360);
+
+	r=6;
 	POINT pt;
 
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_BLUE_BRUSH]);
 	SelectObject(stGraphic.hdc_mem_gr, GetStockObject(NULL_PEN));
-	pt.x = LONG(pSimStat->sway_io.th[ID_SLEW] * 573.0)+ LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix→ 1rad　≒　572pix
-	pt.y = -LONG(pSimStat->sway_io.th[ID_BOOM_H] * 573.0)+ LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
+	pt.x = LONG(pSimStat->sway_io.th[ID_SLEW] * LOAD_GRAPHIC_PIX_1RAD)+ LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix→ 1rad　≒　572pix
+	pt.y = -LONG(pSimStat->sway_io.th[ID_BOOM_H] * LOAD_GRAPHIC_PIX_1RAD)+ LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
 	Ellipse(stGraphic.hdc_mem_gr, pt.x-r, pt.y-r, pt.x+r, pt.y+r);
 
 	r = 4;
 	SelectObject(stGraphic.hdc_mem_gr, stGraphic.hbrush[CMON_GREEN_BRUSH]);
-	pt.x = LONG(pSway_IO->th[ID_SLEW] * 573.0) + LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
-	pt.y = -LONG(pSway_IO->th[ID_BOOM_H] * 573.0) + LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
+	pt.x = LONG(pSway_IO->th[ID_SLEW] * LOAD_GRAPHIC_PIX_1RAD) + LOAD_GRAPHIC_CENTER_X;	//30°≒　300pix
+	pt.y = -LONG(pSway_IO->th[ID_BOOM_H] * LOAD_GRAPHIC_PIX_1RAD) + LOAD_GRAPHIC_CENTER_Y;	//30°≒　300pix
 	Ellipse(stGraphic.hdc_mem_gr, pt.x - r, pt.y - r, pt.x + r, pt.y + r);
+
+
+
+	
 
 	return;
 }
