@@ -106,8 +106,10 @@ int CSwayIF::init_proc() {
 
       
     //振れ角計算用カメラパラメータデフォルト値セット
-    swx.is_read_from_msg = false;
-    swy.is_read_from_msg = false;
+   
+    //カメラ取付状態のパラメータをfalseで振れセンサの電文にセットされている値を採用する
+    swx.is_read_from_msg = false;//カメラ取付状態のパラメータをfalseで振れセンサの電文にセットされている値を採用する
+    swy.is_read_from_msg = false;//カメラ取付状態のパラメータをfalseで振れセンサの電文にセットされている値を採用する
 
     swx.L0 = pCraneStat->spec.SwayCamParam[0][0][0][SID_L0];
     swy.L0 = pCraneStat->spec.SwayCamParam[0][0][1][SID_L0];
@@ -186,6 +188,7 @@ int CSwayIF::output() {
 }
 //*********************************************************************************************
 // set_sim_status()
+// 
 //*********************************************************************************************
 int CSwayIF::set_sim_status(LPST_SWAY_IO pworkbuf) {
 

@@ -23,15 +23,7 @@ static ST_MAIN_WND stMainWnd;                   //メインウィンドウ操作
 DWORD* psource_proc_counter = NULL;             //メインプロセスのヘルシーカウンタ
 
 CSwayIF* pProcObj;          //メイン処理オブジェクト:
-/*
-WSADATA wsaData;
-SOCKET s;
-SOCKADDR_IN addrin;
-SOCKADDR_IN from;
-int fromlen;
-int nRtn;
-u_short port;
-*/
+
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -125,8 +117,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
-
-      // メイン処理オブジェクトインスタンス化
+   // メイン処理オブジェクトインスタンス化
    pProcObj = new CSwayIF;                              // メイン処理クラスのインスタンス化
    psource_proc_counter = &(pProcObj->source_counter);  //ステータスバー表示用
    pProcObj->init_proc();                               // メイン処理クラスの初期化
@@ -140,9 +131,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    {
        return FALSE;
    }
-
-
-   
+      
    // メインウィンドウのステータスバーに制御モード表示
    TCHAR tbuf[32];
    wsprintf(tbuf, L"mode:%04x", pProcObj->mode);
@@ -196,8 +185,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         InitCommonControls();//コモンコントロール初期化
 
-
-
         //メインウィンドウにステータスバー付加
         stMainWnd.hWnd_status_bar = CreateStatusbarMain(hWnd);
         SendMessage(stMainWnd.hWnd_status_bar, SB_SETTEXT, 0, (LPARAM)L"NORMAL");
@@ -224,43 +211,49 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             305, 85, 50, 25, hWnd, (HMENU)IDC_PB_EXIT, hInst, NULL);
 
 
-
+        //センサとの通信状態表示ツールウィンドウ表示切り替えボタン
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"COM WIN", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             20, 85, 80, 25, hWnd, (HMENU)IDC_PB_COMWIN, hInst, NULL);
 
+        //振れ計算時にカメラ設置位置オフセットを0にして計算（振れセンサ生値確認用）するモードへの切り替え設定用 
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"NO OFF", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
             115, 85, 80, 25, hWnd, (HMENU)ID_CHECK_SWAY_CAL_NO_OFFSET, hInst, NULL);
-
+        // 振れ計算時に傾斜計オフセットを0にして計算（振れセンサ生値確認用）するモードへの切り替え設定用
         stMainWnd.h_pb_comwin = CreateWindow(L"BUTTON", L"NO TIL", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE,
             200, 85, 80, 25, hWnd, (HMENU)ID_CHECK_SWAY_CAL_NO_TILT, hInst, NULL);
 
-        //振れセンサ調整用
-        stMainWnd.h_pb_pc_reset = CreateWindow(L"BUTTON", L"PC RESET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            260, 2, 90, 25, hWnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
-
+        //### 振れセンサ調整用
         stMainWnd.h_static1 = CreateWindowW(TEXT("STATIC"), L"  SENSOR      0SET        RESET", WS_CHILD | WS_VISIBLE | SS_LEFT,
             10, 32, 260, 20, hWnd, (HMENU)IDC_STATIC_1, hInst, NULL);
 
+        //振れセンサPC再起動指令ボタン
+        stMainWnd.h_pb_pc_reset = CreateWindow(L"BUTTON", L"PC RESET", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            260, 2, 90, 25, hWnd, (HMENU)IDC_PB_PC_RESET, hInst, NULL);
+
+        //メインウィンドウの操作ボタン有効カメラ1,2選択（当面常時1が有効：将来用）
         stMainWnd.h_pb_sel_sensor1 = CreateWindow(L"BUTTON", L"1", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
             30, 55, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_1, hInst, NULL);
-
         stMainWnd.h_pb_sel_sensor2 = CreateWindow(L"BUTTON", L"2", WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
             50, 55, 20, 25, hWnd, (HMENU)IDC_PB_SENSOR_2, hInst, NULL);
-
-        SendMessage(stMainWnd.h_pb_sel_sensor1, BM_SETCHECK, BST_CHECKED, 0L);
+        SendMessage(stMainWnd.h_pb_sel_sensor1, BM_SETCHECK, BST_CHECKED, 0L);//センサ１をチェック状態にしておく
         
+        //カメラリセット指令メッセージ送信ボタン
         stMainWnd.h_pb_reset_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             90, 55, 40, 25, hWnd, (HMENU)IDC_PB_0SET_CAMERA, hInst, NULL);
-
+ 
+        //傾斜計リセット指令メッセージ送信ボタン
         stMainWnd.h_pb_reset_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             135, 55, 30, 25, hWnd, (HMENU)IDC_PB_0SET_TILT, hInst, NULL);
 
+        //カメラ0セット指令メッセージ送信ボタン
         stMainWnd.h_pb_0set_sensor = CreateWindow(L"BUTTON", L"CAM", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             180, 55, 40, 25, hWnd, (HMENU)IDC_PB_RESET_CAMERA, hInst, NULL);
 
+        //傾斜計0セット指令メッセージ送信ボタン
         stMainWnd.h_pb_0set_tilt = CreateWindow(L"BUTTON", L"TIL", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             225, 55, 30, 25, hWnd, (HMENU)IDC_PB_RESET_TILT, hInst, NULL);
 
+        //スナップショット保存指令メッセージ送信ボタン
         stMainWnd.h_pb_img_save = CreateWindow(L"BUTTON", L"SSHOT", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             280, 38, 55, 40, hWnd, (HMENU)IDC_PB_SCREEN_SHOT, hInst, NULL);
 
