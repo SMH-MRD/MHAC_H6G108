@@ -223,7 +223,7 @@ typedef struct StSpec {
 #define	SID_PIXlRAD				5		//カメラのハウジングへの取り付け角度
 
 
-#define CTRL_PC_IP_ADDR_SWAY	"192.168.1.80"
+#define CTRL_PC_IP_ADDR_SWAY	"192.168.1.6"
 #define SWAY_SENSOR_IP_ADDR		"192.168.1.81"
 
 

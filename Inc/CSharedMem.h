@@ -604,6 +604,7 @@ typedef struct stCSInfo {
 	//自動,遠隔設定（モード）
 	int auto_mode;														//自動モード
 	int antisway_mode;													//振れ止めモード
+	int estop_active;													//非常停止動作中
 	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
 
 

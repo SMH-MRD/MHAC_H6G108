@@ -428,7 +428,7 @@ int CSimOTE::set_msg_u(int mode, INT32 code, INT32 status) {
             ote_io_workbuf.rcv_msg_u.body.tg_dist1[2] = dist_tg1_slw;
         }
 
-        ote_io_workbuf.rcv_msg_u.body.pb[ID_OTE_CAMERA_HEIGHT] = 25000;
+        ote_io_workbuf.rcv_msg_u.body.cam_inf[ID_OTE_CAMERA_HEIGHT] = 25000;
 
         ote_io_workbuf.rcv_msg_u.body.pb[ID_LAMP_OTE_NOTCH_MODE] = sim_pb[ID_LAMP_OTE_NOTCH_MODE];
 

@@ -281,7 +281,7 @@ void CAgent::main_proc() {
 	}
 
 	//# 軸毎のモードセット(PLC指令出力軸の判定）
-	if (AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) {
+	if ((AgentInf_workbuf.auto_on_going == AUTO_TYPE_MANUAL) || pCSInf->estop_active) {
 		AgentInf_workbuf.auto_active[ID_HOIST] = AgentInf_workbuf.auto_active[ID_BOOM_H] = AgentInf_workbuf.auto_active[ID_SLEW] = AUTO_TYPE_MANUAL;
 	}
 	else if ((AgentInf_workbuf.auto_on_going & AUTO_TYPE_SEMIAUTO) || (AgentInf_workbuf.auto_on_going & AUTO_TYPE_JOB)) {

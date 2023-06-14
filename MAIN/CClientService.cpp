@@ -122,24 +122,36 @@ int CClientService::parce_onboard_input(int mode) {
 	INT16* pUIpb_semiauto;
 
 	if (pCraneStat->operation_mode & OPERATION_MODE_REMOTE) {
+		if (pOTE_IO->rcv_msg_u.body.pb[ID_PB_ESTOP]) CS_workbuf.estop_active = L_ON;
+		else CS_workbuf.estop_active = L_OFF;
+
+
 		if ((pOTE_IO->rcv_msg_u.body.pb[ID_PB_ANTISWAY_ON]) && (as_pb_last == 0)) { // PB入力立ち上がり
 			if (CS_workbuf.antisway_mode == L_OFF)
 				CS_workbuf.antisway_mode = L_ON;
 			else
 				CS_workbuf.antisway_mode = L_OFF;
 		}
+		else;
+
 		as_pb_last = pOTE_IO->rcv_msg_u.body.pb[ID_PB_ANTISWAY_ON];
 
 		pUIpb = pOTE_IO->rcv_msg_u.body.pb;
 		pUIpb_semiauto = pOTE_IO->ui.PBsemiauto;
 	}
 	else {
+
+		if (pPLC_IO->ui.PB[ID_PB_ESTOP]) CS_workbuf.estop_active = L_ON;
+		else CS_workbuf.estop_active = L_OFF;
+		
 		if ((pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON]) && (as_pb_last == 0)) { // PB入力立ち上がり
 			if (CS_workbuf.antisway_mode == L_OFF)
 				CS_workbuf.antisway_mode = L_ON;
 			else
 				CS_workbuf.antisway_mode = L_OFF;
 		}
+		else;
+
 		as_pb_last = pPLC_IO->ui.PB[ID_PB_ANTISWAY_ON];
 
 		pUIpb = pPLC_IO->ui.PB;
@@ -147,6 +159,7 @@ int CClientService::parce_onboard_input(int mode) {
 	}
 
 	//自動モードセット
+	
 	if ((pUIpb[ID_PB_AUTO_MODE]) && (auto_pb_last == 0)) { // PB入力立ち上がり
 		if (CS_workbuf.auto_mode == L_OFF)
 			CS_workbuf.auto_mode = L_ON;
@@ -155,6 +168,12 @@ int CClientService::parce_onboard_input(int mode) {
 	}
 	auto_pb_last = pUIpb[ID_PB_AUTO_MODE];
 
+
+	if (CS_workbuf.estop_active == L_ON) {
+
+		CS_workbuf.antisway_mode = L_OFF;
+		CS_workbuf.auto_mode = L_OFF;
+	}
 
 	//半自動選択設定,目標位置設定
 	if (CS_workbuf.auto_mode == L_ON) {
