@@ -16,7 +16,7 @@
 
 extern CSIM* pProcObj;
 
-CWorkWindow::CWorkWindow() {}
+CWorkWindow::CWorkWindow() { hInst = NULL; }
 CWorkWindow::~CWorkWindow() {}
 HWND CWorkWindow::hWorkWnd;
 HWND CWorkWindow::hwndSTATMSG;
@@ -30,7 +30,7 @@ static SOCKADDR_IN addrin;	//自局
 static SOCKADDR_IN client;	//制御PC
 static int fromlen;
 static int nRtn=0,nRcv=0,nSnd=0;
-static u_short port = SWAY_IF_IP_PORT_S;
+static u_short port = SWAY_IF_IP_SWAY_PORT_S;
 static char szBuf[256];
 
 std::wostringstream woMSG;
@@ -103,7 +103,8 @@ int CWorkWindow::init_sock(HWND hwnd) {
 	memset(&addrin, 0, sizeof(addrin));
 	addrin.sin_port = htons(port);
 	addrin.sin_family = AF_INET;
-	inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &addrin.sin_addr.s_addr);
+//	inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &addrin.sin_addr.s_addr);CTRL_PC_IP_ADDR
+	inet_pton(AF_INET, CTRL_PC_IP_ADDR_SWAY, &addrin.sin_addr.s_addr);
 
 	nRtn = bind(s, (LPSOCKADDR)&addrin, (int)sizeof(addrin)); //ソケットに名前を付ける
 	if (nRtn == SOCKET_ERROR) {
@@ -124,9 +125,9 @@ int CWorkWindow::init_sock(HWND hwnd) {
 
 	//送信先アドレス初期値設定
 	memset(&client, 0, sizeof(client));
-	client.sin_port = htons(SWAY_IF_IP_PORT_C);
+	client.sin_port = htons(SWAY_IF_IP_SWAY_PORT_C);
 	client.sin_family = AF_INET;
-	inet_pton(AF_INET, SWAY_SENSOR_IP_ADDR, &client.sin_addr.s_addr);
+	inet_pton(AF_INET, CTRL_PC_IP_ADDR_SWAY, &client.sin_addr.s_addr);
 
 	return 0;
 }

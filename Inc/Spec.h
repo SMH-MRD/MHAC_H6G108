@@ -8,6 +8,8 @@
 
 #endif//
 
+
+
 /*** 仕様定義構造体 ***/
 
 #define DIRECTION_MAX 2
@@ -25,8 +27,14 @@
 #define NUM_OF_POSITION_LEVEL	3	//完了,トリガ,制限
 
 typedef struct StSpec {
-	//[ID_HOIST],[ID_GANTRY],[ID_TROLLY],[ID_BOOM_H],[ID_SLEW],[ID_OP_ROOM],[ID_H_ASSY],[ID_MOTION1]
 
+	/*** デバイスコード構造体 ***/
+	ST_DEVICE_CODE device_code = {
+		'P','1',//製番識別コード
+		'L','C',//機械コード
+		'C','R',//タイプ
+		1		//ID番号
+	};
 
 #define NOTCH_MAX 6
 #define NOTCH_0	  0
@@ -36,7 +44,7 @@ typedef struct StSpec {
 #define NOTCH_4	  4
 #define NOTCH_5	  5
 
-	double notch_spd_f[MOTION_ID_MAX][NOTCH_MAX] = {			//# ノッチ指令速度（機上）
+	double notch_spd_f[MOTION_ID_MAX][NOTCH_MAX] = {		//# ノッチ指令速度（機上）
 	{ 0.0,	0.083,	0.25,	0.417,	0.583,	1.666 },		//[ID_HOIST]	m/s
 	{ 0.0,	0.04,	0.125,	0.25,	0.416,	0.416 },		//[ID_GANTRY]	m/s
 	{ 0.0,	0.0,	0.0,	0.0,	0.0,	0.0 },			//[ID_TROLLY]	m/s
@@ -107,6 +115,9 @@ typedef struct StSpec {
 	{{ 0.0,0.0,0.0,0.0},	{ 0.0,0.0,0.0,0.0}},				//[ID_MOTION1]
 	};
 
+#define PARAM_PHASE_CHK_RANGE_BH						0.05	//位相到達判定範囲
+#define PARAM_PHASE_CHK_RANGE_SLW						0.05	//位相到達判定範囲
+
 #define ID_LV_COMPLE			0	//完了
 #define ID_LV_TRIGGER			1	//トリガ
 #define ID_LV_LIMIT				2	//制限
@@ -138,34 +149,42 @@ typedef struct StSpec {
 	{ 0.01, 0.04, 4.0 },										//[ID_BOOM_H]
 	{ 0.01, 0.04, 4.0 },										//[ID_SLEW]
 	};
-	double as_pos_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# 位置決め判定　位置ずれレベル(m) 
+	double as_pos_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# 位置決め判定　位置ずれレベル(m,rad) 
 	{ 0.03, 0.06, 0.020 },										//m[ID_HOIST]
 	{ 0.03, 0.06, 0.020 },										//m[ID_GANTRY]
 	{ 0.03, 0.06, 0.020 },										//m[ID_TROLLY]
 	{ 0.03, 0.06, 0.020 },										//m[ID_BOOM_H]
 	{ 0.005, 0.01, 0.1 }										//rad[ID_SLEW]
 	};
-	double as_pos2_level[NUM_OF_AS_AXIS][NUM_OF_POSITION_LEVEL] = {	//# 位置決め判定　位置ずれレベル(m) 
-	{ 0.009, 0.036, 0.020 },										//m[ID_HOIST]
-	{ 0.009, 0.036, 0.020 },										//m[ID_GANTRY]
-	{ 0.009, 0.036, 0.020 },										//m[ID_TROLLY]
-	{ 0.009, 0.036, 0.020 },										//m[ID_BOOM_H]
-	{ 0.000025, 0.0001, 0.01 }										//rad[ID_SLEW]
+
+#define ID_LV_DIR_CHECK_MARGIN	0								//移動方向判定マージン
+#define ID_LV_COMP_POS_PASSED	1								//通過
+#define ID_LV_COMP_POS_RANGE	2								//範囲
+
+	double pos_check_limit[MOTION_ID_MAX][NUM_OF_POSITION_LEVEL] = {	//# 位置到達判定範囲(m,rad) 
+	{ 0.1, 0.2, 0.5 },											//m[ID_HOIST]
+	{ 0.1, 0.2, 0.5 },											//m[ID_GANTRY]
+	{ 0.1, 0.2, 0.5 },											//m[ID_TROLLY]
+	{ 0.1, 0.2, 0.5 },											//m[ID_BOOM_H]
+	{ 0.005, 0.17, 0.017},										//rad[ID_SLEW]
+	{ 0.0, 0.0, 0.0 },											//
+	{ 0.0, 0.0, 0.0 },											//
+	{ 0.0, 0.0, 0.0 },											//
 	};
 
-#define NUM_OF_DELAY_PTN		5	//加減速時FB時間遅れ評価パターン数
-#define ID_DELAY_0START			0	//停止からの加速
-#define ID_DELAY_ACC_DEC		1	//加速中の減速切替時
-#define ID_DELAY_DEC_ACC		2	//減速中の加速切替時
-#define ID_DELAY_CNT_ACC		3	//定速からの加速時
-#define ID_DELAY_CNT_DEC		4	//定速からの減速時	
+#define NUM_OF_DELAY_PTN		5								//加減速時FB時間遅れ評価パターン数
+#define ID_DELAY_0START			0								//停止からの加速
+#define ID_DELAY_ACC_DEC		1								//加速中の減速切替時
+#define ID_DELAY_DEC_ACC		2								//減速中の加速切替時
+#define ID_DELAY_CNT_ACC		3								//定速からの加速時
+#define ID_DELAY_CNT_DEC		4								//定速からの減速時	
 
 	double delay_time[NUM_OF_AS_AXIS][NUM_OF_DELAY_PTN] = {		// 加減速時のFB一時遅れ時定数
-	{ 0.3,0.3,0.3,0.3,0.3},											//[ID_HOIST]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_GANTRY]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_TROLLY]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_BOOM_H]
-	{ 0.3,0.3,0.3,0.3,0.3 },										//[ID_SLEW]
+	{ 0.3,0.3,0.3,0.3,0.3},										//[ID_HOIST]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_GANTRY]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_TROLLY]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_BOOM_H]
+	{ 0.3,0.3,0.3,0.3,0.3 },									//[ID_SLEW]
 	};
 	
 	//構造寸法
@@ -179,45 +198,77 @@ typedef struct StSpec {
 
 
 #define N_SWAY_SENSOR			3		//振れセンサの数
-#define SID_CAM1				0		//No.1カメラ
-#define SID_CAM2				1		//No.2カメラ
+#define SID_SENSOR1				0		//No.1振れセンサ
+#define SID_SENSOR2				1		//No.2振れセンサ
 #define SID_SIM					2		//シミュレータ
 
 #define SWAY_SENSOR_N_AXIS		2
 #define SID_AXIS_X				0		//X軸
 #define SID_AXIS_Y				1		//y軸
 
-#define SWAY_CAMERA_N_PARAM		5
-#define SID_D0					0		//カメラ取付位置水平方向オフセット
-#define SID_H0					1		//カメラ取付位置高さ方向オフセット
-#define SID_l0					2		//カメラ中心とハウジング支点間距離
+#define N_SWAY_SENSOR_CAMERA    2		//振れセンサ１セットのカメラの数
+#define SID_CAMERA1				0		//No.1振れセンサ
+#define SID_CAMERA2				1		//No.2振れセンサ
+
+#define N_SWAY_SENSOR_TARGET    2		//振れセンサカメラ1台あたりのターゲット数
+#define SID_TARGET1				0		//No.1振れセンサ
+#define SID_TARGET2				1		//No.2振れセンサ
+
+#define SWAY_CAMERA_N_PARAM		6
+#define SID_L0					0		//カメラ回転軸距離
+#define SID_PH0					1		//カメラ回転軸角度
+#define SID_l0					2		//カメラ中心とハウジング回転軸間距離
 #define	SID_ph0					3		//カメラのハウジングへの取り付け角度
-#define	SID_PIXlRAD				4 		//PIX/rad変換係数
+#define	SID_phc					4		//カメラのハウジングへの取り付け角度
+#define	SID_PIXlRAD				5		//カメラのハウジングへの取り付け角度
 
-#define CTRL_PC_IP_ADDR			"192.168.100.100"
-#define SWAY_SENSOR_IP_ADDR		"192.168.100.101"
-//#define SWAY_SENSOR_IP_ADDR		"192.168.100.102"
-#define SWAY_IF_IP_PORT_C		10080
-#define SWAY_IF_IP_PORT_S		10081
 
-	double SwayCamParam[N_SWAY_SENSOR][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
-		{{1.0,1.0,0.2,0.01,2800.0},{1.0,1.0,0.2,0.01,2800.0}},	//No.1 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
-		{{0.0,0.0,0.0,0.0,2800.0},{0.0,0.0,0.0,0.0,2800.0}},	//No.2 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
-		{{0.0,0.0,0.0,0.0,2800.0},{0.0,0.0,0.0,0.0,2800.0}}		//No.3 カメラ x,y方向 D0 m,H0 m,l0 m,ph0 rad
+#define CTRL_PC_IP_ADDR_SWAY	"192.168.1.6"
+#define SWAY_SENSOR_IP_ADDR		"192.168.1.81"
+
+
+#define OTE_MULTI_IP_ADDR		"239.1.0.1"
+//#define CTRL_PC_IP_ADDR_OTE		"192.168.1.201"
+#define CTRL_PC_IP_ADDR_OTE		"192.168.1.6"
+#define OTE_DEFAULT_IP_ADDR		"127.0.0.1"
+//#define OTE_DEFAULT_IP_ADDR		"192.168.1.200"
+
+
+
+
+#define SWAY_IF_IP_SWAY_PORT_C			10080
+#define SWAY_IF_IP_SWAY_PORT_S			10081
+#define OTE_IF_IP_UNICAST_PORT_C		10050	//ユニキャスト端末受信ポート
+#define OTE_IF_IP_UNICAST_PORT_S		10051	//ユニキャストクレーン受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_TE		20081	//マルチキャスト端末受信ポート
+#define OTE_IF_IP_MULTICAST_PORT_CR		20080	//マルチキャストクレーン受信ポート
+
+
+	double SwayCamParam[N_SWAY_SENSOR][N_SWAY_SENSOR_CAMERA][SWAY_SENSOR_N_AXIS][SWAY_CAMERA_N_PARAM] = {	//振れセンサ　パラメータ
+		{//No.1 センサ
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0,0.0,0.00,0.00,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		},
+		{//No.2 センサ
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		},
+		{//No.3 センサ
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ1 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		{{1.0,0.0174,0.2,0.01,0.01,2800.0},{1.0,0.0174,0.2,0.01,0.01,2800.0}},	//カメラ2 x,y方向 L0 m,PH rad,l0 m,ph0 rad, phc rad,pix/rad
+		}
 	};
 
-#define SEMI_AUTO_TARGET_MAX	8	// 半自動目標ホールド数
+#define SEMI_AUTO_TARGET_MAX	6	// 半自動目標ホールド数
 
 	double semi_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX]{//半自動デフォルト目標位置
 	//	HST,	GNT,	TRY,	BH,		SLW,	OPR,	ASSY,	COM
 		{10.0,	0.0,	0.0,	8.0,	0.0,	0.0,	0.0,	0.0},
 		{5.0,	0.0,	0.0,	25.0,	0.0,	0.0,	0.0,	0.0},
 		{18.0,	0.0,	0.0,	25.0,	PI180,	0.0,	0.0,	0.0},
-		{20.0,	0.0,	0.0,	25.0,	-PI90,	0.0,	0.0,	0.0},
-		{3.0,	0.0,	0.0,	5.0,	-PI90,	0.0,	0.0,	0.0},
+		{10.0,	0.0,	0.0,	25.0,	PI90,	0.0,	0.0,	0.0},
+		{10.0,	0.0,	0.0,	5.0,	PI90,	0.0,	0.0,	0.0},
 		{15.0,	0.0,	0.0,	18.0,	-PI60,	0.0,	0.0,	0.0},
-		{-3.0,	0.0,	0.0,	10.0,	-PI90,	0.0,	0.0,	0.0},
-		{-5.0,	0.0,	0.0,	15.0,	-PI150,	0.0,	0.0,	0.0}
 	};
 }ST_SPEC, * LPST_SPEC;
 

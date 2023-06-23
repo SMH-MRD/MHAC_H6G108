@@ -79,3 +79,26 @@ void CHelper::put_bmp_stretch(HDC hdc, HBITMAP hbmp, POINT dst_pt, POINT src_pt,
 UINT	CHelper::bits_count(UINT16 x) { int ret = 0; while (x) { x &= x - 1; ret++; } return ret; }
 UINT	CHelper::bits_count(UINT32 x) { int ret = 0; while (x) { x &= x - 1; ret++; } return ret; }
 UINT	CHelper::bits_count(UINT64 x) { int ret = 0; while (x) { x &= x - 1; ret++; } return ret; }
+
+/*****************************************************************************
+角度データを旋回の角度範囲(-180度～＋180度に校正する
+- 引数　double* 　
+- 戻り値　NA
+*****************************************************************************/
+void CHelper::fit_ph_range_upto_pi(double* pd) {
+
+	int n;
+	double pi2 = 6.2832;
+	if (*pd > 0.0) {
+		n = (int)(*pd / pi2);		// ÷2π
+		*pd -= (double)n * pi2;
+		if(*pd > 0.5*pi2) *pd -= pi2; //-π～πのレンジへ変換
+	}
+	else {
+		n = (int)(*pd / -pi2);
+		*pd += (double)n * pi2;
+		if (*pd < -0.5 * pi2) *pd += pi2;
+	}
+
+	return;
+}

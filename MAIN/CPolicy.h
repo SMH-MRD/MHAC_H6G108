@@ -4,53 +4,41 @@
 #include "Spec.h"
 #include "CSharedMem.h"
 
-#define POLICY_REQ_REMOTE       0x00000001
-#define POLICY_REQ_ANTISWAY     0x00000002
-#define POLICY_REQ_JOB          0x00000004
-#define POLICY_REQ_DEBUG        0x00000008
+#define PTN_ORDINARY                0x00000000  //通常
+#define PTN_NON_FBSWAY_FULL         0x00000001
+#define PTN_FBSWAY_FULL             0x00000002
+#define PTN_NON_FBSWAY_2INCH        0x00000004
+#define PTN_FBSWAY_AS               0x00000008
 
-//#define POLICY_TYPE_AS          0
-//#define POLICY_TYPE_SEMI        1
-//#define POLICY_TYPE_JOB         2
+#define PTN_FBSWAY_AS               0x00000008
 
-#define N_AS_PTN                8
-#define AS_PTN_0                0
-#define AS_PTN_1STEP            1
-#define AS_PTN_2STEP            2
-#define AS_PTN_2PP              2
-#define AS_PTN_2PN              3
-#define AS_PTN_2ACCDEC          4
-#define AS_PTN_1ACCDEC          5
-#define AS_PTN_3STEP            6
-#define AS_PTN_OK               1
-#define AS_PTN_NG               0
+#define POLICY_PTN_OK               1
+#define POLICY_PTN_NG               0
 
-#define N_AUTO_PARAM            8
-#define POLICY_FWD              1
-#define POLICY_REW              2
-#define POLICY_STOP             0
-#define POLICY_NA               0
+#define N_AUTO_PARAM                8
+
+#define SPD_FB_DELAY_TIME           0.3             //速度指令-FB遅れ時間
+#define FINE_POS_TIMELIMIT          50.0             //ファインポジショニング制限時間
+#define POL_TM_OVER_CHECK_COUNTms   120000
+
 
 typedef struct stPolicyWork {
-    double T;                                   //周期
-    double w;                                   //角周波数
-    double l;                                   //ロープ長
-    double r[MOTION_ID_MAX];	                //振幅評価値
-    double pos[MOTION_ID_MAX];	                //振幅評価値
-    double v[MOTION_ID_MAX];	                //振幅評価値
-    //double r0[MOTION_ID_MAX];	                //加速時振中心
-    double a[MOTION_ID_MAX];	                //加速度
-    double vmax[MOTION_ID_MAX];                 //最大速度
+    double T;	                                //振れ周期
+    double w;	                                //振れ角周波数
+    double w2;	                                //振れ角周波数2乗
+    double pos[MOTION_ID_MAX];	                //現在位置
+    double v[MOTION_ID_MAX];	                //モータの速度
+    double a_abs[MOTION_ID_MAX];	            //モータの加速度　絶対値
+    double a_hp_abs[MOTION_ID_MAX];	            //吊点の加速度　絶対値
+    double vmax_abs[MOTION_ID_MAX];             //モータの最大速度
     double acc_time2Vmax[MOTION_ID_MAX];        //最大加速時間
-    double dist_for_target[MOTION_ID_MAX];      //目標までの距離
-    double pp_th0[NUM_OF_AS_AXIS][ACCDEC_MAX];  //位相平面の回転中心
-    double pos_target[MOTION_ID_MAX];           //位相平面の回転中心
-    int motion_dir[NUM_OF_AS_AXIS];             //移動方向
-    double as_gain_phase[NUM_OF_AS_AXIS];       //振れ止めゲイン位相(位相平面上の加速時の位相変化量）
-    double as_gain_time[NUM_OF_AS_AXIS];        //振れ止めゲイン加速時間
-    bool is_sway_over_r0[MOTION_ID_MAX];        //振れ振幅が加速振れ以上
-    unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
-
+    double dist_for_target[MOTION_ID_MAX];      //目標までの距離符号あり
+    double dist_for_target_abs[MOTION_ID_MAX];      //目標までの距離符号あり
+    double pp_th0[MOTION_ID_MAX][ACCDEC_MAX];   //位相平面の回転中心
+    ST_POS_TARGETS target;                      //目標位置
+    int motion_dir[MOTION_ID_MAX];              //移動方向
+     unsigned int agent_scan_ms;                 //AGENTタスクのスキャンタイム
+     double agent_scan;                         //AGENTタスクのスキャンタイム 秒
 }ST_POLICY_WORK, * LPST_POLICY_WORK;
 
 
@@ -63,47 +51,46 @@ public:
    LRESULT CALLBACK PanelProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp);
 
    void init_task(void* pobj);
-
    void routine_work(void* param);
  
-   LPST_COMMAND_SET generate_command(int type, double* ptarget_pos);
-   int  update_com_status(LPST_COMMAND_SET pcom);
+  //AGENT
+   LPST_COMMAND_SET req_command(LPST_JOB_SET pjob_set);                      //Agentからの要求に応じて実行コマンドをセットして返す
+   int update_command_status(LPST_COMMAND_SET pcom, int code);  //Agentからのコマンド実行状況報告を受付,次のコマンドあるときはそれを返す
  
 private:
 
-    LPST_POLICY_INFO pPolicyInf;
-    LPST_PLC_IO pPLC_IO;
-    LPST_CRANE_STATUS pCraneStat;
-    LPST_REMOTE_IO pRemoteIO;
-    LPST_AGENT_INFO pAgentInf;
-    LPST_SWAY_IO pSway_IO;
+    LPST_POLICY_INFO    pPolicyInf;
+    LPST_PLC_IO         pPLC_IO;
+    LPST_CRANE_STATUS   pCraneStat;
+    LPST_OTE_IO         pOTE_IO;
+    LPST_AGENT_INFO     pAgentInf;
+    LPST_SWAY_IO        pSway_IO;
+    LPST_CS_INFO        pCSInf;
+    LPST_JOB_IO         pJob_IO;
 
     void input();               //外部データ取り込み
     void main_proc();           //処理内容
     void output();              //出力データ更新
 
-    LPST_COMMAND_SET next_command(int type); //次のコマンドへ
-    int set_pp_th0(int motion);
-    int set_pattern_cal_base(int auto_type, int motion);
-    int judge_auto_ctrl_ptn(int auto_type, int motion); //振れ止めパターン判定
-    void set_as_gain(int motion, int as_type);          //振れ止めゲイン計算
+    LPST_COMMAND_SET setup_job_command(LPST_COM_RECIPE pcom_recipe, int type);  //実行する半自動のコマンドをセットする
+  
+ 
+    int set_recipe_semiauto_bh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_recipe_semiauto_slw(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
+    int set_recipe_semiauto_mh(int jobtype, LPST_MOTION_RECIPE precipe, bool is_fbtype, LPST_POLICY_WORK pwork);
 
-    int set_recipe(LPST_COMMAND_SET pcom, int motion, int ptn);
-    int set_recipe1step(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe2pn(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe2pp(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe2ad(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe1ad(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe3step(LPST_MOTION_RECIPE precipe, int motion);
-    int set_recipe0step(LPST_MOTION_RECIPE precipe, int motion);
-     
+    LPST_POLICY_WORK set_com_workbuf(ST_POS_TARGETS trget);
+    ST_POLICY_INFO   PolicyInf_workbuf;
+    ST_POLICY_WORK   st_com_work;
+    int command_id = 0;
+
+                                                         
    //タブパネルのStaticテキストを設定
    void set_panel_tip_txt();
    //タブパネルのFunctionボタンのStaticテキストを設定
    void set_panel_pb_txt();
 
-   ST_POLICY_WORK   st_work;
-   int command_id = 0;
+
     
    const double param_auto[NUM_OF_AS_AXIS][N_AUTO_PARAM] =
    { 

@@ -53,51 +53,94 @@
 
 #define PLC_IF_PB_HOLD 						100
 
+#define SET_ON								5
+#define SET_OFF								0
+
 typedef struct stPLCDbugPanelTag {
 
 	HDC hdc_mem_gr = NULL;					    //グラフィック部メモリデバイスコンテキスト
-	
-	int slider_slew = 0;							// IDC_SLIDER_SLEW                 1000
-	bool check_estop = false;						// IDC_CHECK_ESTOP                 1001
-	int slider_bh = 0;								// IDC_SLIDER_BH                   1002
-													// IDC_SPIN_SLEW                   1003
-	WCHAR static_slew_label[LABEL_BUF_SIZE] = L"";	// IDC_STATIC_SLEW_LABEL           1004
-	WCHAR static_bh_label[LABEL_BUF_SIZE] = L"";	// IDC_STATIC_BH_LABEL             1005
-													// IDC_SPIN_BH                     1006
-	bool button_slew_0 = false;						// IDC_BUTTON_SLEW_0               1007
-	bool button_bh_0 = false;						// IDC_BUTTON_BH_0                 1008
-	int slider_gt = 0;								// IDC_SLIDER_GT                   1009
-	WCHAR static_gt_label[LABEL_BUF_SIZE]=L"";		// IDC_STATIC_GT_LABEL             1010
-													// IDC_SPIN_GT                     1011
-	bool button_gt_0 = false;						// IDC_BUTTON_GT_0                 1012
-	int slider_mh = 0;								// IDC_SLIDER_MH                   1013
-	WCHAR static_mh_label[LABEL_BUF_SIZE] = L"";	// IDC_STATIC_MH_LABEL             1014
-													// IDC_SPIN_MH                     1015
-	bool button_mh_0 = false;						// IDC_BUTTON_MH_0                 1016
-	bool button_source1_on = false;					// IDC_BUTTON_SOURCE1_ON           1017
-	bool button_source1_off = false;				// IDC_BUTTON_SOURCE1_OFF          1018
-	bool button_source2_on = false;					// IDC_BUTTON_SOURCE2_ON           1019
-	bool button_source2_off = false;				// IDC_BUTTON_SOURCE2_OFF          1020
-													// IDC_STATIC_SOURCE1_LABEL        1021
-	bool check_antisway = false;					// IDC_CHECK_ANTISWAY              1022
-													// IDC_STATIC_SOURCE2_LABEL        1023
-	bool button_auto_start = false;					// IDC_BUTTON_AUTO_START           1025
-	bool button_from1 = false;						// IDC_BUTTON_FROM1                1026
-	bool button_remote = false;						// IDC_BUTTON_REMOTE               1027
-	bool button_auto_reset = false;					// IDC_BUTTON_AUTO_RESET	       1028
-	bool button_from2 = false;						// IDC_BUTTON_FROM2                1029
-	bool button_from3 = false;						// IDC_BUTTON_FROM3                1030
-	bool button_from4 = false;						// IDC_BUTTON_FROM4                1031
-	bool button_to1 = false;						// IDC_BUTTON_TO1                  1036
-	bool button_to2 = false;						// IDC_BUTTON_TO2                  1040
-	bool button_to3 = false;						// IDC_BUTTON_TO3                  1041
-	bool button_to4 = false;						// IDC_BUTTON_TO4                  1042
-	bool chk_PC_ref_spd = false;					// IDC_CHECK_SPD_MODE              1051
-	bool chk_sim_fb = false;						// IDC_CHECK_SIM_FB                1052
-	bool chk_input_disable = false;					// IDC_DISABLE_PANEL_INPUT         1053
 
-	bool button_fault_reset = false;						//IDC_BUTTON_FAULT_RESET          1050
 
+	int slider_slew = 0;							// #define IDC_SLIDER_SLEW                 1000
+	int check_estop = 0;							// #define IDC_CHECK_ESTOP                 1001
+	int slider_bh = 0;								// #define IDC_SLIDER_BH                   1002
+													// #define IDC_SPIN_SLEW                   1003
+													// #define IDC_SLIDER_BH                   1002
+													// #define IDC_SPIN_SLEW                   1003
+	WCHAR static_slew_label[LABEL_BUF_SIZE] = L"";	// #define IDC_STATIC_SLEW_LABEL           1004
+	WCHAR static_bh_label[LABEL_BUF_SIZE] = L"";	// #define IDC_STATIC_BH_LABEL             1005
+													// #define IDC_SPIN_BH                     1006
+	int button_slew_0 = 0;							// #define IDC_BUTTON_SLEW_0               1007
+	int button_bh_0 = 0;							// #define IDC_BUTTON_BH_0                 1008
+	int slider_gt = 0;								// #define IDC_SLIDER_GT                   1009
+	WCHAR static_gt_label[LABEL_BUF_SIZE] = L"";	// #define IDC_STATIC_GT_LABEL             1010
+													// #define IDC_SPIN_GT                     1011
+	int button_gt_0 = 0;							// #define IDC_BUTTON_GT_0                 1012
+	int slider_mh = 0;								// #define IDC_SLIDER_MH                   1013
+	WCHAR static_mh_label[LABEL_BUF_SIZE] = L"";	// #define IDC_STATIC_MH_LABEL             1014
+													// #define IDC_SPIN_MH                     1015
+	int button_mh_0 = 0;							// #define IDC_BUTTON_MH_0                 1016
+	int check_source1_on = 0;						// #define IDC_CHECK_SOURCE1_ON            1017
+	int check_source1_off = 0;						// #define IDC_CHECK_SOURCE1_OFF           1018
+	int check_source2_on = 0;						// #define IDC_CHECK_SOURCE2_ON            1019
+	int check_source2_off = 0;						// #define IDC_CHECK_SOURCE2_OFF           1020
+													// #define IDC_STATIC_SOURCE1_LABEL        1021
+	int button_antisway = 0;						// #define IDC_BUTTON_ANTISWAY             1022
+													// #define IDC_STATIC_SOURCE2_LABEL        1023
+													// #define IDC_STATIC_MH_LABEL2            1024
+	int check_auto_start = 0;						// #define IDC_BUTTON_AUTO_START           1025
+	int check_s1 = 0;								// #define IDC_CHECK_S1                    1026
+	int button_remote = 0;							// #define IDC_CHECK_RMOTE                 1027
+	int button_auto_reset = 0;						// #define IDC_BUTTON_AUTO_RESET           1028
+	int check_s2 = 0;								// #define IDC_CHECK_S2                    1029
+	int check_s3 = 0;								// #define IDC_CHECK_S3                    1030
+	int button_set_z = 0;							// #define IDC_BUTTON_SET_Z                1031
+													// #define IDC_STATIC_S1_LAMP              1032
+													// #define IDC_STATIC_S2_LAMP              1033
+													// #define IDC_STATIC_S3_LAMP              1034
+													// #define IDC_STATIC_SET_Z_LAMP           1035
+	int check_l1 = 0;								// #define IDC_CHECK_L1                    1036
+													// #define IDC_STATIC_L1_LAMP              1037
+													// #define IDC_STATIC_L2_LAMP              1038
+													// #define IDC_STATIC_L3_LAMP              1039
+	int check_l2 = 0;								// #define IDC_CHECK_L2                    1040
+	int check_l3 = 0;								// #define IDC_CHECK_L3                    1041
+	int button_set_xy = 0;							// #define IDC_BUTTON_SET_XY               1042
+													// #define IDC_STATIC_SET_XY_LAMP          1043
+													// #define IDC_ANTISWAY_LAMP               1044
+													// #define IDC_AUTOSTART_LAMP              1045
+													// #define IDC_SEMI_RESET_LAMP             1046
+													// #define IDC_ESTOP_LAMP                  1047
+													// #define IDC_SOURCE1_LAMP                1048
+													// #define IDC_SOURCE2_LAMP                1049
+	int button_fault_reset = 0;						// #define IDC_BUTTON_FAULT_RESET          1050
+	int chk_PC_ref_spd = 0;							// #define IDC_CHECK_SPD_MODE              1051
+	int chk_sim_fb = 0;								// #define IDC_CHECK_SIM_FB                1052
+	int chk_input_disable = 0;						// #define IDC_DISABLE_PANEL_INPUT         1053
+
+	int button_auto_mode = 0;						// #define IDC_BUTTON_AUTO_MODE            1054
+													// #define IDC_AUTO_MODE_LAMP              1055
+													// #define IDC_STATIC_SLEW_LABEL2          1056
+													// #define IDC_STATIC_BH_LABEL2            1057
+	int button_mh_p1 = 0;							// #define IDC_BUTTON_MH_P1                1058
+	int button_mh_p2 = 0;							// #define IDC_BUTTON_MH_P2                1059
+	int button_mh_m1 = 0;							// #define IDC_BUTTON_MH_M1                1060
+	int button_mh_m2 = 0;							// #define IDC_BUTTON_MH_M2                1061
+	int button_sl_p1 = 0;							// #define IDC_BUTTON_SL_P1                1062
+	int button_sl_p2 = 0;							// #define IDC_BUTTON_SL_P2                1063
+	int button_sl_m1 = 0;							// #define IDC_BUTTON_SL_M1                1064
+	int button_sl_m2 = 0;							// #define IDC_BUTTON_SL_M2                1065
+	int button_bh_p1 = 0;							// #define IDC_BUTTON_BH_P1                1066
+	int button_bh_p2 = 0;							// #define IDC_BUTTON_BH_P2                1067
+	int button_bh_m1 = 0;							// #define IDC_BUTTON_BH_M1                1068
+	int button_bh_m2 = 0;							// #define IDC_BUTTON_BH_M2                1069
+	int button_park = 0;							// #define IDC_BUTTON_PARK                 1070
+	int button_grnd = 0;							// #define IDC_BUTTON_GRND                 1071
+	int button_pick = 0;							// #define IDC_BUTTON_PICK                 1072
+													// #define IDC_PARK_LAMP                   1073
+													// #define IDC_GRND_LAMP                   1074
+													// #define IDC_PICK_LAMP                   1075
+	int check_remote_mode = 0;						// #define IDC_CHECK_REMOTE                 1077
 }ST_PLC_DEBUG_PANEL, * LPST_PLC_DEBUG_PANEL;
 
 //コモンコントロールID

@@ -33,5 +33,6 @@ public:
 	static UINT	bits_count(UINT16 x);
 	static UINT	bits_count(UINT32 x);
 	static UINT	bits_count(UINT64 x);
+	static void fit_ph_range_upto_pi(double* th); //@ˆÊ‘ŠÀ•W‚ğ}ƒÎ‚ÌƒŒƒ“ƒW‚ÉZ³‚·‚é
 
 };

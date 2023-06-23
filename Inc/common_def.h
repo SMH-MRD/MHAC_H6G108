@@ -34,6 +34,7 @@
 #define PI30            0.5236
 #define PI15            0.2618
 #define PI1DEG          0.017453
+#define PI5             0.0873
 
 #define RAD2DEG         57.29578
 #define DEG2RAD         0.0174533
@@ -73,15 +74,33 @@
 #define ID_H_ASSY       6   //吊具        ID
 #define ID_COMMON       7   //共通        ID
 
+#define BIT_SEL_HST         0x00000001
+#define BIT_SEL_GNT         0x00000002
+#define BIT_SEL_TRY         0x00000004
+#define BIT_SEL_BH          0x00000008
+#define BIT_SEL_SLW         0x00000010
+#define BIT_SEL_OPR         0x00000020
+#define BIT_SEL_ASS         0x00000040
+#define BIT_SEL_COM         0x00000080
+#define BIT_SEL_ALL_0NOTCH  0x10000000
+#define BIT_SEL_MOTION      0x0000FFFF
+#define BIT_SEL_STATUS      0xFFFF0000
+
+
 /*** 配列参照用　方向インデックス ***/
 #define ID_UP           0   //左側
 #define ID_DOWN         1   //右側
-#define ID_FWD          0   //前進
-#define ID_REV          1   //後進
+
+#define ID_FWD          1   //前進
+#define ID_REV          -1   //後進
+#define ID_STOP         0   //停止
 #define ID_LEFT         0   //左側
 #define ID_RIGHT        1   //右側
+#define ID_SELECT       2   //選択
+
 #define ID_ACC          0   //加速
 #define ID_DEC          1   //減速
+
 #define SID_X           0   // X方向
 #define SID_Y           1   // Y方向
 #define SID_R			2   // 半径方向
@@ -95,19 +114,20 @@
 #define USE_REMOTE_SIM_COMMAND          0x0010//遠隔操作入力にリモートシミュレータの出力値を使う
 #define USE_SWAY_CRANE_SIM		        0x0001//振れセンサの信号をクレーン物理シミュレータの出力から生成する
 
-/*** 自動制御 ***/
-//振れ止めパターン
-#define AS_PTN_1P           1   //1パルス
-#define AS_PTN_2P           2   //2パルス
-#define AS_PTN_TR           3   //1台形動作
-#define AS_PTN_3TR          4   //3台形動作
-#define AS_PTN_TRTR         5   //台形＋台形動作(2段加減速）
+/*** 応答 ***/
+#define ID_ACCEPTED      1        //受付完了
+#define ID_REJECTED      -1       //受付不可
+#define ID_NO_REQUEST    0        //要求無し
+#define ID_EXIST         1       //有り
+#define ID_NA            0       //特になし
+#define ID_OK            1       //有り
+#define ID_NG            -1       //特になし
 
 class CBasicControl //基本制御クラス
 {
 public:
     LPVOID poutput = NULL;      //結果出力メモリ
-    size_t out_size = 0;        //出力バッファのサイズ
+    DWORD out_size = 0;        //出力バッファのサイズ
     DWORD  mode;                //結果出力モード
     DWORD  source_counter;      //メインプロセスのヘルシーカウンタ
     DWORD  my_helthy_counter=0; //自スレッドのヘルシーカウンタ
@@ -120,3 +140,11 @@ public:
     virtual int parse() = 0;                     //メイン処理
     virtual int output() = 0;                   //出力処理
 };
+
+typedef struct DeviceCode {
+    char    order[2];       //製番
+    char    system[2];  //機械、システムコード    :クレーン番号等
+    char    type[2];    //デバイス種別　          :制御PC,端末等
+    INT16   no;         //シリアル番号
+}ST_DEVICE_CODE, * LPST_DEVICE_CODE;
+

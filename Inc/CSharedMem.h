@@ -5,7 +5,7 @@
 #include "spec.h"
 #include "CVector3.h"
 #include "Swaysensor.h"
-
+#include "Opeterminal.h"
 
 #define SMEM_CRANE_STATUS_NAME			L"CRANE_STATUS"
 #define SMEM_SWAY_STATUS_NAME			L"SWAY_STATUS"
@@ -18,6 +18,9 @@
 #define SMEM_CS_INFO_NAME				L"CS_INFO"
 #define SMEM_POLICY_INFO_NAME			L"POLICY_INFO"
 #define SMEM_AGENT_INFO_NAME			L"AGENT_INFO"
+#define SMEM_OTE_IO_NAME				L"OTE_IO"
+#define SMEM_CLIENT_IO_NAME				L"CLIENT_IO"
+#define SMEM_JOB_IO_NAME				L"JOB_IO"
 
 #define MUTEX_CRANE_STATUS_NAME			L"MU_CRANE_STATUS"
 #define MUTEX_SWAY_STATUS_NAME			L"MU_SWAY_STATUS"
@@ -26,10 +29,12 @@
 #define MUTEX_SIMULATION_STATUS_NAME	L"MU_SIMULATION_STATUS"
 #define MUTEX_PLC_IO_NAME				L"MU_PLC_IO"
 #define MUTEX_SWAY_IO_NAME				L"MU_SWAY_IO"
-#define MUTEX_REMOTE_IO_NAME			L"MU_REMOTE_IO"
+#define MUTEX_OTE_IO_NAME				L"MU_OTE_IO"
 #define MUTEX_CS_INFO_NAME				L"MU_CS_INFO"
 #define MUTEX_POLICY_INFO_NAME			L"MU_POLICY_INFO"
 #define MUTEX_AGENT_INFO_NAME			L"MU_AGENT_INFO"
+#define MUTEX_CLIENT_IO_NAME			L"MU_CLIENT_IO"
+#define MUTEX_JOB_IO_NAME				L"MU_JOB_IO"
 
 #define SMEM_OBJ_ID_CRANE_STATUS		0
 #define SMEM_OBJ_ID_SWAY_STATUS			1
@@ -42,6 +47,8 @@
 #define SMEM_OBJ_ID_CS_INFO				8
 #define SMEM_OBJ_ID_POLICY_INFO			9
 #define SMEM_OBJ_ID_AGENT_INFO			10
+#define SMEM_OBJ_ID_CLIENT_IO			11
+#define SMEM_OBJ_ID_JOB_IO				12
 
 //  共有メモリステータス
 #define	OK_SHMEM						0	// 共有メモリ 生成/破棄正常
@@ -58,8 +65,11 @@ using namespace std;
 /*   PLC IO定義構造体                                                     　*/
 /* 　PLC_IF PROCがセットする共有メモリ上の情報　　　　　　　　　　　　　　  */
 /****************************************************************************/
-#define N_PLC_PB				64 //運転操作PB数
-#define N_PLC_LAMP				64 //BIT STATUS数
+#define N_UI_PB					64 //運転操作PB数
+#define N_UI_LAMP				64 //BIT STATUS数
+
+#define N_PLC_PB				N_UI_PB		//運転操作PB数
+#define N_PLC_LAMP				N_UI_LAMP	//BIT STATUS数
 #define N_PLC_CTRL_WORDS        16 //制御センサ信号WORD数
 #define N_PLC_FAULTS			400	//PLCフォルトの割り当てサイズ
 
@@ -67,6 +77,11 @@ using namespace std;
 #define ID_PB_ANTISWAY_ON		1
 #define ID_PB_ANTISWAY_OFF		2
 #define ID_PB_AUTO_START		3
+#define ID_PB_AUTO_MODE			4
+#define ID_PB_AUTO_SET_Z		5
+#define ID_PB_AUTO_SET_XY		6
+
+
 #define ID_PB_CRANE_MODE		12
 #define ID_PB_REMOTE_MODE		13
 #define ID_PB_CTRL_SOURCE_ON	14
@@ -75,18 +90,70 @@ using namespace std;
 #define ID_PB_CTRL_SOURCE2_OFF	17
 #define ID_PB_AUTO_RESET		18
 #define ID_PB_FAULT_RESET		19
+#define ID_PB_SEMI_AUTO_S1		20
+#define ID_PB_SEMI_AUTO_S2		21
+#define ID_PB_SEMI_AUTO_S3		22
+#define ID_PB_SEMI_AUTO_L1		23
+#define ID_PB_SEMI_AUTO_L2		24
+#define ID_PB_SEMI_AUTO_L3		25
+#define ID_PB_AUTO_SET_Z_FIXED	26
+#define ID_PB_AUTO_SET_XY_FIXED	27
+
+#define ID_PB_MH_P1             30
+#define ID_PB_MH_P2             31
+#define ID_PB_MH_M1             32
+#define ID_PB_MH_M2             33
+#define ID_PB_SL_P1             34
+#define ID_PB_SL_P2             35
+#define ID_PB_SL_M1             36
+#define ID_PB_SL_M2             37
+#define ID_PB_BH_P1             38
+#define ID_PB_BH_P2             39
+#define ID_PB_BH_M1             40
+#define ID_PB_BH_M2             41
+#define ID_PB_PARK              42
+#define ID_PB_GRND              43
+#define ID_PB_PICK              44
+#define ID_LAMP_HST_BRK         45
+#define ID_LAMP_GNT_BRK         46
+#define ID_LAMP_TRY_BRK         47
+#define ID_LAMP_BH_BRK			48
+#define ID_LAMP_SLW_BRK			49
+
+#define ID_LAMP_OTE_NOTCH_MODE	53
+
+#define ID_LAMP_NOTCH_POS_HST   56
+#define ID_LAMP_NOTCH_POS_GNT   57
+#define ID_LAMP_NOTCH_POS_TRY   58
+#define ID_LAMP_NOTCH_POS_BH	59
+#define ID_LAMP_NOTCH_POS_SLW	60
+
+#define ID_OTE_CAMERA_HEIGHT	0
+#define ID_RMT_CAMERA_HEIGHT	0
 
 
-#define PLC_IO_LAMP_FLICKER_COUNT    40 //ランプフリッカの間隔カウント
-#define PLC_IO_LAMP_FLICKER_CHANGE   20 //ランプフリッカの間隔カウント
+#define SEMI_AUTO_S1					0
+#define SEMI_AUTO_S2					1
+#define SEMI_AUTO_S3					2
+
+#define SEMI_AUTO_L1					3
+#define SEMI_AUTO_L2					4
+#define SEMI_AUTO_L3					5
+
+#define SEMI_AUTO_TG_CLR				6
+#define SEMI_AUTO_TOUCH_POS				7
+#define SEMI_AUTO_TOUCH_DIST			8
+
+#define PLC_IO_OFF_DELAY_COUNT	 4	//PB操作オフディレイカウント値
+
 
 // PLC_User IF信号構造体（機上運転室IO)
 // IO割付内容は、PLC_IO_DEF.hに定義
 typedef struct StPLCUI {
-	int notch_pos[MOTION_ID_MAX];
-	bool PB[N_PLC_PB];
-	bool PBsemiauto[SEMI_AUTO_TARGET_MAX];
-	bool LAMP[N_PLC_LAMP];
+	INT16 notch_pos[MOTION_ID_MAX];
+	INT16 PB[N_PLC_PB];
+	INT16 PBsemiauto[SEMI_AUTO_TARGET_MAX];
+	INT16 LAMP[N_PLC_LAMP];
 }ST_PLC_UI, * LPST_PLC_UI;
 
 // PLC_状態信号構造体（機上センサ信号)
@@ -97,6 +164,8 @@ typedef struct StPLCStatus {
 	double trq_fb_01per[MOTION_ID_MAX];
 	double pos[MOTION_ID_MAX];
 	double weight;
+	INT16 brk[MOTION_ID_MAX];
+	INT16 notch_ref[MOTION_ID_MAX];
 }ST_PLC_STATUS, * LPST_PLC_STATUS;
 
 // PLC_IO構造体
@@ -107,7 +176,26 @@ typedef struct StPLCIO {
 	ST_PLC_UI ui;
 	ST_PLC_STATUS status;
 	CHAR faultPLC[N_PLC_FAULTS];
+	INT16 plc_data[PLC_IO_MONT_WORD_NUM];
 }ST_PLC_IO, * LPST_PLC_IO;
+
+/****************************************************************************/
+/*   操作端末卓信号定義構造体                                  　         　*/
+/* 　OTE_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
+/****************************************************************************/
+
+typedef struct StOTE_IO {
+	ST_UOTE_SND_MSG snd_msg_u;
+	ST_UOTE_RCV_MSG rcv_msg_u;
+	ST_MOTE_SND_MSG snd_msg_m;
+	ST_MOTE_SND_MSG rcv_msg_m_cr;
+	ST_MOTE_RCV_MSG rcv_msg_m_te;
+	INT32 OTEsim_status;
+	INT32 OTEactive;				//接続中の端末ID　接続断の時0
+	INT32 OTE_healty;				//OTEのヘルシー信号
+
+	ST_PLC_UI ui;
+}ST_OTE_IO, * LPST_OTE_IO;
 
 /****************************************************************************/
 /*   振れセンサ信号定義構造体                                  　         　*/
@@ -132,15 +220,6 @@ typedef struct StPLCIO {
 #define SWAY_FAULT_ITEM_MAX			 4//異常検出項目数
 #define SID_COMMON_FLT               0
 
-#define SWAY_IF_SIM_DBG_MODE  0x00000010	//振れデータをSIM出力から生成
-
-
-#define CAM_SET_PARAM_N_PARAM       4
-#define CAM_SET_PARAM_a             0
-#define CAM_SET_PARAM_b             1
-#define CAM_SET_PARAM_c             2
-#define CAM_SET_PARAM_d             3
-
 typedef struct StSwayIO {
 	DWORD proc_mode;
 	DWORD helthy_cnt;
@@ -150,26 +229,16 @@ typedef struct StSwayIO {
 	WORD status[SENSOR_TARGET_MAX];							//ターゲットサ検出状態
 	DWORD fault[SWAY_FAULT_ITEM_MAX];						//センサ異常状態
 	double pix_size[SENSOR_TARGET_MAX][TG_LAMP_NUM_MAX];	//ターゲット検出PIXEL数（面積）
-	double tilt_rad[DETECT_AXIS_MAX];						//傾斜角
+	double tilt_rad[MOTION_ID_MAX];							//傾斜角
 
 	double th[MOTION_ID_MAX];		//振角			rad
 	double dth[MOTION_ID_MAX];		//振角速度		rad/s
 	double dthw[MOTION_ID_MAX];		//振角速度/ω　	rad
 	double ph[MOTION_ID_MAX];		//位相平面位相	rad
-	double amp2[MOTION_ID_MAX];		//振幅の2乗		rad2
-
+	double rad_amp2[MOTION_ID_MAX];		//振幅の2乗		rad2
 
 }ST_SWAY_IO, * LPST_SWAY_IO;
 
-/****************************************************************************/
-/*   遠隔操作卓信号定義構造体                                  　         　*/
-/* 　ROS_IF PROCがセットする共有メモリ上の情報　　　　　　　          　    */
-/****************************************************************************/
-typedef struct StRemoteIO {
-
-	ST_PLC_UI PLCui;
-
-}ST_REMOTE_IO, * LPST_REMOTE_IO;
 
 /****************************************************************************/
 /*   シミュレーション信号定義構造体                                  　   　*/
@@ -184,6 +253,8 @@ typedef struct StSimulationStatus {
 	ST_SWAY_IO sway_io;
 	Vector3 L, vL;//ﾛｰﾌﾟﾍﾞｸﾄﾙ(振れ）
 	double rad_cam_x, rad_cam_y, w_cam_x, w_cam_y;			//カメラ座標振れ角
+
+	double kbh; //引込半径に依存する速度、加速度補正係数
 
 	ST_SWAY_RCV_MSG rcv_msg;
 	ST_SWAY_SND_MSG snd_msg;
@@ -202,7 +273,9 @@ typedef struct StSimulationStatus {
 #define N_PC_FAULT_WORDS		16			//制御PC検出フォルトbitセットWORD数
 #define N_PLC_FAULT_WORDS		32			//PLC検出フォルトbitセットWORD数
 
-#define OPERATION_MODE_REMOTE		0x0000001
+#define OPERATION_MODE_OTE_ACTIVE	0x0000001
+#define OPERATION_MODE_OTE_ONBOARD	0x0000002
+#define OPERATION_MODE_REMOTE		0x0000004
 #define OPERATION_MODE_SIMULATOR	0x0100000
 #define OPERATION_MODE_PLC_DBGIO	0x0001000
 
@@ -220,7 +293,7 @@ typedef struct stEnvSubproc {
 #define ANTI_SWAY_MODE			1
 #define SEMI_AUTO_ACTIVE		2
 #define AUTO_ACTIVE				3
-
+/*
 #define BITSEL_HOIST        0x0001		//巻 　       ビット
 #define BITSEL_GANTRY       0x0002		//走行        ビット
 #define BITSEL_TROLLY       0x0004		//横行        ビット
@@ -229,167 +302,115 @@ typedef struct stEnvSubproc {
 #define BITSEL_OP_ROOM      0x0020		//運転室移動　ビット
 #define BITSEL_H_ASSY       0x0040		//吊具        ビット
 #define BITSEL_COMMON       0x0080		//共通        ビット
+*/
+#define BITSEL_SEMIAUTO			0x0001
+#define BITSEL_AUTO				0x0002
 
-#define BITSEL_SEMIAUTO     0x0001
-#define BITSEL_AUTO			0x0002
+#define SPD0_CHECK_RETIO		0.1
 
-#define SPD0_CHECK_RETIO	0.1
+#define STAT_ACC				0
+#define STAT_DEC				1
+
+#define OTE_REQ_CODE_NA			0
+#define OTE_REQ_CODE_ONBOAD		1
+#define OTE_REQ_CODE_REMOTE		2
+#define OTE_REQ_CODE_CONNECTED	4
+
+#define PB_TRIG_COUNT			1
+
 
 typedef struct StCraneStatus {
-	DWORD env_act_count=0;													//ヘルシー信号
-	ST_ENV_SUBPROC subproc_stat;											//サブプロセスの状態
-	bool is_tasks_standby_ok;												//タスクの立ち上がり確認
-	ST_SPEC spec;															//クレーン仕様
-	WORD operation_mode;													//運転モード　機上,リモート
+//Event Update				:イベント条件で更新
+	bool is_tasks_standby_ok;							//タスクの立ち上がり確認
+	ST_SPEC spec;										//クレーン仕様
 
-	bool	auto_standby;													//自動モード
-	double semi_auto_setting_target[SEMI_AUTO_TARGET_MAX][MOTION_ID_MAX];	//半自動設定目標位置
-	int	 semi_auto_selected;												//半自動選択ID
-	int	 semi_auto_pb_count[SEMI_AUTO_TARGET_MAX];							//半自動PB　ONカウント
-	int	 auto_start_pb_count;												//自動開始PB　ONカウント
-	bool is_notch_0[MOTION_ID_MAX];											//振れ止めモードノッチ条件
-	double r0[MOTION_ID_MAX];	                //加速振 rad
-	
-	double notch_spd_ref[MOTION_ID_MAX];		//ノッチ速度指令
-	WORD faultPC[N_PC_FAULT_WORDS];				//PLC検出異常
-	WORD faultPLC[N_PLC_FAULT_WORDS];			//制御PC検出異常
-	Vector3 rc0;								//クレーン基準点のx,y,z座標（x:走行位置 y:旋回中心 z:走行レール高さ）
-	Vector3 rc;									//クレーン吊点のクレーン基準点とのx,y,z相対座標
-	Vector3 rl;									//吊荷のクレーン吊点とのx,y,z相対座標
-	Vector3 rcam;								//振れセンサ検出x,y,z座標
-	bool is_fwd_endstop[MOTION_ID_MAX];			//正転極限判定
-	bool is_rev_endstop[MOTION_ID_MAX];			//逆転極限判定
-	double mh_l;								//ロープ長
-	double T;									//振周期		s
-	double w;									//振角周波数	/s
-	double w2;									//振角周波数の2乗
+//Periodical Update			：定周期更新
+	DWORD env_act_count=0;								//ヘルシー信号
+	ST_ENV_SUBPROC subproc_stat;						//サブプロセスの状態
+	WORD operation_mode;								//運転モード　機上,リモート
+
+	Vector3 rc;											//クレーン吊点のクレーン基準点とのx,y,z相対座標
+	Vector3 rl;											//吊荷のクレーン吊点とのx,y,z相対座標
+	Vector3 rcam_m;										//振れセンサ検出x,y,z座標 m
+	double notch_spd_ref[MOTION_ID_MAX];				//ノッチ速度指令
+	double mh_l;										//ロープ長
+	double T;											//振周期		s
+	double w;											//振角周波数	/s
+	double w2;											//振角周波数の2乗
+	double R;											//旋回半径
+
+	WORD faultPC[N_PC_FAULT_WORDS];						//PLC検出異常
+	WORD faultPLC[N_PLC_FAULT_WORDS];					//制御PC検出異常
+
+	bool is_fwd_endstop[MOTION_ID_MAX];					//正転極限判定
+	bool is_rev_endstop[MOTION_ID_MAX];					//逆転極限判定
+
+	INT32 OTE_req_status;								//操作端末要求状態
+
+	INT16 pb[N_UI_PB];
+	INT16 lamp[N_UI_LAMP];
+//	bool is_notch_0[MOTION_ID_MAX];						//0ノッチ判定
+	INT32 notch0;										//0ノッチ判定総合
+	INT32 notch0_crane;									//0ノッチ判定PLC
 
 }ST_CRANE_STATUS, * LPST_CRANE_STATUS;
-
-#define SEMI_AUTO_TG_CLR	8
-#define SEMI_AUTO_TG1		0
-#define SEMI_AUTO_TG2		1
-#define SEMI_AUTO_TG3		2
-#define SEMI_AUTO_TG4		3
-#define SEMI_AUTO_TG5		4
-#define SEMI_AUTO_TG6		5
-#define SEMI_AUTO_TG7		6
-#define SEMI_AUTO_TG8		7
-
-/************************************************************************************/
-/*   作業内容（JOB)定義構造体                                 　     　　　　　　	*/
-/* 　ClientService タスクがセットする共有メモリ上の情報								*/
-/* 　JOB	:From-Toの搬送コマンド													*/
-/*   COMMAND:1つのJOBを、複数のコマンドで構成	PICK GRAND PARK						*/
-/* 　JOB	:From-Toの搬送作業													*/
-/************************************************************************************/
-#define COM_STEP_MAX		10					//　JOBを構成するコマンド最大数
-#define JOB_TYPE_HANDLING	0x00000001
-
-//Recipe
-#define JOB_STEP_TYPE_NULL	0
-#define JOB_STEP_TYPE_PICK	1
-#define JOB_STEP_TYPE_GRAND	2
-#define JOB_STEP_TYPE_PARK	3
-
-typedef struct _stJobRecipe {
-	SYSTEMTIME time_start_planed;				//予定開始時間
-	int n_step;									//ステップ数
-	int step_type[COM_STEP_MAX];				//各ステップのタイプ
-	double target[COM_STEP_MAX][MOTION_ID_MAX];//各STEP毎　各軸目標
-	int option[COM_STEP_MAX][MOTION_ID_MAX];	//各軸STEP毎　オプション条件
-}ST_JOB_RECIPE, * LPST_JOB_RECIPE;
-
-#define JOB_STAT_STANDBY			0x0001
-#define JOB_STAT_ON_GOING			0x0002
-#define JOB_STAT_COMPLETE			0x0004
-
-#define JOB_STEP_STANDBY			0x0001
-#define JOB_STEP_ON_GOING			0x0002
-#define JOB_STEP_COMPLE_NORMAL		0x0004
-#define JOB_STEP_COMPLE_ABNORMAL	0x0008
-#define JOB_STEP_ABOTED				0x0010
-#define JOB_STEP_SUSPENDED			0x0020
-
-//Status
-typedef struct stJobStat {						//JOB実行状態
-	int status;									//完了コード　異常完了時エラーコード
-	int current_step;							//実行中ステップ
-	int step_status[COM_STEP_MAX];				//step実行状況
-	DWORD step_elapsed[COM_STEP_MAX];			//step経過時間ms
-	SYSTEMTIME time_start;
-	SYSTEMTIME time_end;
-
-}ST_JOB_STAT, * LPST_JOB_STAT;
-
-//Set
-#define JOB_TYPE_NULL		0
-#define JOB_TYPE_OPEROOM	1
-#define JOB_TYPE_CLIENT_PC	2
-#define JOB_TYPE_REMOTE		3
-#define JOB_TYPE_MAINTE_PC	4
-
-typedef struct stJobSet {
-	int id;									//JOB No
-	int type;								//JOB種別（搬送、移動、操作)
-	ST_JOB_RECIPE	recipe;
-	ST_JOB_STAT		status;
-}ST_JOB_SET, * LPST_JOB_SET;
 
 /****************************************************************************/
 /*   運動要素定義構造体                                                     */
 /* 　加速、定速、減速等の一連の動作は、この要素の組み合わせで構成します。   */
 /****************************************************************************/
-#define MOTHION_OPT_V_MAX	0
-#define MOTHION_OPT_V_MIN		0
-#define MOTHION_OPT_PHASE_F		1
-#define MOTHION_OPT_PHASE_R		2
-#define MOTHION_OPT_WAIT_POS	3
 
-#define MOTHION_OPT_AS_TYPE		0
+//レシピ　Type
+#define CTR_TYPE_WAIT_TIME					0x0000	//待機（時間経過待ち）
+#define CTR_TYPE_WAIT_POS_HST				0x0101	//巻到達待ち
+#define CTR_TYPE_WAIT_POS_GNT				0x0102	//走行到達待ち
+#define CTR_TYPE_WAIT_POS_TRY				0x0104	//横行到達待ち
+#define CTR_TYPE_WAIT_POS_BH				0x0108	//引込到達待ち
+#define CTR_TYPE_WAIT_POS_SLW				0x0110	//旋回到達待ち
+#define CTR_TYPE_WAIT_LAND					0x0120	//着床待ち
+#define CTR_TYPE_WAIT_PH_SINGLE				0x0201	//位相待ち 1点
+#define CTR_TYPE_WAIT_PH_DOUBLE				0x0202	//位相待ち 2点
 
+#define CTR_TYPE_VOUT_TIME					0x1000  //ステップ速度　時間完了
+#define CTR_TYPE_VOUT_V						0x1001  //ステップ速度　速度到達完了
+#define CTR_TYPE_VOUT_POS					0x1002  //ステップ速度　位置到達完了
+#define CTR_TYPE_VOUT_PHASE     			0x1004  //ステップ速度　位相到達完了
+#define CTR_TYPE_VOUT_LAND					0x1008  //ステップ速度　着床完了
 
+#define CTR_TYPE_AOUT_TIME					0x2000  //加速速度　時間完了
+#define CTR_TYPE_AOUT_V						0x2001  //加速速度　速度到達完了
+#define CTR_TYPE_AOUT_POS					0x2002  //加速速度　位置到達完了
+#define CTR_TYPE_AOUT_PHASE     			0x2004  //加速速度　位相到達完了
+#define CTR_TYPE_AOUT_LAND					0x2008  //加速速度　着床完了
 
-// Control Type
-#define CTR_TYPE_TIME_WAIT					1  //待機（時間経過待ち）
-#define CTR_TYPE_SINGLE_PHASE_WAIT			2  //位相待ち１カ所(振れ止め用）
-#define CTR_TYPE_DOUBLE_PHASE_WAIT			3  //位相待ち２カ所(振れ止め用）
-#define CTR_TYPE_OTHER_POS_WAIT				4	//他軸位置到達待ち
-#define CTR_TYPE_ADJUST_MOTION_TRIGGER		5	//動作起動調整(振れ止め移動用）
+#define CTR_TYPE_FINE_POS					0x8001	//微小位置合わせ
+#define CTR_TYPE_FB_SWAY					0x8002	//FB振れ止め
+#define CTR_TYPE_FB_SWAY_POS				0x8004	//FB振れ止め位置決め
 
-#define CTR_TYPE_CONST_V_TIME				10  //定速固定時間出力
-#define CTR_TYPE_CONST_V_ACC_STEP			11  //定速出力 加速中
-#define CTR_TYPE_CONST_V_DEC_STEP			12  //定速出力 減速中
-#define CTR_TYPE_CONST_V_TOP_STEP			13  //定速出力 トップ速度
-#define CTR_TYPE_FINE_POSITION				14	//微小位置合わせ
+#define TIME_LIMIT_CONFIRMATION				0.1		//パターン出力調整時間 秒
+#define TIME_LIMIT_FINE_POS					10.0	//微小位置合わせ制限時間 秒
+#define TIME_LIMIT_ERROR_DETECT				120		//異常検出時間
+#define N_STEP_OPTION_MAX					8
 
-#define CTR_TYPE_ACC_TIME					20  //Specified time acceleration
-#define CTR_TYPE_ACC_V						21  //Toward specified speed acceleration
-#define CTR_TYPE_ACC_AS						23	//振れ止め加速
-#define CTR_TYPE_DEC_TIME					30  //Specified time deceleration
-#define CTR_TYPE_DEC_V						31  //Toward specified speed deceleration
+#define STEP_OPT_PHASE_SINGLE				0		//起動位相の配列インデックス　SINGLE
+#define STEP_OPT_PHASE_FWD					0		//起動位相の配列インデックス　DOUBLE　正方向用
+#define STEP_OPT_PHASE_REV					1		//起動位相の配列インデックス　DOUBLE　逆方向用
+#define STEP_OPT_PHASE_CHK_RANGE			2		//起動位相の配列インデックス　DOUBLE　逆方向用
 
-
-#define PTN_CONFIRMATION_TIME				0.1		//パターン出力調整時間
-#define PTN_FINE_POS_LIMIT_TIME				5.0		//微小位置合わせ制限時間
-#define PTN_ERROR_CHECK_TIME				60		//異常検出時間
-
-#define PTN_STEP_STANDBY					0
-#define PTN_STEP_FIN						1
-#define PTN_STEP_ON_GOING					2
-#define PTN_STEP_ERROR						-1
-#define PTN_STEP_TIME_OVER					-2
 
 typedef struct stMotionElement {	//運動要素
-	int type;				//制御種別
-	int status;				//制御状態
-	int time_count;			//予定継続時間のカウンタ変換値
-	double _a;				//目標加減速度
-	double _v;				//目標速度
-	double _p;				//目標位置
-	double _t;				//継続時間
-	double opt_d[8];		//オプションdouble
-	int opt_i[8];			//オプションint
+	//recipe
+	int type;								//制御種別
+	double _a;								//目標加減速度
+	double _v;								//目標速度
+	double _p;								//目標位置
+	double _t;								//予定継続時間
+	int time_count;							//予定継続時間のカウンタ変換値
+	double opt_d[N_STEP_OPTION_MAX];		//オプションdouble
+	int opt_i[N_STEP_OPTION_MAX];			//オプションint
+	//status
+	int act_count;
+	int status;
 }ST_MOTION_STEP, * LPST_MOTION_STEP;
 
 /****************************************************************************/
@@ -400,58 +421,84 @@ typedef struct stMotionElement {	//運動要素
 
 //Recipe
 typedef struct stMotionRecipe {					//移動パターン
-	DWORD motion_type;							//動作種別、
+	//CS set
+	int axis_id;
+	int motion_type;
+	int option_i;								//オプション条件
+	int direction;								//動作方向(-1,0,+1)
 	int n_step;									//動作構成要素数
-	DWORD opt_dw;								//オプション条件
 	int time_limit;								//タイムオーバー判定値
 	ST_MOTION_STEP steps[M_STEP_MAX];			//動作定義要素配列
+
+	//Agent set
+	int i_hot_step;								//実行中要素配列index -1で完了
+	int motion_act_count;						//動作実行時間カウントカウント数
+	int fin_code;								//完了コード
+
 }ST_MOTION_RECIPE, * LPST_MOTION_RECIPE;
 
-//Status
-#define COMMAND_STAT_ERROR		-1
-#define COMMAND_STAT_END		0
-#define COMMAND_STAT_STANDBY	1
-#define COMMAND_STAT_ACTIVE		2
-#define COMMAND_STAT_PAUSE		3
-#define COMMAND_STAT_ABORT		4
-
-#define MOTION_STAT_FLG_N		4 
-#define MOTION_ACC_STEP_BYPASS	0 
-#define MOTION_DEC_STEP_BYPASS	1 
-
-typedef struct stMotionStat {
-	int status;									//動作実行状況
-	int iAct;									//実行中要素配列index -1で完了
-	int step_act_count;							//実行中要素の実行カウント数
-	int elapsed;								//MOTION開始後経過時間
-	int error_code;								//エラーコード　異常完了時
-	int direction;								//動作方向
-	int flg[MOTION_STAT_FLG_N];				//実行ステータスオプションフラグ
-}ST_MOTION_STAT, * LPST_MOTION_STAT;
 
 /********************************************************************************/
 /*   軸連動運転内容(COMMAND)定義構造体                             　　　　　　 */
 /* 　目的動作を実現する運転内容を単軸動作の組み合わせで実現します               */
 /********************************************************************************/
 
+
+/*** コマンド種類 ***/
+#define COM_TYPE_MASK			0x0F00      
+#define COM_TYPE_PICK			0x0100
+#define COM_TYPE_GRND			0x0200
+#define COM_TYPE_PARK			0x0400
+#define COM_TYPE_FROM_TO		0x0800
+#define COM_TYPE_NON 			0x0000
+
+/*** コマンド種類 ***/
+#define STAT_MASK               0x00FF      //ステータス部マスク
+#define STAT_NA					0x0000      //適用不可
+#define STAT_STANDBY			0x0001      //適用不可
+#define STAT_TRIGED             0x0002      //起動済実行待ち
+#define STAT_ACTIVE             0x0004      //実行中報告
+#define STAT_SUSPENDED          0x0008      //一時停止報告
+#define STAT_ABOTED             0x0010      //中断
+#define STAT_END				0x0020      //正常完了
+#define STAT_REQ_WAIT           0x0080      //要求待ち
+#define STAT_POSITIVE			0x1000		//OK
+#define STAT_SUCCEED			0x1000		//成功
+#define STAT_ACK				0x1001		//正常受付
+#define STAT_NAK				0x8000		//NG
+#define STAT_ABNORMAL			0x8000		//失敗
+#define STAT_TIME_OVER			0x8010		//タイムオーバー
+#define STAT_ABNORMAL_END       0x8020      //異常完了
+#define STAT_LOGICAL_ERROR		0x8004      //整合性異常
+#define STAT_CODE_ERROR			0x8008      //適合コード無し
+
+typedef struct StPosTargets {
+	double pos[MOTION_ID_MAX];
+	bool is_held[MOTION_ID_MAX];				//目標位置ホールド中フラグ
+}ST_POS_TARGETS, * LPST_POS_TARGETS;
+
+typedef struct StCommandCode {
+	int i_list;
+	int i_job;
+	int i_recipe;
+}ST_COM_CODE, * LPST_COM_CODE;
+
 typedef struct stCommandSet {
 	//POLICY SET
-	int id;									//コマンドID
-	int type;								//コマンド種別
-	int job_id;
-	int job_step;
-	bool is_required_motion[MOTION_ID_MAX];		//動作対象軸
+	ST_COM_CODE com_code;
+	int n_motion;									//コマンドで動作する軸の数
+	int active_motion[MOTION_ID_MAX];				//コマンド動作する軸のID配列（MOTION　RECIPEの対象配列）
 	ST_MOTION_RECIPE recipe[MOTION_ID_MAX];
+	ST_POS_TARGETS target;							//目標位置	
 
 	//AGENT SET
-	SYSTEMTIME time_start;					//開始時の時間 SYSTEMTIME
-	SYSTEMTIME time_end;					//終了時の時間 SYSTEMTIME
-	int com_status;							//実行状態　
-	int status_code;						//エラーコード等（異常完了時）　
-	ST_MOTION_STAT	motion_stat[MOTION_ID_MAX];
+	int motion_status[MOTION_ID_MAX];
+	int recipe_counter[MOTION_ID_MAX];
+	int com_status;
 
 }ST_COMMAND_SET, * LPST_COMMAND_SET;
 
+#define JOB_COMMAND_MAX				10			//　JOBを構成するコマンド最大数
 
 //# Policy タスクセット領域
 
@@ -459,36 +506,150 @@ typedef struct stCommandSet {
 #define MODE_ANTISWAY		0x00010000
 #define MODE_RMOTE_PANEL	0x00000100
 
+/************************************************************************************/
+/*   作業内容（JOB)定義構造体                                 　     　　　　　　	*/
+/* 　ClientService タスクがセットする共有メモリ上の情報								*/
+/* 　JOB	:From-Toの搬送コマンド													*/
+/*   COMMAND:1つのJOBを、複数のコマンドで構成	PICK GRAND PARK						*/
+/* 　JOB	:From-Toの搬送作業													*/
+/************************************************************************************/
+#define JOB_REGIST_MAX			10					//　JOB登録最大数
+#define JOB_N_STEP_SEMIAUTO		1
+
+
+#define COM_RECIPE_OPTION_N			8
+
+typedef struct stComRecipe {
+	//CS SET
+	int id;
+	int type;									//JOB種別（PICK,GRND,PARK...）
+	int time_limit;								//JOB構成コマンド数
+	ST_POS_TARGETS target;						//各コマンドの目標位置	
+
+	int option_i[COM_RECIPE_OPTION_N];
+	double option_d[COM_RECIPE_OPTION_N];
+
+	ST_COMMAND_SET comset;							//レシピを展開したコマンドセット
+	int status;
+
+	SYSTEMTIME time_start;
+	SYSTEMTIME time_end;
+}ST_COM_RECIPE, * LPST_COM_RECIPE;
+
+typedef struct stJobSet {
+	int list_id;								//登録されているJOB listのid
+	int id;										//登録されているJOB list内でのid
+	int status;									//現在実行対象のJOBの状態
+	int n_com;									//JOB構成コマンド数
+	int type;									//JOB種別（JOB,半自動,OPERATION））
+	ST_COM_RECIPE recipe[JOB_COMMAND_MAX];	//各コマンドのレシピ
+	int i_hot_com;
+
+	SYSTEMTIME time_start;
+	SYSTEMTIME time_end;
+}ST_JOB_SET, * LPST_JOB_SET;
+
+
+//JOB LIST
+typedef struct _stJobList {
+	int id;
+	int type;									//JOB種別（JOB,半自動）
+	int n_hold_job;								//未完Job数
+	int i_job_hot;								//次完了待ちJob(実行中or待機中）	  id
+	ST_JOB_SET job[JOB_REGIST_MAX];				//登録job
+}ST_JOB_LIST, * LPST_JOB_LIST;
+
+
+#define N_JOB_LIST						2				//JOB LIST登録数
+#define ID_JOBTYPE_JOB					0				//JOB Type index番号
+#define ID_JOBTYPE_SEMI					1				//SEMIAUTO Type index番号
+#define ID_JOBTYPE_ANTISWAY				2				//FB ANTISWAY Type index番号
+#define JOB_HOLD_MAX					10				//保持可能JOB最大数
+
+typedef struct stJobIO {
+	ST_JOB_LIST	job_list[N_JOB_LIST];
+}ST_JOB_IO, * LPST_JOB_IO;
+
+
 /****************************************************************************/
 /*   Client Service	情報定義構造体                                   　   　*/
 /* 　Client Serviceタスクがセットする共有メモリ上の情報　　　　　　　 　    */
 /****************************************************************************/
 
-#define JOB_HOLD_MAX			10					//	保持可能JOB最大数
+#define CS_SEMIAUTO_TG_SEL_DEFAULT      0
+#define CS_SEMIAUTO_TG_SEL_CLEAR		0
+#define CS_SEMIAUTO_TG_SEL_ACTIVE       1
+#define CS_SEMIAUTO_TG_SEL_FIXED        2
+#define CS_SEMIAUTO_TG_MAX				16
+
+#define CS_ID_SEMIAUTO_TOUCH_PT			8
 
 typedef struct stCSInfo {
+	//UI関連
+	int ui_lamp[N_UI_LAMP];											//PLCランプ表示出力用（自動開始）
+	int ui_pb[N_UI_PB];												//PLC操作PB入力確認用（自動開始）
+	int semiauto_lamp[SEMI_AUTO_TARGET_MAX];							//半自動ランプ表示出力用
+	int semiauto_pb[SEMI_AUTO_TARGET_MAX];								//半自動PB入力処理用
+	ST_POS_TARGETS semi_auto_setting_target[CS_SEMIAUTO_TG_MAX];		//半自動設定目標位置
+	ST_POS_TARGETS semi_auto_selected_target;							//半自動選択目標位置
+	INT32 semi_auto_selected_target_for_view[MOTION_ID_MAX];			//半自動選択目標位置(カメラ座標）
+	INT32 hunging_point_for_view[MOTION_ID_MAX];						//半自動選択目標位置(カメラ座標）	
+	int	semi_auto_selected;												//選択中の半自動ID
+	int command_type;													//PARK,PICK,GRND
+	int tg_sel_trigger_z = L_OFF, tg_sel_trigger_xy = L_OFF;			//目標位置の設定入力（半自動PB、モニタタッチ）があったかどうかの判定値
+	int target_set_z = CS_SEMIAUTO_TG_SEL_FIXED, target_set_xy = CS_SEMIAUTO_TG_SEL_FIXED;		//Z座標目標位置確定
+	LPST_JOB_SET p_active_job;
+	int job_set_event;
 
-	int n_job_standby;
-	int i_current_job;							//実行中のJOBインデックス  -1:実行無し
-	ST_JOB_SET	job_list[JOB_HOLD_MAX];
+	//自動,遠隔設定（モード）
+	int auto_mode;														//自動モード
+	int antisway_mode;													//振れ止めモード
+	int estop_active;													//非常停止動作中
+	int ote_notch_dist_mode;											//タブレット目標入力　移動距離指定
 
-	//for Client
-	DWORD req_status;
-	DWORD n_job_hold;							//未完JOB数
+
+	double ote_camera_height_m;											//操作端末VIEWのカメラ設置高さ
 
 }ST_CS_INFO, * LPST_CS_INFO;
+
+#define N_JOB_TARGET_MAX	10
+#define N_JOB_OPTION_MAX	10
+
+typedef struct stClientRcvMSG {
+	int req_code;
+	int JOB_ID;
+	double target[N_JOB_TARGET_MAX][MOTION_ID_MAX];
+	int option[N_JOB_OPTION_MAX];
+}ST_CLIENT_RCV_MSG, * LPST_CLIENT_RCV_MSG;
+
+typedef struct stClientSndMSG {
+	int fb_code;
+	int JOB_ID;
+	int option[N_JOB_OPTION_MAX];
+}ST_CLIENT_SND_MSG, * LPST_CLIENT_SND_MSG;
+
+
+#define N_CLIENT_MSG_HOLD_MAX	10
+
+typedef struct stClientIO {
+	int i_rcv_hot;
+	int i_snd_hot;
+	ST_CLIENT_RCV_MSG rmsg[N_CLIENT_MSG_HOLD_MAX];
+	ST_CLIENT_SND_MSG smsg[N_CLIENT_MSG_HOLD_MAX];
+}ST_CLIENT_IO, * LPST_CLIENT_IO;
+
 
 /****************************************************************************/
 /*   Policy	情報定義構造体                                   　			  　*/
 /* 　Policy	タスクがセットする共有メモリ上の情報　　　　　　　		 　		*/
 /****************************************************************************/
+
+
+#define FAULT_MAP_W_SIZE	64	//フォルトマップサイズ
+
 typedef struct stPolicyInfo {
 
-	int i_jobcom;							//現在のコマンドINDEX
-	int i_com;								//現在のコマンドINDEX
-	ST_COMMAND_SET job_com[COM_STEP_MAX];
-	ST_COMMAND_SET com[COM_STEP_MAX];
-	int auto_ctrl_ptn[MOTION_ID_MAX];
+	WORD fault_map[FAULT_MAP_W_SIZE];
 
 }ST_POLICY_INFO, * LPST_POLICY_INFO;
 
@@ -497,29 +658,50 @@ typedef struct stPolicyInfo {
 /* 　Agent	タスクがセットする共有メモリ上の情報　　　　　　　 　			*/
 /****************************************************************************/
 
-#define AUTO_TYPE_ANTI_SWAY	0x01
-#define AUTO_TYPE_SEMI_AUTO	0x11
-#define AUTO_TYPE_JOB		0x21
-#define AUTO_TYPE_MANUAL	0x00
+/*** ジョブ,コマンドステータス ***/
+//auto_ongoing用
+#define AUTO_TYPE_JOB_MASK       0x7000      //JOB種別部マスク
+#define AUTO_TYPE_SEL_MASK       0xf000      //自動種別部マスク
+#define AUTO_TYPE_MANUAL		 0x0000
+#define AUTO_TYPE_JOB            0x1000      //種別JOB
+#define AUTO_TYPE_SEMIAUTO       0x2000      //種別半自動
+#define AUTO_TYPE_OPERATION      0x4000      //種別クレーン操作
+#define AUTO_TYPE_FB_ANTI_SWAY	 0x8000
+
+//antisway_on_going用
+#define ANTISWAY_ALL_MANUAL		 0x00000000      //振れ止め無し
+#define ANTISWAY_BH_ACTIVE		 0x00000001      //引込振止実行中
+#define ANTISWAY_BH_PAUSED		 0x00000002      //引込振止一時停止
+#define ANTISWAY_BH_COMPLETE	 0x00000008      //引込振止完了
+#define ANTISWAY_SLEW_ACTIVE	 0x00000010      //旋回振止実行
+#define ANTISWAY_SLEW_PAUSED	 0x00000020      //旋回振止一時停止
+#define ANTISWAY_SLEW_COMPLETE	 0x00000080      //旋回振止完了 
+
+//axis_status用
+#define AG_AXIS_STAT_FB0				0x000000001	 //停止中
+#define AG_AXIS_STAT_PC_ENABLE			0x800000000	 //PC指令可
+#define AG_AXIS_STAT_AUTO_ENABLE		0x100000000	 //自動可
+#define AG_AXIS_STAT_ANTISWAY_ENABLE	0x200000000	 //振れ止め可
 
 typedef struct stAgentInfo {
 
-	WORD pc_ctrl_mode; //PCからの指令で動作させる軸の指定
+	ST_COMMAND_SET st_as_comset;					//振れ止め用コマンドセット
+	ST_POS_TARGETS auto_pos_target;					//自動目標位置
+	double dist_for_target[MOTION_ID_MAX];			//目標までの距離
+	int auto_on_going;								//実行中の自動種別
+	int antisway_on_going;							//実行中振れ止め
+	int pc_ctrl_mode;								//PCからの指令で動作させる軸の指定
+	int auto_active[MOTION_ID_MAX];					//自動実行中フラグ(軸毎)
+	int axis_status[MOTION_ID_MAX];					//各軸の状態（fb0,異常等）
 
-	double v_ref[MOTION_ID_MAX];
-	int PLC_PB_com[N_PLC_PB];
-	int PLC_LAMP_com[N_PLC_LAMP];
-	int PLC_LAMP_semiauto_com[SEMI_AUTO_TARGET_MAX];
+	double v_ref[MOTION_ID_MAX];					//速度指令出力値
+	int PLC_PB_com[N_PLC_PB];						//PLCへのDO指令（PB入力相当指令）
 
-	int auto_on_going;								//実行中の自動
-	UCHAR auto_active[MOTION_ID_MAX];				//自動実行中(軸毎)
-	double dist_for_stop[MOTION_ID_MAX];			//減速停止距離
-	double pos_target[MOTION_ID_MAX];				//位置決め目標位置
-	bool is_spdfb_0[MOTION_ID_MAX];					//振れ止め速度FB条件
-	bool be_hold_target[MOTION_ID_MAX];				//目標位置キープフラグ
-	double gap_from_target[MOTION_ID_MAX];			//目標位置からのずれ
-	double gap2_from_target[MOTION_ID_MAX];			//目標位置からのずれ2乗
-	double sway_amp2m[MOTION_ID_MAX];				//振れ振幅の2乗m2
+	ST_COMMAND_SET st_active_com_inf;				//実行中コマンドセット情報
+
+	int as_count[MOTION_ID_MAX];					//振れ止めレシピ作成呼び出し回数
+	int command_count;								//コマンドレシピ作成呼び出し回数
+
 
 }ST_AGENT_INFO, * LPST_AGENT_INFO;
 
@@ -553,18 +735,5 @@ protected:
 
 	HANDLE hMutex;
 };
-
-//コマンド要求応答コード
-#define REQ_ACCEPTED			0
-
-
-//オペレーションコマンド
-#define OPE_COM_PB_SET				1
-#define OPE_COM_LAMP_ON				2
-#define OPE_COM_LAMP_OFF			3
-#define OPE_COM_LAMP_FLICKER		4
-#define OPE_COM_SEMI_LAMP_ON		5
-#define OPE_COM_SEMI_LAMP_OFF		6
-#define OPE_COM_SEMI_LAMP_FLICKER	7
 
 

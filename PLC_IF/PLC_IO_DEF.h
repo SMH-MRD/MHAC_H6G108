@@ -112,17 +112,32 @@ typedef struct StPLCOutBMap {
     UINT16 PB_as_on[2]           = { 5, BIT1 };
     UINT16 PB_auto_start[2]      = { 5, BIT2 };
     
-    UINT16 PB_auto_target1[2]    = { 5, BIT4 };
-    UINT16 PB_auto_target2[2]    = { 5, BIT5 };
-    UINT16 PB_auto_target3[2]    = { 5, BIT6 };
-    UINT16 PB_auto_target4[2]    = { 5, BIT7 };
-    UINT16 PB_auto_target5[2]    = { 5, BIT8 };
-    UINT16 PB_auto_target6[2]    = { 5, BIT9 };
-    UINT16 PB_auto_target7[2]    = { 5, BIT10 };
-    UINT16 PB_auto_target8[2]    = { 5, BIT11 };
+    UINT16 PB_auto_target_s1[2]    = { 5, BIT4 };
+    UINT16 PB_auto_target_s2[2]    = { 5, BIT5 };
+    UINT16 PB_auto_target_s3[2]    = { 5, BIT6 };
+    UINT16 PB_auto_set_z[2]    = { 5, BIT7 };
+    UINT16 PB_auto_target_l1[2]    = { 5, BIT8 };
+    UINT16 PB_auto_target_l2[2]    = { 5, BIT9 };
+    UINT16 PB_auto_target_l3[2]    = { 5, BIT10 };
+    UINT16 PB_auto_set_xy[2]    = { 5, BIT11 };
 
     UINT16 PB_mode_crane[2]      = { 5, BIT13 };
     UINT16 PB_mode_remote[2]     = { 5, BIT14 };
+
+    UINT16 PB_ajust_mhp1[2] = { 6, BIT0 };
+    UINT16 PB_ajust_mhp2[2] = { 6, BIT1 };
+    UINT16 PB_ajust_mhm1[2] = { 6, BIT2 };
+    UINT16 PB_ajust_mhm2[2] = { 6, BIT3 };
+    UINT16 PB_ajust_slp1[2] = { 6, BIT4 };
+    UINT16 PB_ajust_slp2[2] = { 6, BIT5 };
+    UINT16 PB_ajust_slm1[2] = { 6, BIT6 };
+    UINT16 PB_ajust_slm2[2] = { 6, BIT7 };
+    UINT16 PB_ajust_bhp1[2] = { 6, BIT8 };
+    UINT16 PB_ajust_bhp2[2] = { 6, BIT9 };
+    UINT16 PB_ajust_bhm1[2] = { 6, BIT10 };
+    UINT16 PB_ajust_bhm2[2] = { 6, BIT11 };
+
+
 }ST_PLC_OUT_BMAP, * LPST_PLC_OUT_BMAP;
 //PLC出力　Wレジスタ割付マップ
 typedef struct StPLCOutWMap {
@@ -231,23 +246,27 @@ typedef struct StPLCOutWMap {
 typedef struct StPCOutBMap {
 
     UINT16 healty[2]                 = { 0, BIT0 };
-    UINT16 com_0stop[2]	            = { 0, BIT1 };
-    UINT16 com_auto_device_on[2]	    = { 0, BIT2 };
+    UINT16 com_0stop[2]	             = { 0, BIT1 };
+    UINT16 com_auto_device_on[2]	 = { 0, BIT2 };
     UINT16 com_auto_device_off[2]    = { 0, BIT3 };
-    UINT16 com_sway_trget_on[2]	    = { 0, BIT5 };
+    UINT16 com_sway_trget_on[2]	     = { 0, BIT5 };
     UINT16 com_sway_trget_off[2]     = { 0, BIT6 };
-    UINT16 lamp_as_off[2]             = { 0, BIT8 };
-    UINT16 lamp_as_on[2]            = { 0, BIT9 };
+    UINT16 lamp_as_off[2]            = { 0, BIT8 };
+    UINT16 lamp_as_on[2]             = { 0, BIT9 };
     UINT16 lamp_auto_start[2]        = { 0, BIT10 };
-    UINT16 lamp_auto_tg1[2]          = { 0, BIT12 };
-    UINT16 lamp_auto_tg2[2]          = { 0, BIT13 };
-    UINT16 lamp_auto_tg3[2]          = { 0, BIT14 };
-    UINT16 lamp_auto_tg4[2]          = { 0, BIT15 };
-    UINT16 lamp_auto_tg5[2]          = { 1, BIT0 };
-    UINT16 lamp_auto_tg6[2]          = { 1, BIT1 };
-    UINT16 lamp_auto_tg7[2]          = { 1, BIT2 };
-    UINT16 lamp_auto_tg8[2]          = { 1, BIT3 };
-
+    UINT16 lamp_auto_tg_s1[2]        = { 0, BIT12 };
+    UINT16 lamp_auto_tg_s2[2]        = { 0, BIT13 };
+    UINT16 lamp_auto_tg_s3[2]        = { 0, BIT14 };
+    UINT16 lamp_auto_set_z[2]        = { 0, BIT15 };
+    UINT16 lamp_auto_tg_l1[2]        = { 1, BIT0 };
+    UINT16 lamp_auto_tg_l2[2]        = { 1, BIT1 };
+    UINT16 lamp_auto_tg_l3[2]        = { 1, BIT2 };
+    UINT16 lamp_auto_set_xy[2]       = { 1, BIT3 };
+    UINT16 lamp_auto_mode[2]         = { 1, BIT4 };
+    UINT16 lamp_auto_park[2]        = { 1, BIT5 };
+    UINT16 lamp_auto_pick[2]        = { 1, BIT6 };
+    UINT16 lamp_auto_grnd[2]        = { 1, BIT7 };
+ 
     UINT16 com_pc_ctr_act[2]         = { 1, BIT12 };
     UINT16 com_plc_emulate_act[2]    = { 1, BIT13 };
     UINT16 com_pc_analog_ref_mode[2] = { 1, BIT14 };
@@ -349,12 +368,12 @@ typedef struct StPCOutWMap {
     UINT16 spd_ref_bh[2]             = { 4, ALL_BITS };
     UINT16 spd_ref_slw[2]            = { 5, ALL_BITS };
     
-    UINT16 auto_tg1_slw_pos[2]       = { 8, ALL_BITS };
-    UINT16 auto_tg1_bh_pos[2]        = { 9, ALL_BITS };
-    UINT16 auto_tg2_slw_pos[2]       = { 10, ALL_BITS };
-    UINT16 auto_tg2_bh_pos[2]        = { 11, ALL_BITS };
-    UINT16 auto_tg3_slw_pos[2]       = { 12, ALL_BITS };
-    UINT16 auto_tg3_bh_pos[2]        = { 13, ALL_BITS };
+    UINT16 auto_tg_s1_slw_pos[2]       = { 8, ALL_BITS };
+    UINT16 auto_tg_s1_bh_pos[2]        = { 9, ALL_BITS };
+    UINT16 auto_tg_s2_slw_pos[2]       = { 10, ALL_BITS };
+    UINT16 auto_tg_s2_bh_pos[2]        = { 11, ALL_BITS };
+    UINT16 auto_tg_s3_slw_pos[2]       = { 12, ALL_BITS };
+    UINT16 auto_tg_s3_bh_pos[2]        = { 13, ALL_BITS };
     UINT16 auto_tg4_slw_pos[2]       = { 14, ALL_BITS };
     UINT16 auto_tg4_bh_pos[2]        = { 15, ALL_BITS };
 

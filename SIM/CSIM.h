@@ -4,6 +4,8 @@
 #include "CSharedMem.h"	    //# 共有メモリクラス
 #include "CMob.h"
 
+#define SWAY_IF_MIN_SCAN_MS         100     //振れセンサの送信スキャンタイムmsec
+
 #define SIM_IF_PLC_IO_MEM_NG        0x8000
 #define SIM_IF_CRANE_MEM_NG         0x4000
 #define SIM_IF_SIM_MEM_NG           0x2000
@@ -56,12 +58,10 @@ private:
         else    mode &= ~SIM_ACTIVE_MODE;
     }
 
-    int is_act_mode() { return(mode & SIM_ACTIVE_MODE); }
+    int is_sim_active_mode() { return(mode & SIM_ACTIVE_MODE); }
 
 private:
    
-    double SwayCamParam[SWAY_SENSOR_N_AXIS][CAM_SET_PARAM_N_PARAM];
-    
     int set_cran_motion();
     int set_sway_io();
 
