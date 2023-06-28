@@ -97,10 +97,12 @@ int CPLC_IF::init_proc() {
     ST_PC_OUT_WMAP pc_out_w_map;
     melnet.pc_w_map = pc_out_w_map;
 
+#if 0
     //CraneStat—§‚¿ã‚ª‚è‘Ò‚¿
     while (pCrane->is_tasks_standby_ok == false) {
         Sleep(10);
     }
+#endif
 
     return int(mode & 0xff00);
 }

@@ -149,8 +149,6 @@ public:
     int parse();                //ƒƒCƒ“ˆ—
     int output();               //o—Íˆ—
 
- 
-
     virtual HWND open_WorkWnd(HWND hwnd_parent);
     static LRESULT CALLBACK WorkWndProc(HWND, UINT, WPARAM, LPARAM);
     static int close_WorkWnd();
